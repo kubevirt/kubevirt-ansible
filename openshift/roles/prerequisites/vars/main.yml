@@ -1,0 +1,13 @@
+epel_repo_rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+openshift_packages:
+  - wget
+  - git
+  - net-tools
+  - bind-utils
+  - iptables-services
+  - bridge-utils
+  - bash-completion
+  - kexec-tools
+  - sos
+  - psacct
+  - docker

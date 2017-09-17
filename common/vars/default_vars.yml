@@ -1,0 +1,16 @@
+---
+go_path: "{{ ansible_env.HOME }}/go"
+go_dev_profile_dir: /etc/profile.d
+go_dev_get_default:
+  - pkg: golang.org/x/tools/cmd/goimports
+    target: goimports
+  - pkg: github.com/Masterminds/glide
+    target: glide
+  - pkg: github.com/golang/mock/gomock
+    target: gomock
+  - pkg: github.com/rmohr/mock/mockgen
+    target: mockgen
+  - pkg: github.com/rmohr/go-swagger-utils/swagger-doc
+    target: swagger-doc
+  - pkg: github.com/onsi/ginkgo/ginkgo
+    target: ginko

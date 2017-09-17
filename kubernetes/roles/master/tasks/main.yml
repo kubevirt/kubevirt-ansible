@@ -1,0 +1,25 @@
+---
+- name: install cockpit packages
+  yum:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
+  with_items:
+    - cockpit
+    - cockpit-kubernetes
+
+- name: enable and start cockpit service
+  service:
+    name: "cockpit.socket"
+    state: started
+    enabled: yes
+
+- name: copy kubernetes deployment script
+  template:
+    src: deploy_kubernetes.j2
+    dest: /root/deploy_kubernetes.sh
+    mode: 0755
+
+- name: deploy kubernetes
+  shell: /root/deploy_kubernetes.sh
+

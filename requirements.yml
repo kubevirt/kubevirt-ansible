@@ -1,0 +1,6 @@
+---
+- src: https://github.com/openshift/openshift-ansible-contrib
+  version: master
+  name: openshift-contrib
+
+- src: andrewrothstein.go-dev
