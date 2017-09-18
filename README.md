@@ -1,8 +1,8 @@
-# KubeVirt-ansible
+# kubevirt-ansible
 The purpose of this project to create Kubernetes or OpenShift cluster and deploy KubeVirt environment on it.
 Tested on CentOS Linux release 7.3.1611 (Core).
 
-### Requirments
+### Requirements
 Install depending roles, and export `ANSIBLE_ROLES_PATH`
 ```
 $ ansible-galaxy install -p $HOME/galaxy-roles -r requirements.yml
@@ -32,4 +32,3 @@ You must give directory where you placed `openshift-ansible` to the variable `op
 - [**KubeVirt project**](https://github.com/kubevirt/kubevirt)
 - [**OpenShift Ansible project**](https://github.com/openshift/openshift-ansible)
 - [**Golang Ansible playbook project**](https://github.com/jlund/ansible-go)
-
