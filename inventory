@@ -1,0 +1,24 @@
+[OSEv3:children]
+masters
+nodes
+
+[OSEv3:vars]
+openshift_deployment_type=origin
+openshift_clock_enabled=true
+ansible_ssh_user=root
+openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true', 'challenge': 'true', 'kind': 'AllowAllPasswordIdentityProvider'}]
+openshift_disable_check=memory_availability,disk_availability
+
+[masters]
+# Your master FQDN
+
+[etcd]
+# Your etcd FQDN
+
+[nodes]
+# Your nodes FQDN's
+#
+# If you run openshift deployemnt
+# You can add your master as schedulable node with option openshift_schedulable=true
+# Add at least one node with lable to run on it router and docker containers
+# openshift_node_labels="{'region': 'infra','zone': 'default'}"

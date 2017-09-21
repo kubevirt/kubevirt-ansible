@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# deploy kubernetes
+kubeadm init --token {{ kubernetes_token }}
+
+# create directory for kubernetes config
+mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+
+# install weave pod network plugin
+export kubever=$(kubectl version | base64 | tr -d '\n')
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$kubever"
+
+# patch weave plugin to have desired IP allocation range
+ipalloc_range={{ ipalloc_range }}
+{% raw %}
+kubectl --namespace=kube-system patch ds weave-net -p '{"spec": {"template": {"spec": {"containers": [{"name": "weave", "env": [{"name": "IPALLOC_RANGE", "value": "'$ipalloc_range'"}]}]}}}}'
+{% endraw %}
+
+# add to master possibility to schedule pods
+kubectl taint nodes {{ groups['master'][0] }} node-role.kubernetes.io/master:NoSchedule- || :
+
+# add additional service accounts
+kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default
+kubectl create clusterrolebinding add-on-default-admin --clusterrole=cluster-admin --serviceaccount=default:default
+

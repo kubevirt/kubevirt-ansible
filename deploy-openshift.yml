@@ -1,0 +1,25 @@
+---
+- hosts: all
+  remote_user: root
+  vars_files:
+    - "{{ playbook_dir }}/common/vars/default_vars.yml"
+  roles:
+    - "{{ playbook_dir }}/openshift/roles/prerequisites"
+    - "openshift-contrib/roles/docker-storage-setup"
+  post_tasks:
+    - name: Enable and start docker service
+      service: 
+        state: started
+        enabled: yes
+        name: docker
+
+- include: "{{ openshift_ansible_dir }}/playbooks/byo/config.yml"
+
+- hosts: all
+  remote_user: root
+  pre_tasks:
+    - name: override go-dev variables
+      include_vars: "{{ playbook_dir }}/common/vars/default_vars.yml"
+  roles:
+    - "andrewrothstein.go-dev"
+    - "{{ playbook_dir }}/common/roles/kubevirt"
