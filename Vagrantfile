@@ -4,12 +4,12 @@
 # Vagrantfile API/syntax version. Don't touch unless you know what you're doing!
 VAGRANTFILE_API_VERSION = '2'
 
-node_count = ENV['NODE_COUNT'] || 2
+require "yaml"
 
-NETWORK_BASE = '192.168.50'
-INTEGRATION_START_SEGMENT = 20
+# configuration is loaded from config file
+config_file = YAML.load_file(File.join(File.dirname(__FILE__), 'config.yml'))
 
-BOX_IMAGE = "centos/7"
+
 
 # ###########################
 # generate the new secure key
@@ -17,7 +17,7 @@ BOX_IMAGE = "centos/7"
 # this new key is used for all VMs instead of randomly generated
 # vagrant default this easier the ansible use
 if not File.exist?("common/files/keys/.vagrant_access")
-  system("ssh-keygen -t rsa -b 4096 -C vagrant@ansible.test -f common/files/keys/.vagrant_access -N \"\"")
+  system("ssh-keygen -t rsa -b 4096 -C vagrant@kubevirt.test -f common/files/keys/.vagrant_access -N \"\"")
 end
 
 # ###########################
@@ -41,7 +41,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.ssh.forward_agent = true
   config.ssh.private_key_path = ["common/files/keys/.vagrant_access", "~/.vagrant.d/insecure_private_key"]
 
-  config.vm.box = BOX_IMAGE
+  config.vm.box = config_file["box_image"]
 
   config.vm.provider "libvirt" do |libvirt|
     libvirt.cpus = 1
@@ -60,9 +60,6 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # provisioning
   # ############
 
-  # Configure eth0 via script, will disable NetworkManager and enable legacy network daemon:
-  # config.vm.provision "shell", path: "provision/setup.sh", args: [NETWORK_BASE]
-
   # copy generated key to all machines, the same key will easier the dev setup
   config.vm.provision "file", source: "common/files/keys/.vagrant_access.pub", destination: "~/.ssh/authorized_keys"
   config.vm.provision "file", source: "common/files/keys/.vagrant_access", destination: "~/.ssh/id_rsa"
@@ -73,25 +70,27 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   # #############
 
   config.vm.define "master" do |master|
-    master.vm.network :private_network, ip: "#{NETWORK_BASE}.#{INTEGRATION_START_SEGMENT}"
-    master.vm.hostname = "master.openshift.test"
+    master.vm.network :private_network, ip: "#{config_file['network_base']}.#{config_file['start_segment']}"
+    master.vm.hostname = "master.kubevirt.test"
     master.hostmanager.aliases = %w(master)
   end
 
-  (1..node_count).each do |i|
+  (1..config_file["nodes"]).each do |i|
     config.vm.define "node-#{i}" do |node|
-      node.vm.network :private_network, ip: "#{NETWORK_BASE}.#{INTEGRATION_START_SEGMENT + i}"
-      node.vm.hostname = "node-#{i}.openshift.test"
+      node.vm.network :private_network, ip: "#{config_file['network_base']}.#{config_file['start_segment'].to_i + i}"
+      node.vm.hostname = "node-#{i}.kubevirt.test"
       node.hostmanager.aliases = %w(node-#{i})
     end
   end
 
-  config.vm.define "admin" do |admin|
-    admin.vm.network :private_network, ip: "#{NETWORK_BASE}.#{INTEGRATION_START_SEGMENT + node_count + 1}"
-    admin.vm.hostname = "admin.openshift.test"
-    admin.hostmanager.aliases = %w(admin)  
+  config.vm.define "devel" do |devel|
+    admin.vm.network :private_network, ip: "#{config_file['network_base']}.#{config_file['start_segment'].to_i + config_file['nodes'] + 1}"
+    admin.vm.hostname = "devel.kubevirt.test"
+    admin.hostmanager.aliases = %w(devel)  
   end
 
+  # prepare the vagrant machines to ssh between them,
+  # easier the devs life
   config.vm.provision "shell", inline: <<-SHELL
     #!/bin/bash
     set -xe
@@ -102,5 +101,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     # FIXME, sometimes eth1 does not come up on Vagrant on latest fc26
     sudo ifup eth1
   SHELL
+
+  # ansible machine setup
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "deploy-kubernetes.yml"
+  end
 
 end
