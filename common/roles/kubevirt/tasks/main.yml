@@ -11,17 +11,18 @@
     repo: https://github.com/kubevirt/kubevirt.git
     dest: "{{ go_path }}/{{ kubevirt_dir }}"
     clone: yes
+    force: yes
+
+- name: make distclean
+  make:
+    chdir: "{{ go_path }}/{{ kubevirt_dir }}"
+    target: distclean
 
 - name: copy config-local to kubevirt directory
   template:
     src: config-local.j2
     dest: "{{ go_path }}/{{ kubevirt_dir }}/hack/config-local.sh"
     mode: 0644
-
-- name: make distclean
-  make:
-    chdir: "{{ go_path }}/{{ kubevirt_dir }}"
-    target: distclean
 
 - name: make binaries
   make:
