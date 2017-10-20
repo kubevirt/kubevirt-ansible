@@ -17,7 +17,7 @@
     - firewalld
     - NetworkManager
   failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
-  
+
 
 - name: remove firewalld and NetworkManager packages
   yum:
@@ -27,13 +27,23 @@
     - firewalld
     - NetworkManager
 
+- name: Remove current swaps from fstab
+  lineinfile:
+    dest: /etc/fstab
+    regexp: '^/[\S]+\s+none\s+swap '
+    state: absent
+
+- name: Disable swap
+  command: swapoff --all
+  ignore_errors: yes
+
 - name: install epel repository
   yum:
     name: "{{ epel_repo_rpm }}"
     state: present
 
 - name: import kubernetes rpm keys
-  rpm_key: 
+  rpm_key:
     state: present
     key: "{{ item }}"
   with_items:
