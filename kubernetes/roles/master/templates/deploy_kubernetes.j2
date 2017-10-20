@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # deploy kubernetes
-kubeadm init --token {{ kubernetes_token }}
+kubeadm init --token {{ kubernetes_token }} --skip-preflight-checks
 
 # create directory for kubernetes config
 mkdir -p $HOME/.kube
@@ -17,8 +17,8 @@ ipalloc_range={{ ipalloc_range }}
 kubectl --namespace=kube-system patch ds weave-net -p '{"spec": {"template": {"spec": {"containers": [{"name": "weave", "env": [{"name": "IPALLOC_RANGE", "value": "'$ipalloc_range'"}]}]}}}}'
 {% endraw %}
 
-# add to master possibility to schedule pods
-kubectl taint nodes {{ groups['master'][0] }} node-role.kubernetes.io/master:NoSchedule- || :
+# add to masters possibility to schedule pods
+kubectl taint nodes {{ groups['masters'][0] }} node-role.kubernetes.io/master:NoSchedule- || :
 
 # add additional service accounts
 kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default

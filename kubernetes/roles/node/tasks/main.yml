@@ -1,4 +1,4 @@
 ---
 - name: deploy host as kubernetes node
-  command: "kubeadm join --token {{ kubernetes_token }} {{ groups['master'][0] }}:6443 --skip-preflight-checks"
+  command: "kubeadm join --token {{ kubernetes_token }} {{ groups['masters'][0] }}:6443 --skip-preflight-checks"
 
