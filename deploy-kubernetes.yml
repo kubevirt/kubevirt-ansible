@@ -1,7 +1,6 @@
 ---
 - hosts: all
   remote_user: root
-  vars_files:
   pre_tasks:
     - name: override roles variables
       include_vars: "{{ item }}"
