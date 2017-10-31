@@ -25,3 +25,13 @@
     - "{{ playbook_dir }}/kubernetes/vars/default_vars.yml"
   roles:
     - "{{ playbook_dir }}/kubernetes/roles/node"
+
+- hosts: masters
+  remote_user: root
+  pre_tasks:
+    - name: override roles variables
+      include_vars: "{{ item }}"
+      with_items:
+        - "{{ playbook_dir }}/common/vars/default_vars.yml"
+  roles:
+    - "{{ playbook_dir }}/kubernetes/roles/deploy-kubevirt"
