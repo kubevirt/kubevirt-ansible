@@ -46,7 +46,7 @@
           zone: default
 
 - include: deploy-openshift.yml
-  when: cluster_type is not defined or cluster_type == "openshift
+  when: cluster_type is not defined or cluster_type == "openshift"
 
 - include: deploy-kubernetes.yml
-  when: cluster_type == "kubernetes"
+  when: cluster_type is defined and cluster_type == "kubernetes"
