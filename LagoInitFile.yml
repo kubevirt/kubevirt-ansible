@@ -33,7 +33,7 @@ host-settings: &nodes-settings
 domains:
   master:
     <<: *vm-common-settings
-    groups: [masters, nodes, etcd]
+    groups: [masters, nodes, etcd, nfs]
     memory: 4096
     nics:
       - net: lago-management-network
