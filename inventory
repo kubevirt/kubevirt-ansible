@@ -9,6 +9,20 @@ ansible_ssh_user=root
 openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true', 'challenge': 'true', 'kind': 'AllowAllPasswordIdentityProvider'}]
 openshift_disable_check=memory_availability,disk_availability
 
+# BEGIN ANSIBLE BROKER CONFIG
+openshift_hosted_etcd_storage_kind=nfs
+openshift_hosted_etcd_storage_nfs_options="*(rw,root_squash,sync,no_wdelay)"
+openshift_hosted_etcd_storage_nfs_directory=/opt/osev3-etcd
+openshift_hosted_etcd_storage_volume_name=etcd-vol2
+openshift_hosted_etcd_storage_access_modes=["ReadWriteOnce"]
+openshift_hosted_etcd_storage_volume_size=1G
+openshift_hosted_etcd_storage_labels={'storage': 'etcd'}
+
+ansible_service_broker_image_prefix=openshift/
+ansible_service_broker_registry_url="registry.access.redhat.com"
+# END ANSIBLE BROKER CONFIG
+
+# BEGIN CUSTOM SETTINGS
 [masters]
 # Your master FQDN
 
@@ -17,8 +31,12 @@ openshift_disable_check=memory_availability,disk_availability
 
 [nodes]
 # Your nodes FQDN's
+
+[nfs]
+# Your nfs server FQDN
 #
-# If you run openshift deployemnt
+# If you run openshift deployment
 # You can add your master as schedulable node with option openshift_schedulable=true
 # Add at least one node with lable to run on it router and docker containers
 # openshift_node_labels="{'region': 'infra','zone': 'default'}"
+# END CUSTOM SETTINGS

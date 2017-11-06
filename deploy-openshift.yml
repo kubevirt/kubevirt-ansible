@@ -8,7 +8,7 @@
     - "openshift-contrib/roles/docker-storage-setup"
   post_tasks:
     - name: Enable and start docker service
-      service: 
+      service:
         state: started
         enabled: yes
         name: docker
@@ -21,5 +21,7 @@
     - name: override go-dev variables
       include_vars: "{{ playbook_dir }}/common/vars/default_vars.yml"
   roles:
-    - "andrewrothstein.go-dev"
-    - "{{ playbook_dir }}/common/roles/kubevirt"
+    - role: "andrewrothstein.go-dev"
+      tags: go
+    - role: "{{ playbook_dir }}/common/roles/kubevirt"
+      tags: kubevirt
