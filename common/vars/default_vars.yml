@@ -14,3 +14,4 @@ go_dev_get_default:
     target: swagger-doc
   - pkg: github.com/onsi/ginkgo/ginkgo
     target: ginko
+kubevirt_dir: src/kubevirt.io/kubevirt

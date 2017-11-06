@@ -1,0 +1,14 @@
+- name: "List all manifests"
+  find:
+    paths: "{{ go_path }}/{{ kubevirt_dir }}/manifests"
+    patterns: "*.yaml"
+  register: all_manifests_files
+
+# TODO: it would be good to deploy only resources which are missing.
+# In case that everything is done, we should skip following step.
+
+- name: "Populate KubeVirt resources"
+  shell: "kubectl create -f {{ item.path }}"
+  with_items: "{{ all_manifests_files.files }}"
+
+# TODO: it would be good to add some waiting untill everything is ready
