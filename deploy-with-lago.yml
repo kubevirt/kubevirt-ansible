@@ -2,9 +2,12 @@
   connection: local
   gather_facts: False
   tasks:
+    - name: Set prefix
+      set_fact:
+        prefix: "{{ prefix | default('.lago') }}"
     - name: Init Lago env
       command:
-        lago init LagoInitFile.yml
+        lago init "{{ prefix }}" LagoInitFile.yml
       args:
         creates: .lago/default/uuid
     - name: Remove user defined settigns from inventory
@@ -13,7 +16,7 @@
         marker: "# {mark} CUSTOM SETTINGS"
         state: absent
     - name: Create Ansible Hosts file from Lago env
-      shell: lago ansible_hosts >> "{{ inventory_file }}"
+      shell: lago --workdir "{{ prefix }}" ansible_hosts >> "{{ inventory_file }}"
     - name: Normalize inventory file
       replace:
         path: "{{ inventory_file }}"
@@ -22,7 +25,7 @@
     - name: Refresh inventory
       meta: refresh_inventory
     - name: Start Lago env
-      command: lago start
+      command: lago --workdir "{{ prefix }}" start
 
 - hosts: all
   any_errors_fatal: True

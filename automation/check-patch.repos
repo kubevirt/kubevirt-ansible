@@ -1,0 +1,2 @@
+kvm-common-el7,http://mirror.centos.org/centos/7/virt/x86_64/kvm-common/
+lago,http://resources.ovirt.org/repos/lago/stable/0.0/rpm/$distro
