@@ -1,5 +1,8 @@
 ---
 
+master_ip: "{{ hostvars[groups['masters'][0]]['ansible_default_ipv4']['address'] }}"
+
+
 kubevirt_services:
   - { service_name: "spice-proxy", service_port: 3128 }
   - { service_name: "virt-api", service_port: 8182 }
