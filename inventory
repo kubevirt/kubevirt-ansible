@@ -3,6 +3,10 @@ masters
 nodes
 
 [OSEv3:vars]
+
+# Should we compile kubevirt
+
+compile=False
 openshift_deployment_type=origin
 openshift_clock_enabled=true
 ansible_ssh_user=root

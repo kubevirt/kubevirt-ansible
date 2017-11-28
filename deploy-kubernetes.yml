@@ -7,10 +7,16 @@
       with_items:
         - "{{ playbook_dir }}/kubernetes/vars/default_vars.yml"
         - "{{ playbook_dir }}/common/vars/default_vars.yml"
-  roles:
-    - "{{ playbook_dir }}/kubernetes/roles/prerequisites"
-    - "andrewrothstein.go-dev"
-    - "{{ playbook_dir }}/common/roles/kubevirt"
+  tasks:
+    - include_role:
+        name: "{{ playbook_dir }}/kubernetes/roles/prerequisites"
+      when: compile
+    - include_role:
+        name: "andrewrothstein.go-dev"
+      when: compile
+    - include_role:
+        name: "{{ playbook_dir }}/common/roles/kubevirt"
+      when: compile
 
 - hosts: masters
   remote_user: root
