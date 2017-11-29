@@ -31,7 +31,7 @@ host-settings: &nodes-settings
         format: raw
 
 domains:
-  master:
+  lago-master:
     <<: *vm-common-settings
     groups: [masters, nodes, etcd, nfs]
     memory: 4096
@@ -50,10 +50,10 @@ domains:
         dev: sdb
         format: raw
 
-  node0:
+  lago-node0:
     <<: *nodes-settings
 
-  node1:
+  lago-node1:
     <<: *nodes-settings
 
 nets:
