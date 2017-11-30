@@ -109,6 +109,7 @@ main() {
         -i inventory \
         -v \
         -e "${args[*]}" \
+        --skip-tags="kubevirt,go" \
         deploy-with-lago.yml
 }
 

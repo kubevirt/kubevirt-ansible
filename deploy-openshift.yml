@@ -30,6 +30,7 @@
   pre_tasks:
     - name: override go-dev variables
       include_vars: "{{ playbook_dir }}/common/vars/default_vars.yml"
+      tags: go
   roles:
     - role: "andrewrothstein.go-dev"
       tags: go
