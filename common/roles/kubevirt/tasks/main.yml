@@ -5,6 +5,7 @@
     state: present
   with_items:
     - libvirt-devel
+    - mercurial
 
 - name: clone kubevirt repository
   git:

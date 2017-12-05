@@ -4,8 +4,8 @@ go_dev_profile_dir: /etc/profile.d
 go_dev_get_default:
   - pkg: golang.org/x/tools/cmd/goimports
     target: goimports
-  - pkg: github.com/golang/dep/cmd/dep
-    target: dep
+  - pkg: github.com/Masterminds/glide
+    target: glide
   - pkg: github.com/golang/mock/gomock
     target: gomock
   - pkg: github.com/rmohr/mock/mockgen
