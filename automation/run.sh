@@ -92,7 +92,7 @@ main() {
 
     if [[ "$cluster_type" == "openshift" ]]; then
         [[ -e openshift-ansible ]] || \
-        git clone -b release-3.6 https://github.com/openshift/openshift-ansible
+        git clone -b release-3.7 https://github.com/openshift/openshift-ansible
         args+=(
             "openshift_ansible_dir=$(realpath openshift-ansible)"
             "cluster_type=openshift"
@@ -109,6 +109,7 @@ main() {
         -i inventory \
         -v \
         -e "${args[*]}" \
+        --skip-tags="kubevirt,go" \
         deploy-with-lago.yml
 }
 
