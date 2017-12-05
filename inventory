@@ -17,11 +17,16 @@ openshift_hosted_etcd_storage_nfs_options="*(rw,root_squash,sync,no_wdelay)"
 openshift_hosted_etcd_storage_nfs_directory=/opt/osev3-etcd
 openshift_hosted_etcd_storage_volume_name=etcd-vol2
 openshift_hosted_etcd_storage_access_modes=["ReadWriteOnce"]
-openshift_hosted_etcd_storage_volume_size=1G
+openshift_hosted_etcd_storage_volume_size=1100M
 openshift_hosted_etcd_storage_labels={'storage': 'etcd'}
 
-ansible_service_broker_image_prefix=openshift/
-ansible_service_broker_registry_url="registry.access.redhat.com"
+ansible_service_broker_refresh_interval=20s
+ansible_service_broker_local_registry_whitelist=[".*-apb$"]
+ansible_service_broker_image_prefix=ansibleplaybookbundle/origin-
+ansible_service_broker_image_tag=latest
+
+ansible_service_broker_etcd_image_prefix=quay.io/coreos/
+ansible_service_broker_etcd_image_tag=latest
 # END ANSIBLE BROKER CONFIG
 
 # BEGIN CUSTOM SETTINGS
