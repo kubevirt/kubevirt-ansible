@@ -1,14 +1,67 @@
-- name: "List all manifests"
+---
+- include_role:
+    name: ansible.kubernetes-modules
+  when: wait_kubevirt_rollout
+
+- file:
+    path: "{{ manifests_path }}"
+    recurse: True
+    state: directory
+
+- name: git clone kubevirt master
+  git:
+    repo: "{{ repo }}"
+    dest: "{{ checkout_path }}"
+  register: checkout
+  delegate_to: localhost
+
+- name: Find All Templates
   find:
-    paths: "{{ go_path }}/{{ kubevirt_dir }}/manifests"
-    patterns: "*.yaml"
-  register: all_manifests_files
+    paths: "{{ manifests_path }}"
+    pattern: "^((?!demo).)*$"
+    use_regex: True
+    recurse: True
+  register: templates
+  delegate_to: localhost
 
-# TODO: it would be good to deploy only resources which are missing.
-# In case that everything is done, we should skip following step.
+- name: Process Templates
+  template:
+    src: "{{ item.path }}"
+    dest: "{{ item.path | splitext | first }}"
+  with_items: "{{ templates.files }}"
+  register: template_files
 
-- name: "Populate KubeVirt resources"
-  shell: "kubectl create -f {{ item.path }}"
-  with_items: "{{ all_manifests_files.files }}"
+- command: "kubectl apply -f {{ item.dest | default(item.path) }} -n {{ namespace }}"
+  when: item | changed
+  with_items: "{{ template_files.results }}"
 
-# TODO: it would be good to add some waiting untill everything is ready
+- name: Wait for KubeVirt DaemonSet rollout
+  k8s_v1beta1_daemon_set:
+    name: "{{ item }}"
+    kubeconfig: "{{ kubeconfig }}"
+    namespace: "{{ namespace }}"
+  register: ds
+  until: ds['daemon_set']['status']['number_available'] == ds['daemon_set']['status']['desired_number_scheduled']
+  delay: "{{ until_delay }}"
+  retries: "{{ until_retries }}"
+  with_items:
+    - virt-handler
+    - libvirt
+  when: wait_kubevirt_rollout
+
+- name: Wait for KubeVirt deployment rollout
+  k8s_extensions_v1beta1_deployment:
+    name: "{{ item }}"
+    kubeconfig: "{{ kubeconfig }}"
+    namespace: "{{ namespace }}"
+  register: deployment
+  until: "'Available' in deployment['deployment']['status']['conditions'][0].type"
+  delay: "{{ until_delay }}"
+  retries: "{{ until_retries }}"
+  with_items:
+    - haproxy
+    - spice-proxy
+    - virt-api
+    - virt-controller
+  when: wait_kubevirt_rollout
+
