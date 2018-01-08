@@ -8,7 +8,6 @@ openshift_clock_enabled=true
 ansible_ssh_user=root
 openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true', 'challenge': 'true', 'kind': 'AllowAllPasswordIdentityProvider'}]
 openshift_disable_check=memory_availability,disk_availability
-openshift_repos_enable_testing=True
 
 
 # BEGIN ANSIBLE BROKER CONFIG
