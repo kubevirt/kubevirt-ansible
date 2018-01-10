@@ -24,9 +24,8 @@ collect_logs() {
         -name lago.log \
         -exec cp {} "$artifacts_dir" \;
 
-    find . \
-        -name ansible.log \
-        -exec cp {} "$artifacts_dir" \;
+    
+    cp ansible.log "$artifacts_dir"
 }
 
 cleanup() {
@@ -85,7 +84,7 @@ main() {
     local run_path="$(get_run_path "$cluster_type")"
     local args=("prefix=$run_path")
 
-    trap 'cleanup "$run_path"' EXIT
+    trap "cleanup $run_path" EXIT
 
     set_params
     install_requirements
