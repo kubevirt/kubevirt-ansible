@@ -24,7 +24,6 @@ collect_logs() {
         -name lago.log \
         -exec cp {} "$artifacts_dir" \;
 
-    
     cp ansible.log "$artifacts_dir"
 }
 
@@ -79,8 +78,16 @@ install_requirements() {
 }
 
 main() {
+    # cluster_type: Openshift or Kubernetes
+    # mode:
+    #   release - install kubevirt with kubevirt.yaml,
+    #   and fetch kubevirt's containers from docker hub
+    #
+    #   dev - install kubevirt with the dev manifests, and
+    #   build kubevirt's containers on the vms
 
     local cluster_type="${CLUSTER_TYPE:-openshift}"
+    local mode="${MODE:-release}"
     local run_path="$(get_run_path "$cluster_type")"
     local args=("prefix=$run_path")
 
@@ -103,12 +110,13 @@ main() {
         exit 1
     fi
 
+    args+=("mode=$mode")
+
     ansible-playbook \
         -u root \
         -i inventory \
         -v \
         -e "${args[*]}" \
-        --skip-tags="kubevirt,go" \
         deploy-with-lago.yml
 }
 

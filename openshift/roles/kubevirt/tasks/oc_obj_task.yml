@@ -1,0 +1,11 @@
+- name: "Running oc_obj wrapper"
+  oc_obj:
+    name: "{{ item.name }}"
+    kubeconfig: "{{ kconfig }}"
+    namespace: "{{ project }}"
+    kind: "{{ kind }}"
+    state: "{{ state }}"
+    content:
+      data: "{{ item.manifest }}"
+      path: "/tmp/{{ kind }}"
+  with_items: "{{ normalized_mf[kind] }}"
