@@ -29,7 +29,12 @@ host-settings: &nodes-settings
         name: docker_storage
         dev: sdb
         format: raw
-
+      - comment: /var/lib/docker
+        size: 10G
+        type: empty
+        name: docker_lib
+        dev: sdc
+        format: raw
 domains:
   lago-master:
     <<: *vm-common-settings
@@ -43,11 +48,23 @@ domains:
         name: root
         dev: sda
         format: qcow2
+      - comment: Docker Storage
+        size: 10G
+        type: empty
+        name: docker_storage
+        dev: sdb
+        format: raw
+      - comment: /var/lib/docker
+        size: 10G
+        type: empty
+        name: docker_lib
+        dev: sdc
+        format: raw
       - comment: Main NFS device
         size: 101G
         type: empty
         name: nfs
-        dev: sdb
+        dev: sdd
         format: raw
 
   lago-node0:
