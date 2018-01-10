@@ -95,6 +95,7 @@ main() {
         args+=(
             "openshift_ansible_dir=$(realpath openshift-ansible)"
             "cluster_type=openshift"
+            "openshift_version=3.7.0"
         )
     elif [[ "$cluster_type" == "kubernetes" ]]; then
         args+=("cluster_type=kubernetes")
@@ -108,7 +109,6 @@ main() {
         -i inventory \
         -v \
         -e "${args[*]}" \
-        --skip-tags="kubevirt,go" \
         deploy-with-lago.yml
 }
 
