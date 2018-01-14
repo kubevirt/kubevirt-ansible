@@ -18,8 +18,16 @@ get_run_path() {
 collect_logs() {
     local run_path="$1"
     local artifacts_dir="exported-artifacts"
+    local vms_logs="${artifacts_dir}/vms_logs"
 
-    [[ -d "$artifacts_dir" ]] || mkdir exported-artifacts
+    mkdir -p "$vms_logs"
+
+    lago \
+        --workdir "$run_path" \
+        collect \
+        --output "$vms_logs" \
+        || :
+
     find "$run_path" \
         -name lago.log \
         -exec cp {} "$artifacts_dir" \;
