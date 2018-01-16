@@ -36,3 +36,4 @@
       tags: go
     - role: "{{ playbook_dir }}/common/roles/kubevirt"
       tags: kubevirt
+    - role: "{{ playbook_dir }}/openshift/roles/security"
