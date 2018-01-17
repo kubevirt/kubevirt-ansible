@@ -1,0 +1,3 @@
+project: "kube-system"
+state: present
+kconfig: ".kube/config"

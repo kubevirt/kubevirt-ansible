@@ -1,0 +1,61 @@
+- hosts: all
+  tasks:
+    - debug:
+        msg: "gather facts"
+
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  # unset http_proxy. required for running in the CI
+  environment:
+    http_proxy: ""
+  vars:
+    kubevirt_repo_url: "https://github.com/kubevirt/kubevirt.git"
+    kubevirt_repo_path: "{{ playbook_dir }}/kubevirt"
+    kubevirt_mf_template: "{{ kubevirt_repo_path }}/manifests/release/kubevirt.yaml.in"
+    kubevirt_mf: "{{ kubevirt_repo_path }}/manifests/release/kubevirt.yaml"
+    docker_prefix: kubevirt
+    docker_tag: latest
+    lib_oc_path: "{{ playbook_dir }}/openshift-ansible/roles/lib_openshift"
+  pre_tasks:
+    - name: Clone Kubevirt's repo
+      git:
+        repo: "{{ kubevirt_repo_url }}"
+        dest: "{{ kubevirt_repo_path }}"
+
+    - name: Generate kubevirt.yaml from template
+      template:
+        src: "{{ kubevirt_mf_template }}"
+        dest: "{{ kubevirt_mf }}"
+
+    # oc requires that the master will be resolvable
+    - name: Add master's fqdn to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars['lago-master']['ansible_default_ipv4']['address'] }} {{ hostvars['lago-master']['ansible_fqdn'] }}"
+
+    - name: Login to Openshift
+      shell: |
+        user_name="{{ admin_test_user_name | default('test_admin') }}"
+        user_password="{{ admin_test_password | default('123456') }}"
+        master_fqdn="{{ hostvars['lago-master']['ansible_fqdn'] }}"
+
+        oc login \
+          -u "$user_name" \
+          -p "$user_password" \
+          --insecure-skip-tls-verify=true \
+          "https://${master_fqdn}:8443"
+
+    - name: Install Kubevirt
+      debug:
+        msg: "Installing Kubevirt"
+
+  roles:
+    - "{{ playbook_dir }}/openshift/roles/kubevirt"
+
+  post_tasks:
+    - name: List Kubevirt's reousrces
+      shell: |
+        oc project kube-system
+        oc get pods
+        oc get ds

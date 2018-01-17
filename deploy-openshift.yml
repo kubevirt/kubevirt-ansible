@@ -25,14 +25,13 @@
 
 - include: "{{ openshift_ansible_dir }}/playbooks/byo/config.yml"
 
-- hosts: all
-  remote_user: root
-  pre_tasks:
-    - name: override go-dev variables
-      include_vars: "{{ playbook_dir }}/common/vars/default_vars.yml"
-      tags: go
-  roles:
-    - role: "andrewrothstein.go-dev"
-      tags: go
-    - role: "{{ playbook_dir }}/common/roles/kubevirt"
-      tags: kubevirt
+- hosts: masters
+  tasks:
+    - name: Configure oc admin user for testing
+      shell: |
+        user_name="{{ admin_test_user_name | default('test_admin') }}"
+        oc login -u system:admin
+        oc get user "$user_name" || oc create user "$user_name"
+        oc adm policy add-cluster-role-to-user cluster-admin "$user_name"
+
+- include: "{{ playbook_dir }}/install-kubevirt-{{ mode }}.yml"

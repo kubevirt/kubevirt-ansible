@@ -1,3 +1,4 @@
 .lago
 openshift-ansible
 *.retry
+*.pyc
