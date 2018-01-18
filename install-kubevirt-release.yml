@@ -32,13 +32,13 @@
     - name: Add master's fqdn to /etc/hosts
       lineinfile:
         path: /etc/hosts
-        line: "{{ hostvars['lago-master']['ansible_default_ipv4']['address'] }} {{ hostvars['lago-master']['ansible_fqdn'] }}"
+        line: "{{ hostvars[groups['masters'][0]]['ansible_default_ipv4']['address'] }} {{ hostvars[groups['masters'][0]]['ansible_fqdn'] }}"
 
     - name: Login to Openshift
       shell: |
         user_name="{{ admin_test_user_name | default('test_admin') }}"
         user_password="{{ admin_test_password | default('123456') }}"
-        master_fqdn="{{ hostvars['lago-master']['ansible_fqdn'] }}"
+        master_fqdn="{{ hostvars[groups['masters'][0]]['ansible_fqdn'] }}"
 
         oc login \
           -u "$user_name" \

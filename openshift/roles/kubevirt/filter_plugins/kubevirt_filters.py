@@ -1,13 +1,12 @@
 import yaml
 from collections import defaultdict
 
-from ansible.errors import AnsibleError
-
 try:
     from __main__ import display
 except ImportError:
     from ansible.utils.display import Display
     display = Display()
+
 
 def mf_to_dict(mf):
     """
@@ -36,6 +35,7 @@ def mf_to_dict(mf):
             )
 
     return dict(d)
+
 
 class FilterModule(object):
     def filters(self):
