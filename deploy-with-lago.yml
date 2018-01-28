@@ -62,7 +62,7 @@
         mkfs.ext4 -F "$disk"
         echo -e "${disk}\t${mount_path}\text4\tdefaults\t0 0" >> /etc/fstab
         mount "$disk" "$mount_path"
-    
+
 - hosts: lago-node0
   tasks:
     - name: Mark lago-node0 as infra
@@ -71,8 +71,4 @@
           region: infra
           zone: default
 
-- include: deploy-openshift.yml
-  when: cluster_type is not defined or cluster_type == "openshift"
-
-- include: deploy-kubernetes.yml
-  when: cluster_type is defined and cluster_type == "kubernetes"
+- include: "deploy-{{ cluster_type | default('openshift') }}.yml"

@@ -27,8 +27,3 @@
     update_cache: yes
   with_items:
     - "{{ openshift_packages }}"
-
-- name: upgrade all packages
-  yum:
-    name: '*'
-    state: latest
