@@ -27,6 +27,7 @@
     - name: Start Lago env
       command: lago --workdir "{{ prefix }}" start
 
+
 - hosts: all
   any_errors_fatal: True
   gather_facts: no
@@ -62,6 +63,22 @@
         mkfs.ext4 -F "$disk"
         echo -e "${disk}\t${mount_path}\text4\tdefaults\t0 0" >> /etc/fstab
         mount "$disk" "$mount_path"
+
+- hosts: lago-master:lago-node0
+- hosts: all
+  tasks:
+    - debug:
+        msg: "gather facts"
+
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  tasks:
+    # oc/kubectl requires that the master will be resolvable
+    - name: Add master's fqdn to /etc/hosts
+      lineinfile:
+        path: /etc/hosts
+        line: "{{ hostvars['lago-master']['ansible_default_ipv4']['address'] }} {{ hostvars['lago-master']['ansible_fqdn'] }}"
 
 - hosts: lago-node0
   tasks:

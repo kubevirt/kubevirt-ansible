@@ -1,6 +1,5 @@
 - name: Get Openshift version
   oc_version:
-    kubeconfig: "{{ kconfig }}"
   register: oc_version
 
 - name: Normalize kubevirt.yaml
@@ -10,7 +9,6 @@
 - name: Create project
   oc_project:
     name: "{{ project }}"
-    kubeconfig: "{{ kconfig }}"
     state: "{{ state }}"
 
 - name: RBAC
@@ -27,10 +25,10 @@
     resource_kind: scc
     resource_name: privileged
     user: "system:serviceaccount:{{ project }}:{{ item }}"
-    kubeconfig: "{{ kconfig }}"
     state: "{{ state }}"
   with_items:
     - kubevirt-privileged
+    - kubevirt-controller  # FIXME: https://github.com/kubevirt/kubevirt/issues/684
 
 - name: Create CustomResourceDefinition
   shell: |
