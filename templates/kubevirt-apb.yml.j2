@@ -1,0 +1,11 @@
+apiVersion: servicecatalog.k8s.io/v1beta1
+kind: ServiceInstance
+metadata:
+  name: kubevirt
+  namespace: kube-system
+spec:
+  clusterServiceClassExternalName: dh-kubevirt-apb
+  clusterServicePlanExternalName: default
+  parameters:
+   admin_user: {{ admin_user | default('developer') }}
+   admin_password: {{ admin_password | default('developer') }}
