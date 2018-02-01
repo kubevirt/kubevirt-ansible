@@ -70,5 +70,3 @@
         openshift_node_labels:
           region: infra
           zone: default
-
-- include: "deploy-{{ cluster_type | default('openshift') }}.yml"
