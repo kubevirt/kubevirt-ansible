@@ -33,5 +33,3 @@
         oc login -u system:admin
         oc get user "$user_name" || oc create user "$user_name"
         oc adm policy add-cluster-role-to-user cluster-admin "$user_name"
-
-- include: "{{ playbook_dir }}/install-kubevirt-{{ mode }}.yml"

@@ -96,6 +96,7 @@ main() {
 
     local cluster_type="${CLUSTER_TYPE:-openshift}"
     local mode="${MODE:-release}"
+    local provider="${PROVIDER:-lago}"
     local run_path="$(get_run_path "$cluster_type")"
     local args=("prefix=$run_path")
 
@@ -118,14 +119,14 @@ main() {
         exit 1
     fi
 
-    args+=("mode=$mode")
+    args+=("mode=$mode" "provider=$provider")
 
     ansible-playbook \
         -u root \
         -i inventory \
         -v \
         -e "${args[*]}" \
-        deploy-with-lago.yml
+        control.yml
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
