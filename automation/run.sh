@@ -107,7 +107,7 @@ main() {
 
     if [[ "$cluster_type" == "openshift" ]]; then
         [[ -e openshift-ansible ]] || \
-        git clone -b release-3.7 https://github.com/openshift/openshift-ansible
+        git clone -b openshift-ansible-3.9.0-0.37.0 https://github.com/openshift/openshift-ansible
         args+=(
             "openshift_ansible_dir=$(realpath openshift-ansible)"
             "cluster_type=openshift"
