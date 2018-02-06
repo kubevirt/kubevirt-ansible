@@ -25,10 +25,13 @@ You need three things to do that
 $ wget https://github.com/kubevirt/kubevirt/releases/download/v0.2.0/kubevirt.yaml
 $ git clone https://github.com/openshift/openshift-ansible.git
 $ ansible-playbook -i localhost, --connection=local \
-        -e "openshift_ansible_dir=openshift-ansible/ kconfig=$HOME/.kube/config kubevirt_mf=kubevirt.yaml"
+        -e "openshift_ansible_dir=openshift-ansible/ \
+        kconfig=$HOME/.kube/config \
+        kubevirt_mf=kubevirt.yaml" \
+        install-kubevirt-on-openshift.yml
 ```
 
-[![asciicast](https://asciinema.org/a/161148.png)](https://asciinema.org/a/161148)
+[![asciicast](https://asciinema.org/a/161278.png)](https://asciinema.org/a/161278)
 
 
 ## Deploy new cluster + KubeVirt
