@@ -1,0 +1,32 @@
+- name: Normalize kubevirt.yaml
+  set_fact:
+    normalized_mf: "{{ kubevirt_mf | mf_to_dict }}"
+
+- name: RBAC
+  include: "oc_obj_task.yml"
+  loop_control:
+    loop_var: kind
+  with_items:
+    - ServiceAccount
+    - ClusterRoleBinding
+
+- name: Create scc
+  oc_adm_policy_user:
+    resource_kind: scc
+    resource_name: privileged
+    user: "system:serviceaccount:{{ project }}:{{ item }}"
+    kubeconfig: "{{ kconfig }}"
+    state: "{{ state }}"
+  with_items:
+    - kubevirt-testing
+
+- name: Create testing resources
+  include: "oc_obj_task.yml"
+  loop_control:
+    loop_var: kind
+  with_items:
+    - PersistentVolume
+    - PersistentVolumeClaim
+    - Secret
+    - Deployment
+    - Service

@@ -14,25 +14,29 @@ def mf_to_dict(mf):
     kind -> list of dicts
 
     Args:
-        mf (str): Path to a yaml file
+        mf (str or list): Paths to yaml files
 
     Returns:
         (dict)
     """
     d = defaultdict(list)
 
-    with open(mf) as f:
-        docs = yaml.safe_load_all(f)
+    if not isinstance(mf, list):
+        mf = [mf]
 
-        for doc in docs:
-            kind = doc['kind']
-            name = doc['metadata']['name']
-            d[kind].append(
-                {
-                    'name': name,
-                    'manifest': doc
-                }
-            )
+    for m in mf:
+        with open(m) as f:
+            docs = yaml.safe_load_all(f)
+
+            for doc in docs:
+                kind = doc['kind']
+                name = doc['metadata']['name']
+                d[kind].append(
+                    {
+                        'name': name,
+                        'manifest': doc
+                    }
+                )
 
     return dict(d)
 

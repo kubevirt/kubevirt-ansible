@@ -9,3 +9,4 @@
       data: "{{ item.manifest }}"
       path: "/tmp/{{ kind }}"
   with_items: "{{ normalized_mf[kind] }}"
+  when: kind in normalized_mf

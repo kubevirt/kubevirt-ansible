@@ -14,6 +14,7 @@
     kubevirt_repo_path: "{{ playbook_dir }}/kubevirt"
     kubevirt_mf_template: "{{ kubevirt_repo_path }}/manifests/release/kubevirt.yaml.in"
     kubevirt_mf: "{{ kubevirt_repo_path }}/manifests/release/kubevirt.yaml"
+    kubevirt_testing_mf_dir: "{{ kubevirt_repo_path }}/manifests/testing"
     docker_prefix: kubevirt
     docker_tag: latest
     lib_oc_path: "{{ playbook_dir }}/openshift-ansible/roles/lib_openshift"
@@ -27,6 +28,19 @@
       template:
         src: "{{ kubevirt_mf_template }}"
         dest: "{{ kubevirt_mf }}"
+
+    - name: Generate testing resources from template
+      template:
+        src: "{{ item }}"
+        dest: "{{ item | splitext | first }}"
+      register: testing_mf
+      with_fileglob:
+        - "{{ kubevirt_testing_mf_dir }}/*.in"
+
+    # If the templates already been generated, we need
+    # a different key for extracting their path.
+    - set_fact:
+        key: "{{ 'dest' if testing_mf.changed else 'path' }}"
 
     # oc requires that the master will be resolvable
     - name: Add master's fqdn to /etc/hosts
@@ -46,12 +60,13 @@
           --insecure-skip-tls-verify=true \
           "https://${master_fqdn}:8443"
 
-    - name: Install Kubevirt
-      debug:
-        msg: "Installing Kubevirt"
+    - debug:
+        msg: Installing Kubevirt and Kubevirt's testing resources
 
   roles:
-    - "{{ playbook_dir }}/openshift/roles/kubevirt"
+    - role: "{{ playbook_dir }}/openshift/roles/kubevirt"
+    - role: "{{ playbook_dir }}/openshift/roles/kubevirt_testing"
+      kubevirt_mf: "{{ testing_mf.results | map(attribute=key) | list }}"
 
   post_tasks:
     - name: List Kubevirt's reousrces
@@ -59,3 +74,5 @@
         oc project kube-system
         oc get pods
         oc get ds
+        oc get persistentvolumes
+        oc get persistentvolumeclaims
