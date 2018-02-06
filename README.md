@@ -34,7 +34,7 @@ $ ansible-playbook -i localhost, --connection=local \
 ## Deploy new cluster + KubeVirt
 
 
-### Requirements
+## Requirements
 Install depending roles, and export `ANSIBLE_ROLES_PATH`
 ```
 $ ansible-galaxy install -p $HOME/galaxy-roles -r requirements.yml
@@ -44,6 +44,16 @@ For OpenShift deployment clone [**OpenShift Ansible project**](https://github.co
 ```
 $ git clone https://github.com/openshift/openshift-ansible
 ```
+
+## KubeVirt related parameters
+
+* **mode**  `dev` / `release`
+* **cluster_type** `openshift` / `kubernetes`
+* **kubevirt_release** `latest` / `v0.2.0` / ...
+
+## Deployments
+
+You can choose between two types of deployments.
 
 ### Kubernetes
 Preparing Kubernetes cluster and deploy KubeVirt on it.
