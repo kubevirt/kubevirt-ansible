@@ -23,7 +23,7 @@
         enabled: yes
         name: docker
 
-- include: "{{ openshift_ansible_dir }}/playbooks/byo/config.yml"
+- include: "{{ openshift_ansible_dir }}/playbooks/deploy_cluster.yml"
 
 - hosts: masters
   tasks:
