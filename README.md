@@ -5,7 +5,7 @@ This repository provides collection of playbooks to
 * deploy K8S on given machines and install KubeVirt
 * deploy OpenShift on given machines and install KubeVirt
 
-**Tested on CentOS Linux release 7.3.1611 (Core), OpenShift 3.7 and Ansible 2.3.1**
+**Tested on CentOS Linux release 7.3.1611 (Core), OpenShift 3.7 and Ansible 2.4.2**
 
 
 ## Install KubeVirt on existing OpenShift cluster
@@ -60,21 +60,22 @@ $ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
 | cluster\_type    | `kubernetes`, `openshift` | Desired cluster            |
 | mode             | `release`, `dev` | If `dev` it will build KubeVirt from sources |
 | openshift\_ansible\_dir | string | Path to OpenShift Ansible repository   |
+| provider         | `lago` | So far it is supported deployment provided by Lago |
 
 ### Kubernetes
 
-Preparing Kubernetes cluster and deploy KubeVirt on it.
 - Add your master and nodes to `inventory` file.
 
 ### OpenShift
-Preparing OpenShift cluster and deploy KubeVirt on it.
+
 - Be sure that you have enough space on your hosts for docker storage and
-edit openshift/roles/docker-setup/defaults/main.yaml accordingly.
-You can read more about docker-storage-setup [**here**](https://docs.openshift.org/1.5/install_config/install/host_preparation.html#configuring-docker-storage).
+you can modify [defaults values](docker-storage-setup-defaults) accordingly.
+Follow [docker-storage-setup] documentation for more details.
 - Add your master and nodes to `inventory` file.
 
 
 ### Example how to run playbook
+
 
 ```bash
 $ ansible-playbook -i inventory \
@@ -88,3 +89,6 @@ $ ansible-playbook -i inventory \
 - [**KubeVirt project**](https://github.com/kubevirt/kubevirt)
 - [**OpenShift Ansible project**](https://github.com/openshift/openshift-ansible)
 - [**Golang Ansible playbook project**](https://github.com/jlund/ansible-go)
+
+[docker-storage-setup]: https://docs.openshift.org/latest/install_config/install/host_preparation.html#configuring-docker-storage
+[docker-storage-setup-defaults]: https://github.com/openshift/openshift-ansible-contrib/blob/master/roles/docker-storage-setup/defaults/main.yaml
