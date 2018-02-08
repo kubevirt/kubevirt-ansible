@@ -5,7 +5,7 @@ This repository provides collection of playbooks to
 * deploy K8S on given machines and install KubeVirt
 * deploy OpenShift on given machines and install KubeVirt
 
-Tested on CentOS Linux release 7.3.1611 (Core), OpenShift 3.7 and Ansible 2.3.1
+**Tested on CentOS Linux release 7.3.1611 (Core), OpenShift 3.7 and Ansible 2.3.1**
 
 
 ## Install KubeVirt on existing OpenShift cluster
@@ -36,22 +36,35 @@ $ ansible-playbook -i localhost, --connection=local \
 
 ## Deploy new cluster + KubeVirt
 
-
 ### Requirements
+
+Make sure that you have Ansible 2.3.1.
+
 Install depending roles, and export `ANSIBLE_ROLES_PATH`
-```
+
+```bash
 $ ansible-galaxy install -p $HOME/galaxy-roles -r requirements.yml
 $ export ANSIBLE_ROLES_PATH=$HOME/galaxy-roles
 ```
+
 For OpenShift deployment clone [**OpenShift Ansible project**](https://github.com/openshift/openshift-ansible)
-```
-$ git clone https://github.com/openshift/openshift-ansible
+
+```bash
+$ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
 ```
 
+### Parameters
+
+| Name             |  Value        | Description                            |
+| ---------------- | ------------- | -------------------------------------- |
+| cluster\_type    | `kubernetes`, `openshift` | Desired cluster            |
+| mode             | `release`, `dev` | If `dev` it will build KubeVirt from sources |
+| openshift\_ansible\_dir | string | Path to OpenShift Ansible repository   |
+
 ### Kubernetes
+
 Preparing Kubernetes cluster and deploy KubeVirt on it.
 - Add your master and nodes to `inventory` file.
-- Run ansible playbook `# ansible-playbook -i inventory deploy-kubernetes.yml`.
 
 ### OpenShift
 Preparing OpenShift cluster and deploy KubeVirt on it.
@@ -59,8 +72,17 @@ Preparing OpenShift cluster and deploy KubeVirt on it.
 edit openshift/roles/docker-setup/defaults/main.yaml accordingly.
 You can read more about docker-storage-setup [**here**](https://docs.openshift.org/1.5/install_config/install/host_preparation.html#configuring-docker-storage).
 - Add your master and nodes to `inventory` file.
-- Run ansible playbook `# ansible-playbook -i inventory -e "openshift_ansible_dir=... deploy-openshift.yml`.
-You must give directory where you placed `openshift-ansible` to the variable `openshift_ansible_dir`.
+
+
+### Example how to run playbook
+
+```bash
+$ ansible-playbook -i inventory \
+    -e "cluster_type=openshift \
+    mode=release \
+    openshift_ansible_dir=openshift-ansible/" \
+    control.yml
+```
 
 # Useful Links
 - [**KubeVirt project**](https://github.com/kubevirt/kubevirt)
