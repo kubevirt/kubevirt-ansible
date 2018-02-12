@@ -8,7 +8,7 @@
       yum:
         name: python-yaml
     - name: Include openshift_facts module
-      include_role:
+      import_role:
         name: "{{ openshift_ansible_dir }}/roles/openshift_facts"
     - name: Load openshift facts
       openshift_facts:
