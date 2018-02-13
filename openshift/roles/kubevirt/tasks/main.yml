@@ -14,7 +14,7 @@
     state: "{{ state }}"
 
 - name: RBAC
-  include: "oc_obj_task.yml"
+  include_tasks: "oc_obj_task.yml"
   loop_control:
     loop_var: kind
   with_items:
@@ -41,7 +41,7 @@
   with_items: "{{ normalized_mf.CustomResourceDefinition }}"
 
 - name: Create kubevirt's pods
-  include: "oc_obj_task.yml"
+  include_tasks: "oc_obj_task.yml"
   loop_control:
     loop_var: kind
   with_items:
