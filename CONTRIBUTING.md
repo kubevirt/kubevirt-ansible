@@ -74,6 +74,7 @@ The current APB code can be found here [KubeVirt-APB](https://github.com/ansible
 
 * Ansible
   * [Official Product Page](https://ansible.com/)
+  * [Best Practices](http://docs.ansible.com/ansible/latest/playbooks_best_practices.html)
 * OpenShift
   * [Official Product Page](https://openshift.org/)
   * [OpenShift Ansible](https://github.com/openshift/openshift-ansible)
