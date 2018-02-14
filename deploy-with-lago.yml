@@ -1,3 +1,12 @@
+# Desription: Create a virtual environment using Lago.
+# The specification of the environment can be found in LagoInitFile.yaml
+#
+# PARAMETERS:
+# inventory_file: Path to the inventory file,
+# Lago will populate it with the vms details.
+#
+# prefix: Where to create the lago environment
+
 - hosts: localhost
   connection: local
   gather_facts: False
@@ -70,5 +79,3 @@
         openshift_node_labels:
           region: infra
           zone: default
-
-- include: "deploy-{{ cluster_type | default('openshift') }}.yml"

@@ -96,8 +96,10 @@ main() {
 
     local cluster_type="${CLUSTER_TYPE:-openshift}"
     local mode="${MODE:-release}"
+    local provider="${PROVIDER:-lago}"
     local run_path="$(get_run_path "$cluster_type")"
     local args=("prefix=$run_path")
+    local inventory_file="$(realpath inventory)"
 
     trap "cleanup $run_path" EXIT
 
@@ -118,14 +120,18 @@ main() {
         exit 1
     fi
 
-    args+=("mode=$mode")
+    args+=(
+        "mode=$mode"
+        "provider=$provider"
+        "inventory_file=$inventory_file"
+    )
 
     ansible-playbook \
         -u root \
-        -i inventory \
+        -i "$inventory_file" \
         -v \
         -e "${args[*]}" \
-        deploy-with-lago.yml
+        control.yml
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

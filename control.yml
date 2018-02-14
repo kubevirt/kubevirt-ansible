@@ -1,0 +1,3 @@
+- import_playbook: "{{ playbook_dir }}/deploy-with-{{ provider | default('lago') }}.yml"
+- import_playbook: "{{ playbook_dir }}/deploy-{{ cluster_type | default('openshift') }}.yml"
+- import_playbook: "{{ playbook_dir }}/install-kubevirt-{{ mode | default('release') }}.yml"

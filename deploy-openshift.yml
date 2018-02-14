@@ -8,7 +8,7 @@
       yum:
         name: python-yaml
     - name: Include openshift_facts module
-      include_role:
+      import_role:
         name: "{{ openshift_ansible_dir }}/roles/openshift_facts"
     - name: Load openshift facts
       openshift_facts:
@@ -23,7 +23,7 @@
         enabled: yes
         name: docker
 
-- include: "{{ openshift_ansible_dir }}/playbooks/byo/config.yml"
+- import_playbook: "{{ openshift_ansible_dir }}/playbooks/byo/config.yml"
 
 - hosts: masters
   tasks:
@@ -33,5 +33,3 @@
         oc login -u system:admin
         oc get user "$user_name" || oc create user "$user_name"
         oc adm policy add-cluster-role-to-user cluster-admin "$user_name"
-
-- include: "{{ playbook_dir }}/install-kubevirt-{{ mode }}.yml"
