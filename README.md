@@ -1,9 +1,9 @@
 # kubevirt-ansible
 
 This repository provides collection of playbooks to
-* install KubeVirt on existing OpenShift cluster
-* deploy K8S on given machines and install KubeVirt
-* deploy OpenShift on given machines and install KubeVirt
+
+*  [install KubeVirt on existing OpenShift cluster](#install-kubevirt-on-existing-openshift-cluster)
+* deploy Kubernetes or OpenShift Origin and install KubeVirt
 
 Tested on CentOS Linux release 7.3.1611 (Core), OpenShift 3.7 and Ansible 2.3.1
 
@@ -34,8 +34,7 @@ $ ansible-playbook -i localhost, --connection=local \
 [![asciicast](https://asciinema.org/a/161278.png)](https://asciinema.org/a/161278)
 
 
-## Deploy new cluster + KubeVirt
-
+## Cluster bootstrap and KubeVirt deployment
 
 ### Requirements
 Install depending roles, and export `ANSIBLE_ROLES_PATH`
