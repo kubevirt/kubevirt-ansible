@@ -5,7 +5,7 @@ This repository provides collection of playbooks to
 * deploy K8S on given machines and install KubeVirt
 * deploy OpenShift on given machines and install KubeVirt
 
-**Tested on CentOS Linux release 7.3.1611 (Core), OpenShift 3.7 and Ansible 2.4.2**
+**Tested on CentOS Linux release 7.4 (Core), OpenShift 3.7 and Ansible 2.4.2**
 
 
 ## Install KubeVirt on existing OpenShift cluster
