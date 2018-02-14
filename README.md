@@ -5,8 +5,6 @@ This repository provides collection of playbooks to
 *  [install KubeVirt on existing OpenShift cluster](#install-kubevirt-on-existing-openshift-cluster)
 * deploy Kubernetes or OpenShift and KubeVirt
 
-## Prerequisites
-
 Tested on CentOS Linux release 7.3.1611 (Core), OpenShift 3.7 and Ansible 2.3.1
 
 ## Install KubeVirt on existing OpenShift cluster
@@ -15,12 +13,13 @@ When you have your cluster up and running you can use
 [install-kubevirt-on-openshift.yml](./install-kubevirt-on-openshift.yml)
 playbook to install KubeVirt from given manifest.
 
-You need three things to do that
-* **kubevirt_mf** - Path to KubeVirt manifest, you can get one from
-  [releases](https://github.com/kubevirt/kubevirt/releases) or build it from sources
-* **openshift_ansible_dir** - Path to
-  [OpenShift Ansible](https://github.com/openshift/openshift-ansible) repository
-* **kconfig** - Path to kubeconfig
+You need three things to do that:
+
+| Parameter | Description |
+|--|--|
+| `kubevirt_mf` | Path to KubeVirt manifest, you can get one from [releases](https://github.com/kubevirt/kubevirt/releases) or build it from sources |
+| `openshift_ansible_dir` | Path to [OpenShift Ansible](https://github.com/openshift/openshift-ansible) repository |
+| `kconfig` | Path to kubeconfig |
 
 ```bash
 $ wget https://github.com/kubevirt/kubevirt/releases/download/v0.2.0/kubevirt.yaml
