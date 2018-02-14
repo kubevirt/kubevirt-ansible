@@ -38,8 +38,6 @@ $ ansible-playbook -i localhost, --connection=local \
 
 ### Requirements
 
-Make sure that you have Ansible 2.3.1.
-
 Install depending roles, and export `ANSIBLE_ROLES_PATH`
 
 ```bash
