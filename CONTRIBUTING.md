@@ -12,12 +12,10 @@ which might later be integrated into a main Ansible Playbook Bundle.
 
 Information on how to contribute will follow in the next sections.
 
-## Contributing new Ansible roles  
+## KubeVirt Ansible repository structure and roles
 
-Contributing to KubeVirt-Ansible should be as simple as possible. 
-Have a question? Want to discuss something? Want to contribute something? Just open an
-[Issue](https://github.com/kubevirt/kubevirt-ansible/issues) or a [Pull
-Request](https://github.com/kubevirt/kubevirt-ansible/pulls).
+This section will describe the current repository structure and
+give a short example of existing role for KubeVirt.
 
 ### Roles Structure
 
@@ -25,15 +23,31 @@ Request](https://github.com/kubevirt/kubevirt-ansible/pulls).
 * Add info on role template and how to role for each supported flow ( K8S,OpenShift, W/ VMs )
 * Add example from existing role for KubeVirt
 
-## Contribute functional tests
+### Contributing new Ansible roles  
 
-In addition for contributing roles for deploying a new component,
-Its important also to verify the deployment actually works and 
-run various tests on the deployed environment to verify its functional.
+Contributing to KubeVirt-Ansible should be as simple as possible. 
+Have a question? Want to discuss something? Want to contribute something? Just open an
+[Issue](https://github.com/kubevirt/kubevirt-ansible/issues) or a [Pull
+Request](https://github.com/kubevirt/kubevirt-ansible/pulls).
+
+## Functional Tests
+
+So far we've been focused mostly on using Ansible to deploy various
+projects such as KubeVirt on OpenShift or K8S. 
+
+However, to really verify if the deployment actually worked, we have to run
+misc functional tests which will verify the various features the deployed
+project brought. 
+
+Currently, the tests are part of the KubeVirt repo under [tests](https://github.com/kubevirt/kubevirt/tree/master/tests).
 
 [TODO]:
-* Add info on existing tests location and how to run them 
-* Add info on how to use common libraries in order to write new test
+* Add links or short examples of existing functional tests   
+
+### Contribute functional tests
+
+[TODO]:
+* Add info on how to write new tests (or best practices)
 * Add info on how to verify the new tests using CI
 * Add link to developer guide showing how to run tests locally
 
@@ -68,6 +82,10 @@ However, we also want to build a main APB which will deploy all projects.
 This section contains info on how to integrate your project into this APB.
 
 The current APB code can be found here [KubeVirt-APB](https://github.com/ansibleplaybookbundle/kubevirt-apb)
+
+Current focal point for the APB:
+
+ * @rthallisey
 
 
 ## Additional Links
