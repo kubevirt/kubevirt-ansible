@@ -4,8 +4,7 @@ This repository provides collection of playbooks to
 - [x] [Install KubeVirt on existing OpenShift cluster](#install-kubevirt-on-existing-cluster)
 - [ ] Deploy Kubernetes cluster on given machines and install KubeVirt
 - [x] [Deploy OpenShift cluster on given machines and install KubeVirt](#deploy-kubernetes-or-openshift-and-kubevirt)
-- [ ] Deploy Kubernetes cluster with KubeVirt with Lago
-- [x] [Deploy OpenShift cluster with KubeVirt with Lago](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago)
+- [x] [Provision resources, deploy cluster and install KubeVirt](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago)
 
 *NOTE: Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.*
 
@@ -64,6 +63,16 @@ There are three key cluster components which needs to be deployed.
   to be managed by the master. Nodes also have the required services
   to run pods, including the Docker service, a kubelet, and a service proxy.
 
+Beside these components you might want to specify
+[persistent storage for Ansible Broker](https://docs.openshift.org/latest/install_config/install/advanced_install.html#configuring-openshift-ansible-broker) .
+Without persistent storage you can not use Ansible Broker.
+Following example shows usage of NFS storage but there are
+[other options available](https://docs.openshift.org/latest/install_config/persistent_storage/index.html#install-config-persistent-storage-index).
+
+* **nfs**
+
+  A node which will be the NFS host
+
 There are two basic environment scenarios on how a cluster can be deployed.
 If you need more information please read
 [documentation](https://docs.openshift.org/latest/install_config/install/planning.html).
@@ -71,13 +80,13 @@ If you need more information please read
 * All-in-one
   * all components on single machine
 * Single master and multiple nodes
-  * master & etcd is deployed on single machine
+  * master & etcd & nfs is deployed on single machine
   * nodes are separated machines
 
 For minimal hardware requirements please follow
 [documentation](https://docs.openshift.org/latest/install_config/install/prerequisites.html) .
 
-If you take a look at [inventory](./inventory) file, you can find three
+If you take a look at [inventory](./inventory) file, you can find four
 host groups which you need fill in with your machines according to prefered
 topology.
 
@@ -90,6 +99,8 @@ master.example.com
 master.example.com
 [nodes]
 master.example.com openshift_node_labels="{'region': 'infra','zone': 'default'}" openshift_schedulable=true
+[nfs]
+master.example.com
 ```
 
 ### Kubernetes cluster
