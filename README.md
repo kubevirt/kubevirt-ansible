@@ -18,7 +18,7 @@ This repository provides collection of playbooks to
 | install-kubevirt-on-openshift.yml | This playbook installs KubeVirt on existing OpenShift cluster. |
 | deploy-kubernetes.yml | This playbook deploys Kubernetes cluster on given machines. |
 | deploy-openshift.yml | This playbook deploys OpenShift cluster on given machines. |
-| control.yml | This is top level playbook which deploys Kubernetes or OpenShift cluster using Lago provider and installs KubeVirt on top of it. |
+| control.yml | This is top level playbook which encapsulates entire flow, provision resources, deploying cluster, and installing KubeVirt on it. |
 
 ## Requirements
 
