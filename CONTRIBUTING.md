@@ -15,7 +15,7 @@ Information on how to contribute will follow in the next sections.
 ## KubeVirt Ansible repository structure and roles
 
 This section will describe the current repository structure and
-give a short example of existing role for KubeVirt.
+give a short example of an existing role for KubeVirt.
 
 ### Roles Structure
 
