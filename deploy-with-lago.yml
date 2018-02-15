@@ -19,7 +19,7 @@
         lago init "{{ prefix }}" LagoInitFile.yml
       args:
         creates: "{{ prefix }}/default/uuid"
-    - name: Remove user defined settigns from inventory
+    - name: Remove user defined settings from inventory
       blockinfile:
         path: "{{ inventory_file }}"
         marker: "# {mark} CUSTOM SETTINGS"
