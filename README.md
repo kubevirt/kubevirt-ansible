@@ -1,11 +1,13 @@
 # KubeVirt Ansible
 
 This repository provides collection of playbooks to
-- [x] [install KubeVirt on existing OpenShift cluster](#install-kubevirt-on-existing-cluster)
-- [ ] deploy Kubernetes cluster on given machines and install KubeVirt
-- [x] [deploy OpenShift cluster on given machines and install KubeVirt](#deploy-kubernetes-or-openshift-and-kubevirt)
-- [ ] deploy Kubernetes cluster with KubeVirt with Lago
-- [x] [deploy OpenShift cluster with KubeVirt with Lago](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago)
+- [x] [Install KubeVirt on existing OpenShift cluster](#install-kubevirt-on-existing-cluster)
+- [ ] Deploy Kubernetes cluster on given machines and install KubeVirt
+- [x] [Deploy OpenShift cluster on given machines and install KubeVirt](#deploy-kubernetes-or-openshift-and-kubevirt)
+- [ ] Deploy Kubernetes cluster with KubeVirt with Lago
+- [x] [Deploy OpenShift cluster with KubeVirt with Lago](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago)
+
+*NOTE: Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.*
 
 **Tested on CentOS Linux release 7.4 (Core), OpenShift 3.7 and Ansible 2.4.2**
 
@@ -43,11 +45,26 @@ playbook which you can use depends on what cluster you want to bring up.
 
 There are three key cluster components which needs to be deployed.
 
-* master - is component which is brain of cluster
-* etcd - is database of cluster
-* node - is compute component of cluster
+* **master**
 
-There are two basic environment scenarios how cluster can be deployed.
+  The master is the host or hosts that contain the master components,
+  including the API server, controller manager server, and etcd.
+  The master manages nodes in its Kubernetes cluster and schedules pods
+  to run on nodes.
+
+* **etcd**
+
+  **etcd** stores the persistent master state while other components watch
+  **etcd** for changes to bring themselves into the desired state.
+
+* **node**
+
+  A node provides the runtime environments for containers.
+  Each node in a Kubernetes cluster has the required services
+  to be managed by the master. Nodes also have the required services
+  to run pods, including the Docker service, a kubelet, and a service proxy.
+
+There are two basic environment scenarios on how a cluster can be deployed.
 If you need more information please read
 [documentation](https://docs.openshift.org/latest/install_config/install/planning.html).
 
@@ -60,11 +77,11 @@ If you need more information please read
 For minimal hardware requirements please follow
 [documentation](https://docs.openshift.org/latest/install_config/install/prerequisites.html) .
 
-When you take a look at [inventory](./inventory) file, you can find three
+If you take a look at [inventory](./inventory) file, you can find three
 host groups which you need fill in with your machines according to prefered
 topology.
 
-For example if you choose `all-in-one` topology you can read following inventory file.
+For example if you choose `all-in-one` topology you can read the following inventory file.
 
 ```ini
 [masters]
