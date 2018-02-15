@@ -1,6 +1,8 @@
 - name: Login As Super User
   command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
   when: cluster=="openshift"
+        and admin_user is not undefined
+        and admin_password is not undefined
 
 - name: Create {{ namespace }} namespace
   shell: kubectl create namespace {{ namespace }}
