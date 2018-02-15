@@ -1,15 +1,15 @@
 - name: Login As Super User
-  command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+  command: "oc --kubeconfig={{ kubeconfig }} login -u {{ admin_user }} -p {{ admin_password }}"
   when: cluster=="openshift"
         and admin_user is not undefined
         and admin_password is not undefined
 
 - name: Create {{ namespace }} namespace
-  shell: kubectl create namespace {{ namespace }}
+  shell: kubectl --kubeconfig={{ kubeconfig }} create namespace {{ namespace }}
   ignore_errors : true
 
 - name: Add Privileged Policy
-  command: "oc adm policy add-scc-to-user privileged -z {{ item }} -n {{ namespace }}"
+  command: "oc --kubeconfig={{ kubeconfig }} adm policy add-scc-to-user privileged -z {{ item }} -n {{ namespace }}"
   with_items:
     - kubevirt-privileged
     - kubevirt-controller
@@ -17,7 +17,7 @@
   when: cluster=="openshift"
 
 - name: Add Hostmount-anyuid Policy
-  command: "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
+  command: "oc --kubeconfig={{ kubeconfig }} adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
   when: cluster=="openshift"
 
 - name: Download Kubevirt Template
@@ -31,5 +31,5 @@
     dest: /tmp/kubevirt.yaml
 
 - name: Create Kubevirt Resources
-  command: kubectl create -f /tmp/kubevirt.yaml
+  command: kubectl --kubeconfig={{ kubeconfig }} create -f /tmp/kubevirt.yaml
   ignore_errors : true

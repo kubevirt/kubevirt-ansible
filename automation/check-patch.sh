@@ -150,7 +150,6 @@ main() {
         "openshift_ver=$openshift_ver"
         "openshift_playbook_path=$openshift_playbook_path"
     )
-
     ansible-playbook \
         -u root \
         -i "$inventory_file" \

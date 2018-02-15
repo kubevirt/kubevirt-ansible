@@ -1,3 +1,4 @@
 namespace: "kube-system"
 docker_prefix: "kubevirt"
 docker_tag: "latest"
+kubeconfig: "$HOME/.kube/config"

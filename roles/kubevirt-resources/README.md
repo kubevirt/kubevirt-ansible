@@ -1,4 +1,4 @@
-# Kubevirt Resources Playbook
+# Kubevirt Resources Role
 
 Deploy Kubevirt resources onto a cluster.
 
@@ -10,3 +10,4 @@ Deploy Kubevirt resources onto a cluster.
 | namespace | kube-system | Namespace to create resources |
 | docker_prefix | kubevirt | Container image organization |
 | docker_tag | latest | Container image tag |
+| kubeconfig | $HOME/.kube/config | Path to the cluster config file |
