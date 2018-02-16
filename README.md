@@ -146,7 +146,7 @@ playbook to install KubeVirt from given manifest.
 | ---------------- | ------------- | -------------------------------------- |
 | kubevirt\_mf     | string | Path to KubeVirt manifest, you can get one from [releases](https://github.com/kubevirt/kubevirt/releases) or build it from sources |
 | openshift\_ansible\_dir | string | Path to [OpenShift Ansible project][openshift-ansible-project] |
-| kubeconfig | string | Path to kubeconfig |
+| kubeconfig | string | Path to the [`~/.kube/config`](https://docs.openshift.com/container-platform/3.7/cli_reference/manage_cli_profiles.html#switching-between-cli-profiles) file containing authentication information for the desired cluster |
 
 ```bash
 $ # Get KubeVirt manifest
