@@ -4,4 +4,4 @@
     line: "{{ hostvars[groups['masters'][0]]['ansible_default_ipv4']['address'] }} {{ hostvars[groups['masters'][0]]['ansible_fqdn'] }}"
 
 - name: Login to OpenShift
-  shell: oc login -u {{ admin_test_user_name }} -p {{ admin_test_password }} --insecure-skip-tls-verify=true "https://{ {master_fqdn }}:8443"
+  shell: "oc login -u {{ admin_test_user_name }} -p {{ admin_test_password }} --insecure-skip-tls-verify=true https://{{ master_fqdn }}:8443"
