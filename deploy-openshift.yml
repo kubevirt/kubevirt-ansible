@@ -2,9 +2,12 @@
 - hosts: all
   remote_user: root
   pre_tasks:
-    - name: Install python-yaml (required by openshift_facts)
+    - name: Install openshift_facts requirements
       yum:
-        name: python-yaml
+        name: "{{ item }}"
+      with_items:
+        - python-yaml
+        - python-ipaddress
     - name: Include openshift_facts module
       import_role:
         name: "{{ openshift_ansible_dir }}/roles/openshift_facts"
