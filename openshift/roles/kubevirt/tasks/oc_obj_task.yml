@@ -1,7 +1,7 @@
 - name: "Running oc_obj wrapper"
   oc_obj:
     name: "{{ item.name }}"
-    kubeconfig: "{{ kconfig }}"
+    kubeconfig: "{{ kubeconfig }}"
     namespace: "{{ project }}"
     kind: "{{ kind }}"
     state: "{{ state }}"
