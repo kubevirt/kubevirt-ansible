@@ -87,15 +87,8 @@ install_requirements() {
 
 main() {
     # cluster_type: Openshift or Kubernetes
-    # mode:
-    #   release - install kubevirt with kubevirt.yaml,
-    #   and fetch kubevirt's containers from docker hub
-    #
-    #   dev - install kubevirt with the dev manifests, and
-    #   build kubevirt's containers on the vms
 
     local cluster_type="${CLUSTER_TYPE:-openshift}"
-    local mode="${MODE:-release}"
     local provider="${PROVIDER:-lago}"
     local run_path="$(get_run_path "$cluster_type")"
     local args=("prefix=$run_path")
@@ -121,7 +114,6 @@ main() {
     fi
 
     args+=(
-        "mode=$mode"
         "provider=$provider"
         "inventory_file=$inventory_file"
     )

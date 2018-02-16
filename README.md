@@ -170,7 +170,6 @@ This section describes how to deploy KubeVirt or OpenShift cluster with KubeVirt
 | Name             |  Value        | Description                            |
 | ---------------- | ------------- | -------------------------------------- |
 | cluster\_type    | `kubernetes`, `openshift` | Desired cluster            |
-| mode             | `release`, `dev` | If `dev` it will build KubeVirt from sources |
 | openshift\_ansible\_dir | string | Path to [OpenShift Ansible project][openshift-ansible-project] |
 | provider         | `lago` | So far `lago` is only supported provider |
 | inventory\_file  | string | Path to inventory file, lago is adding VMs into inventory file once they are created, so it needs to know where it is located. |
@@ -183,7 +182,6 @@ by tests.
 ```bash
 $ ansible-playbook -i inventory \
     -e "cluster_type=openshift \
-    mode=release \
     provider=lago \
     inventory_file=inventory \
     openshift_ansible_dir=openshift-ansible/" \

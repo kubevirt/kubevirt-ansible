@@ -1,8 +1,6 @@
 ---
 - hosts: all
   remote_user: root
-  vars_files:
-    - "{{ playbook_dir }}/common/vars/default_vars.yml"
   pre_tasks:
     - name: Install python-yaml (required by openshift_facts)
       yum:

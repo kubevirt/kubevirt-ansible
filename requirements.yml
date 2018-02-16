@@ -3,6 +3,4 @@
   version: master
   name: openshift-contrib
 
-- src: andrewrothstein.go-dev
-
 - src: ansible.kubernetes-modules
