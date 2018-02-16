@@ -31,5 +31,5 @@
     dest: /tmp/kubevirt.yaml
 
 - name: Create Kubevirt Resources
-  command: kubectl create -f /tmp/kubevirt.yaml
+  command: kubectl apply -f /tmp/kubevirt.yaml
   ignore_errors : true

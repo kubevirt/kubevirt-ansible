@@ -1,11 +1,3 @@
 cluster: "openshift"
-
-kubevirt_repo_url: "https://github.com/kubevirt/kubevirt.git"
-kubevirt_repo_path: "{{ playbook_dir }}/kubevirt"
-
-kubevirt_mf_template: "{{ kubevirt_repo_path }}/manifests/release/kubevirt.yaml.in"
-kubevirt_mf: "{{ kubevirt_repo_path }}/manifests/release/kubevirt.yaml"
-
 docker_prefix: kubevirt
 docker_tag: latest
-lib_oc_path: "{{ playbook_dir }}/openshift-ansible/roles/lib_openshift"

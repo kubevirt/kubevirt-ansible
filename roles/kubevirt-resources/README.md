@@ -10,3 +10,5 @@ Deploy Kubevirt resources onto a cluster.
 | namespace | kube-system | Namespace to create resources |
 | docker_prefix | kubevirt | Container image organization |
 | docker_tag | latest | Container image tag |
+| action | provision | The action of provisioning or deprovisioning kubevirt |
+| cluster | openshift | The cluster we're running on |
