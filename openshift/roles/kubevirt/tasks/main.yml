@@ -1,6 +1,6 @@
 - name: Get Openshift version
   oc_version:
-    kubeconfig: "{{ kconfig }}"
+    kubeconfig: "{{ kubeconfig }}"
   register: oc_version
 
 - name: Normalize kubevirt.yaml
@@ -10,7 +10,7 @@
 - name: Create project
   oc_project:
     name: "{{ project }}"
-    kubeconfig: "{{ kconfig }}"
+    kubeconfig: "{{ kubeconfig }}"
     state: "{{ state }}"
 
 - name: RBAC
@@ -27,7 +27,7 @@
     resource_kind: scc
     resource_name: privileged
     user: "system:serviceaccount:{{ project }}:{{ item }}"
-    kubeconfig: "{{ kconfig }}"
+    kubeconfig: "{{ kubeconfig }}"
     state: "{{ state }}"
   with_items:
     - kubevirt-privileged
