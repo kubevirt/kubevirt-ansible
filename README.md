@@ -156,8 +156,7 @@ Please see the [contributing guidelines](./CONTRIBUTING.md) for information rega
 
 # Automation & Testing
 
-Playbooks inside of this repository are tested per each incoming pull request.
-Please follow [`automation/README.md`](./automation/README.md) for more information.
+Please see [automation/README.md](./automation/README.md) for information regarding the testing process.
 
 # Useful Links
 - [**KubeVirt**](https://github.com/kubevirt/kubevirt)

@@ -22,13 +22,13 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/kubevi
 
 ## Submitting changes :wrench:
 
-To submit changes, please send a [GitHub Pull Request](https://github.com/kubevirt/kubevirt-ansible/pulls). 
+To submit changes, please send a [GitHub Pull Request](https://github.com/kubevirt/kubevirt-ansible/pulls).
 * Before submitting a PR, please **read the [Styleguides](#styleguides)** to know more about coding conventions used in this project.
 * Always **fork** [KubeVirt Ansible](https://github.com/kubevirt/kubevirt-ansible) and **create a new branch with a descriptive name for each pull request** to avoid intertwingling different features or fixes on the same branch.
 * Always **do "git pull --rebase" and "git rebase"** vs "git pull" or "git merge".
 * Ensure the PR description clearly describes the problem and solution. Include the relevant issue number if applicable.
 
-Before merging, a PR needs to pass the review of two [maintainers'](#kubevirt-ansible-contributors) and CI tests. The PR should be up to date with the current master branch and has no requested changes.
+Before merging, a PR needs to pass the review of two [maintainers'](#kubevirt-ansible-contributors) and [CI tests](./automation/README.md). The PR should be up to date with the current master branch and has no requested changes.
 
 ### Ansible playbooks changes
 
@@ -70,7 +70,7 @@ So far we've been focused mostly on using Ansible to deploy various projects suc
 #### Documentation
 
   * Please ensure all code changes reflected in documentation accordingly.
-  
+
 For me codding guidelines please see [Additional Links](#additional-links).
 
 ### KubeVirt Ansible Contributors

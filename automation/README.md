@@ -5,15 +5,15 @@ it is being integrated with [oVirt CI System][ovirt-ci-system-doc].
 Everything located under `automation` directory is related to integration
 to [oVirt CI System][ovirt-ci-system-doc].
 
-There is list of events which can trigger job on [oVirt CI System][ovirt-ci-system-doc],
-The KubeVirt Ansible repository is using `check-patch` event at the moment,
+There is a list of events which can trigger a job on [oVirt CI System][ovirt-ci-system-doc],
+The KubeVirt Ansible repository uses the `check-patch` event at the moment,
 to verify incoming patches.
 
-Once you submit PR for this repository, the [oVirt CI System][ovirt-ci-system-doc]
+Once you submit a PR for this repository, the [oVirt CI System][ovirt-ci-system-doc]
 triggers [Jenkins job](http://jenkins.ovirt.org/blue/organizations/jenkins/kubevirt_kubevirt-ansible_standard-check-pr/activity)
-which executes [`automation/check-patch.sh`](./check-patch.sh) script.
+which executes the [`automation/check-patch.sh`](./check-patch.sh) script.
 
-This script will execute Ansible playbook [`./control.yml`](../control.yml)
+This script will execute the Ansible playbook [`./control.yml`](../control.yml)
 which wraps entire testing flow.
 
 
@@ -24,7 +24,6 @@ following steps (partial playbooks)
 * [provision testing environment](#testing-environment)
 * [deploy OpenShift](#deploy-openshift)
 * [install KubeVirt](#install-kubevirt)
-* [TODO](https://github.com/kubevirt/kubevirt-ansible/issues/47) run KubeVirt test suite
 
 This playbook is executed by Ansible 2.4.2.
 
@@ -56,7 +55,10 @@ It will provision three virtual machines with CentOS 7.4
 
 To deploy OpenShift the [`./deploy-openshift.yml`](../deploy-openshift.yml) playbook is used.
 
-Test flow deploys OpenShift v3.7 .
+Test flow deploys OpenShift in two versions:
+
+* OpenShift 3.7
+* OpenShift 3.9
 
 ### Install KubeVirt
 
