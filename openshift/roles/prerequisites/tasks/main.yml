@@ -5,7 +5,7 @@
 - name: set SELinux to permissive mode under configuration file
   selinux:
     policy: targeted
-    state: enforcing
+    state: permissive
 
 - name: stop and disable firewalld
   register: result

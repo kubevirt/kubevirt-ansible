@@ -17,7 +17,7 @@ get_run_path() {
 
 collect_logs() {
     local run_path="$1"
-    local artifacts_dir="exported-artifacts"
+    local artifacts_dir="$2"
     local vms_logs="${artifacts_dir}/vms_logs"
 
     mkdir -p "$vms_logs"
@@ -38,7 +38,9 @@ collect_logs() {
 cleanup() {
     set +e
     local run_path="$1"
-    collect_logs "$run_path"
+    local artifacts_dir="$2"
+
+    collect_logs "$run_path" "$artifacts_dir"
     lago --workdir "$run_path" destroy --yes \
     || force_cleanup
 }
@@ -88,14 +90,16 @@ install_requirements() {
 main() {
     # cluster_type: Openshift or Kubernetes
 
+    local artifacts_dir="exported-artifacts"
     local cluster_type="${CLUSTER_TYPE:-openshift}"
     local provider="${PROVIDER:-lago}"
     local run_path="$(get_run_path "$cluster_type")"
     local args=("prefix=$run_path")
     local inventory_file="$(realpath inventory)"
 
-    trap "cleanup $run_path" EXIT
+    trap "cleanup $run_path $artifacts_dir" EXIT
 
+    mkdir -p "$artifacts_dir"
     set_params
     install_requirements
 
@@ -124,6 +128,15 @@ main() {
         -v \
         -e "${args[*]}" \
         control.yml
+
+    echo "Running functional tests"
+    http_proxy="" timeout \
+        --kill-after 5m \
+        120m \
+        ./run-kubevirt-functional-tests.sh \
+            --kubeconfig ".kube/config" \
+            --commit "master" \
+            --output "$artifacts_dir"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
