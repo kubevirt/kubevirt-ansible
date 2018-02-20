@@ -1,8 +1,8 @@
 - name: Login As Super User
   command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
   when: cluster=="openshift"
-        and admin_user is not undefined
-        and admin_password is not undefined
+        and admin_user is defined
+        and admin_password is defined
 
 - name: Create {{ namespace }} namespace
   shell: kubectl create namespace {{ namespace }}
@@ -20,16 +20,18 @@
   command: "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
   when: cluster=="openshift"
 
-- name: Download Kubevirt Template
-  get_url:
-    url: "https://raw.githubusercontent.com/kubevirt/kubevirt/master/manifests/release/kubevirt.yaml.in"
-    dest: /tmp/kubevirt.yaml.j2
+- name: Cheking for kubevirt.yaml template in {{ kubevirt_template_dir }}
+  stat:
+    path: "{{ kubevirt_template_dir }}/kubevirt.yaml"
+  register: byo_template
 
-- name: Rendering Kubevirt Yaml
-  template:
-    src: /tmp/kubevirt.yaml.j2
-    dest: /tmp/kubevirt.yaml
+- fail:
+     msg: "Missing kubevirt.yaml in {{ kubevirt_template_dir }}"
+     when: byo_template.stat.exists == False
 
-- name: Create Kubevirt Resources
-  command: kubectl apply -f /tmp/kubevirt.yaml
-  ignore_errors : true
+- name: Using kubevirt.yaml template from {{ kubevirt_template_dir }}
+  set_fact:
+      template_version: "release"
+  when: byo_template.stat.exists == True
+
+- include_tasks: "{{ template_version }}.yaml"

@@ -1,3 +1,8 @@
+manifest_version: "release"
+kubevirt_template_dir: "roles/kubevirt-resources/templates"
+
 cluster: "openshift"
 docker_prefix: kubevirt
 docker_tag: latest
+
+kubevirt_manifest_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/master/manifests"

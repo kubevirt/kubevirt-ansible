@@ -1,3 +1,3 @@
-admin_test_user_name: "test_admin"
-admin_test_password: "123456"
+admin_username: "test_admin"
+admin_password: "123456"
 master_fqdn: "{{ hostvars[groups['masters'][0]]['ansible_fqdn'] }}"
