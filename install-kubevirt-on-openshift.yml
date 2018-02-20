@@ -1,7 +1,7 @@
 ---
 # PARAMETERS
 # - kubevirt_mf
-# - kconfig
+# - kubeconfig
 # - openshift_ansible_dir
 - hosts: localhost
   connection: local
@@ -13,8 +13,8 @@
         msg: "Missing 'openshift_ansible_dir' parameter"
       when: openshift_ansible_dir is not defined
     - fail:
-        msg: "Missing 'kconfig' parameter"
-      when: kconfig is not defined
+        msg: "Missing 'kubeconfig' parameter"
+      when: kubeconfig is not defined
     - fail:
         msg: "Missing 'kubevirt_mf' parameter"
       when: kubevirt_mf is not defined
