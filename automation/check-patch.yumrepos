@@ -1,0 +1,23 @@
+[centos-base-el7]
+name = CentOS7 Base
+baseurl = http://mirror.centos.org/centos/7/os/x86_64/
+enabled = 1
+cost = 100
+
+[centos-updates-el7]
+name = CentOS7 Updates
+baseurl = http://mirror.centos.org/centos/7/updates/x86_64/
+enabled = 1
+cost = 100
+
+[centos-extras-el7]
+name = CentOS7 Extras
+baseurl = http://mirror.centos.org/centos/7/extras/x86_64/
+enabled = 1
+cost = 100
+
+[epel-el7]
+name = Extra Packages for Enterprise Linux 7 - x86_64
+baseurl = http://download.fedoraproject.org/pub/epel/7/x86_64
+enabled = 1
+cost = 100
