@@ -14,6 +14,16 @@
     - name: Load openshift facts
       openshift_facts:
         role: common
+    - name: Set facts for docker-storage-setup
+      block:
+        - name: Detecting Operating System from ostree_booted
+          stat:
+            path: /run/ostree-booted
+          register: ostree_booted
+        - name: initialize_facts set fact openshift_is_atomic
+          set_fact:
+            openshift: "{{ openshift | combine({'common':{'is_atomic': ostree_booted.stat.exists}}, recursive=True) }}"
+      when: "'is_atomic' not in openshift.common"
   roles:
     - "{{ playbook_dir }}/openshift/roles/prerequisites"
     - "openshift-contrib/roles/docker-storage-setup"
@@ -24,7 +34,8 @@
         enabled: yes
         name: docker
 
-- import_playbook: "{{ openshift_ansible_dir }}/playbooks/byo/config.yml"
+- import_playbook: "{{ openshift_ansible_dir }}/playbooks/prerequisites.yml"
+- import_playbook: "{{ openshift_ansible_dir | join_paths(openshift_playbook_path | default('playbooks/byo/config.yml')) }}"
 
 - hosts: masters
   tasks:

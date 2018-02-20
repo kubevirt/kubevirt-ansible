@@ -1,98 +1,96 @@
-# Contributing to KubeVirt-Ansible
+# Contributing to KubeVirt Ansible
 
-## Intro
+Thank you for interest in contributing to KubeVirt Ansible! :tada::+1:
 
-In addition for allowing deployment of KubeVirt via Ansible,
-the KubeVirt-Ansible project is open for any contributions from
-Additional projects which aims to integrate with KubeVirt, such 
-as a specific storage or network project.
+The following is a set of guidelines for contributing to this project. These are not rules. Use your best judgment, and feel free to propose changes to this document in a pull request. Please make sure you are welcoming and friendly in all of our spaces.
 
-The integration will be in the form of Ansible roles per component
-which might later be integrated into a main Ansible Playbook Bundle.
+## Questions ? Help ? Ideas ? :bulb:
 
-Information on how to contribute will follow in the next sections.
+Please, don't use the issue tracker for support questions. Stop by the [#kubevirt](https://webchat.freenode.net/?channels=kubevirt) chat channel on freenode IRC or contact us on the [KubeVirt Google Group](https://groups.google.com/forum/#!forum/kubevirt-dev).
 
-## KubeVirt Ansible repository structure and roles
+## Reporting Bugs :bug:
 
-This section will describe the current repository structure and
-give a short example of an existing role for KubeVirt.
+Before creating bug reports, please check a [list of known issues](https://github.com/kubevirt/kubevirt-ansible/issues) to see if the problem has already been reported.
 
-### Roles Structure
+If not, go ahead and [make one](https://github.com/kubevirt/kubevirt-ansible/issues/new)! Be sure to include a **descriptive title and clear description** and please include **as many details as possible** to help maintainers reproduce the issue and resolve it faster. If possible, add a **code sample** or an **executable test case** demonstrating the expected behavior that is not occurring.
 
-[TODO]: 
-* Add info on role template and how to role for each supported flow ( K8S,OpenShift, W/ VMs )
-* Add example from existing role for KubeVirt
+> **Note:** If you find a **Closed** issue that seems like it is the same thing that you're experiencing, open a new issue and include a link to the original issue in the body of your new one.
 
-### Contributing new Ansible roles  
+## Suggesting Enhancements :hatched_chick:
 
-Contributing to KubeVirt-Ansible should be as simple as possible. 
-Have a question? Want to discuss something? Want to contribute something? Just open an
-[Issue](https://github.com/kubevirt/kubevirt-ansible/issues) or a [Pull
-Request](https://github.com/kubevirt/kubevirt-ansible/pulls).
+Enhancement suggestions are tracked as [GitHub issues](https://github.com/kubevirt/kubevirt-ansible/issues). When you are creating an enhancement issue, **use a clear and descriptive title** and **provide a clear description of the suggested enhancement** in as many details as possible.
 
-## Functional Tests
+## Submitting changes :wrench:
 
-So far we've been focused mostly on using Ansible to deploy various
-projects such as KubeVirt on OpenShift or K8S. 
+To submit changes, please send a [GitHub Pull Request](https://github.com/kubevirt/kubevirt-ansible/pulls). 
+* Before submitting a PR, please **read the [Styleguides](#styleguides)** to know more about coding conventions used in this project.
+* Always **fork** [KubeVirt Ansible](https://github.com/kubevirt/kubevirt-ansible) and **create a new branch with a descriptive name for each pull request** to avoid intertwingling different features or fixes on the same branch.
+* Always **do "git pull --rebase" and "git rebase"** vs "git pull" or "git merge".
+* Ensure the PR description clearly describes the problem and solution. Include the relevant issue number if applicable.
 
-However, to really verify if the deployment actually worked, we have to run
-misc functional tests which will verify the various features the deployed
-project brought. 
+Before merging, a PR needs to pass the review of two [maintainers'](#kubevirt-ansible-contributors) and CI tests. The PR should be up to date with the current master branch and has no requested changes.
 
-Currently, the tests are part of the KubeVirt repo under [tests](https://github.com/kubevirt/kubevirt/tree/master/tests).
+### Ansible playbooks changes
 
-[TODO]:
-* Add links or short examples of existing functional tests   
+In addition for allowing deployment of KubeVirt via Ansible, the KubeVirt-Ansible project is open for any contributions from additional projects which aims to integrate with KubeVirt, such as a specific storage or network project. The integration will be in the form of Ansible roles per component which might later be integrated into a main [Ansible Playbook Bundle (APB)](https://github.com/ansibleplaybookbundle/kubevirt-apb).
 
-### Contribute functional tests
+### Functional Tests changes
 
-[TODO]:
-* Add info on how to write new tests (or best practices)
-* Add info on how to verify the new tests using CI
-* Add link to developer guide showing how to run tests locally
+So far we've been focused mostly on using Ansible to deploy various projects such as KubeVirt on OpenShift or Kubernetes (K8S). However, to really verify if the deployment actually worked, we have to run misc functional tests which will verify the various features the deployed project brought. Currently, the tests are part of the KubeVirt repo under [tests](https://github.com/kubevirt/kubevirt/tree/master/tests).
 
-## Getting your code reviewed/merged
+## Styleguides
 
-In order to merge your code, it needs to pass a maintainer review and CI.
-The automation in CI will deploy your new code on currently
-Supported platform matix (OS,OpenShift,Ansible,etc.. ) and potentially
-run addition functional tests on the deployed components.
+### Git Commit Messages
 
-KubeVirt-Ansible maintainers are:
+  * Always write a clear log message for your commits
+  * Use the present tense ("Add feature" not "Added feature")
+  * Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
+  * Limit the first line to 72 characters or less
 
- * @lukas-bednar
- * @gbenhaim
- * @cynepco3hahue
+      ```
+      $ git commit -m "A brief summary of the commit
+      >
+      > A paragraph describing what changed and its impact."
+      ```
 
-In addition, the new code should be merged with basic documentation
-on the new project integrated in the form of:
+  * Reference issues and pull requests as `Fix issue 13`
 
-* Project links
-* Short description and purpose
-* Maintainer or POC
+### Codding guidelines
 
-[TODO]:
-* Add info on how to contribute documentation and where
+#### Comments
 
-## Integrating into existing KubeVirt APB
+  * Readability is one of the most important goals for this project
+  * Comment any non-trivial code where someone might not know why you are doing something in a particular way
+  * Commenting above a line is preferable to commenting at the end of a line
 
-Currently, the deployment of KubeVirt ( and possibly other projects )
-is done via Ansible roles and playbook. 
-However, we also want to build a main APB which will deploy all projects.
-This section contains info on how to integrate your project into this APB.
+#### Variables
 
-The current APB code can be found here [KubeVirt-APB](https://github.com/ansibleplaybookbundle/kubevirt-apb)
+  * Use descriptive variable names instead of variables like 'x, y, a, b, foo, boo'
 
-Current focal point for the APB:
+#### Documentation
 
- * @rthallisey
+  * Please ensure all code changes reflected in documentation accordingly.
+  
+For me codding guidelines please see [Additional Links](#additional-links).
 
+### KubeVirt Ansible Contributors
+
+To see the list of KubeVirt Ansible Contributors, please
+
+* Check the [Contributors](https://github.com/kubevirt/kubevirt-ansible/graphs/contributors) page or
+* Run `git shortlog -sne` in a cloned [KubeVirt Ansible](https://github.com/kubevirt/kubevirt-ansible) git repository.
+
+
+Thank you! :heart: :heart: :heart:
+
+KubeVirt Team
 
 ## Additional Links
 
 * Ansible
   * [Official Product Page](https://ansible.com/)
   * [Best Practices](http://docs.ansible.com/ansible/latest/playbooks_best_practices.html)
+  * [Ansible Best Practices: The Essentials](https://www.ansible.com/blog/ansible-best-practices-essentials)
 * OpenShift
   * [Official Product Page](https://openshift.org/)
   * [OpenShift Ansible](https://github.com/openshift/openshift-ansible)

@@ -8,7 +8,7 @@ This repository provides a collection of playbooks to
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
 
-**Tested on CentOS Linux release 7.4 (Core), OpenShift 3.7 and Ansible 2.4.2**
+**Tested on CentOS Linux release 7.4 (Core), OpenShift 3.7, OpenShift 3.9 and Ansible 2.4.2**
 
 ## Requirements
 

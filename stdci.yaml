@@ -1,0 +1,6 @@
+substage:
+  - openshift_3-7
+  - openshift_3-9
+
+runtime_requirements:
+  support_nesting_level: 2
