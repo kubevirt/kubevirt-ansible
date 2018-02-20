@@ -85,6 +85,13 @@ install_requirements() {
     ansible-galaxy install -r requirements.yml
 }
 
+is_code_changed() {
+    git diff-tree --no-commit-id --name-only -r HEAD..HEAD^ \
+    | grep -v -E -e '\.md$'
+
+    return $?
+}
+
 main() {
     # cluster_type: Openshift or Kubernetes
     # mode:
@@ -147,5 +154,9 @@ main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    is_code_changed || {
+        echo 'Code did not changed, skipping tests...'
+        exit 0
+    }
     main "$@"
 fi
