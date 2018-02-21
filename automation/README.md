@@ -30,6 +30,12 @@ This playbook is executed by Ansible 2.4.2.
 Parameters and usage of this playbook is described at
 [Deploy new Kubernetes or OpenShift cluster and KubeVirt with Lago](../README.md#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago).
 
+This is list of playbooks which are executed.
+* [control.yml](../control.yml)
+  * [deploy-with-lago.yml](../deploy-with-lago.yml)
+  * [deploy-openshift.yml](../deploy-openshift.yml)
+  * [install-kubevirt-release.yml](../install-kubevirt-release.yml)
+
 ### Testing environment
 
 To provision testing environment the [`./deploy-with-lago.yml`](../deploy-with-lago.yml) playbook is used.
