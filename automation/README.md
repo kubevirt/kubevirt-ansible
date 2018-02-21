@@ -25,7 +25,9 @@ following steps (partial playbooks)
 * [deploy OpenShift](#deploy-openshift)
 * [install KubeVirt](#install-kubevirt)
 
-This playbook is executed by Ansible 2.4.2.
+This playbook is executed inside of CentOS 7.4 mock.
+There is additional software installed, please read
+[automation/check-patch.packages](./check-patch.packages) for complete list.
 
 Parameters and usage of this playbook is described at
 [Deploy new Kubernetes or OpenShift cluster and KubeVirt with Lago](../README.md#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago).
