@@ -1,13 +1,13 @@
-- name: Download Kubevirt Template
+- name: Download KubeVirt Template
   get_url:
     url: "https://raw.githubusercontent.com/kubevirt/kubevirt/master/manifests/release/kubevirt.yaml.in"
     dest: "{{ kubevirt_template_dir }}/kubevirt.yaml"
   when: byo_template.stat.exists == False
 
-- name: Rendering Kubevirt Yaml
+- name: Render KubeVirt Yaml
   template:
     src: "{{ kubevirt_template_dir }}/kubevirt.yaml"
     dest: /tmp/kubevirt.yaml
 
-- name: Create Kubevirt Resources
+- name: Create KubeVirt Resources
   command: kubectl apply -f /tmp/kubevirt.yaml

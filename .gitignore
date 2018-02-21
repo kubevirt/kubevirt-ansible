@@ -2,3 +2,10 @@
 openshift-ansible
 *.retry
 *.pyc
+
+roles/kubevirt-resources/templates/kubevirt.yaml
+roles/kubevirt-resources/templates/rbac.authorization.k8s.yaml
+roles/kubevirt-resources/templates/replicase-resource.yaml
+roles/kubevirt-resources/templates/virt-controller.yaml
+roles/kubevirt-resources/templates/virt-handler.yaml
+roles/kubevirt-resources/templates/vm-resource.yaml

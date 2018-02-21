@@ -1,12 +1,17 @@
+---
 - name: Login As Super User
   command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
   when: cluster=="openshift"
         and admin_user is defined
         and admin_password is defined
 
+- name: Check if {{ namespace }} exists
+  shell: kubectl get ns | grep -w {{ namespace }} | awk '{ print $1 }'
+  register: ns
+
 - name: Create {{ namespace }} namespace
   shell: kubectl create namespace {{ namespace }}
-  ignore_errors : true
+  when: ns.stdout != "{{ namespace }}"
 
 - name: Add Privileged Policy
   command: "oc adm policy add-scc-to-user privileged -z {{ item }} -n {{ namespace }}"
@@ -20,18 +25,14 @@
   command: "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
   when: cluster=="openshift"
 
-- name: Cheking for kubevirt.yaml template in {{ kubevirt_template_dir }}
+- name: Check for kubevirt.yaml template in {{ kubevirt_template_dir }}
   stat:
     path: "{{ kubevirt_template_dir }}/kubevirt.yaml"
   register: byo_template
 
-- fail:
-     msg: "Missing kubevirt.yaml in {{ kubevirt_template_dir }}"
-     when: byo_template.stat.exists == False
-
-- name: Using kubevirt.yaml template from {{ kubevirt_template_dir }}
+- name: Use kubevirt.yaml template from {{ kubevirt_template_dir }}
   set_fact:
-      template_version: "release"
+    template_version: "release"
   when: byo_template.stat.exists == True
 
-- include_tasks: "{{ template_version }}.yaml"
+- include_tasks: "{{ manifest_version }}.yaml"
