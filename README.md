@@ -51,7 +51,7 @@ Beside these three key components you might want to specify [persistent storage]
 There are two supported cluster configurations:
 
 * All-in-one, where all cluster components are deployed on a single machine
-* Single master and multiple nodes, where master, etcd and persistant storage are assiged to a single machine, and nodes are on separated machines.  
+* Single master and multiple nodes, where master, etcd and persistant storage are assiged to a single machine, and nodes are on separated machines.
 
 For more inforamation on cluster configuration please see [Planning](https://docs.openshift.org/latest/install_config/install/planning.html) and [Requirements](https://docs.openshift.org/latest/install_config/install/prerequisites.html) documentation.
 
@@ -87,9 +87,14 @@ Follow [docker-storage-setup] documentation for more details.
 
 ```bash
 $ ansible-playbook -i inventory \
-    -e "openshift_ansible_dir=openshift-ansible/" deploy-openshift.yml
+    -e "openshift_ansible_dir=openshift-ansible/ \
+    openshift_playbook_path=playbooks/byo/config.yml" deploy-openshift.yml
 ```
-where `openshift_ansible_dir` is a path to a cloned [OpenShift Ansible][openshift-ansible-project] git repository.
+where
+* `openshift_ansible_dir` is a path to a cloned [OpenShift Ansible][openshift-ansible-project] git repository.
+* `openshift_playbook_path` is a path to OpenShift deploy playbook in [OpenShift Ansible][openshift-ansible-project]. Choose from
+  * `playbooks/byo/config.yml` for OpenShift 3.7 (default)
+  * `playbooks/deploy_cluster.yml` for OpenShift 3.9
 
 ## Install KubeVirt on an existing cluster
 
@@ -129,13 +134,17 @@ $ ansible-playbook -i inventory \
     -e "cluster_type=openshift \
     provider=lago \
     inventory_file=inventory \
+    openshift_playbook_path=playbooks/byo/config.yml \
     openshift_ansible_dir=openshift-ansible/" \
     control.yml
 ```
 
 where
-* `cluster_type=kubernetes|openshift` defines a desired cluster type, 
+* `cluster_type=kubernetes|openshift` defines a desired cluster type,
 * `openshift_ansible_dir` is a path to a cloned [OpenShift Ansible][openshift-ansible-project] git repository,
+* `openshift_playbook_path` is a path to OpenShift deploy playbook in [OpenShift Ansible][openshift-ansible-project]. Choose from
+  * `playbooks/byo/config.yml` for OpenShift 3.7 (default)
+  * `playbooks/deploy_cluster.yml` for OpenShift 3.9
 * `provider` defines provider. At the moment, `lago` is the only supported provider,
 * `inventory_file` is a path to the inventory file. Lago adds VMs into the inventory file once they are created, so it needs to know where it is located.
 
