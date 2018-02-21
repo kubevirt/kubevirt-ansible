@@ -29,7 +29,7 @@ $ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
 ```
 
 ## Cluster configuration
-This section describes how to set up a new cluster on given machines. [Skip](#install-kubevirt-on-existing-cluster) this part if you already have a cluster.
+This section describes how to set up a new cluster on given machines. [Skip](#install-kubevirt-on-an-existing-cluster) this part if you already have a cluster.
 
 There are three key cluster components which need to be deployed: master, etcd and node.
 
