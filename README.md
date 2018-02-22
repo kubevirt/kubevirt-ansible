@@ -108,24 +108,13 @@ Currently we don't have a playbook which installs KubeVirt on a Kubernetes clust
 
 ### OpenShift cluster
 
-When you have your cluster up and running you can install KubeVirt from a given manifest.
+Install KubeVirt on your OpenShift cluster
 
 ```bash
-$ # Get KubeVirt manifest
-$ wget https://github.com/kubevirt/kubevirt/releases/download/v0.2.0/kubevirt.yaml
-$ ansible-playbook -i localhost, --connection=local \
-        -e "openshift_ansible_dir=openshift-ansible/ \
-        kubeconfig=$HOME/.kube/config \
-        kubevirt_mf=kubevirt.yaml" \
-        playbooks/components/install-kubevirt-on-openshift.yml
+$ ansible-playbook -i localhost playbooks/kubevirt-resources.yml -e @variables/all.yaml
 ```
-where
-* `kubevirt_mf` is a path to KubeVirt manifest. See [releases](https://github.com/kubevirt/kubevirt/releases) or build it from sources,
-* `openshift_ansible_dir` is a path to a cloned [OpenShift Ansible][openshift-ansible-project] git repository,
-* `kubeconfig` is a path to the [`~/.kube/config`](https://docs.openshift.com/container-platform/3.7/cli_reference/manage_cli_profiles.html#switching-between-cli-profiles) file containing authentication information for the desired cluster.
 
 [![asciicast](https://asciinema.org/a/161278.png)](https://asciinema.org/a/161278)
-
 
 ## Deploy a new Kubernetes or OpenShift cluster and KubeVirt with Lago
 

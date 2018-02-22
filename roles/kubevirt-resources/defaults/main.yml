@@ -5,4 +5,9 @@ cluster: "openshift"
 action: "provision"
 manifest_version: "release"
 
-dev_template_resources: [ "rbac.authorization.k8s", "replicase-resource", "virt-controller", "virt-handler", "vm-resource" ]
+dev_template_resources:
+  - "rbac.authorization.k8s"
+  - "replicase-resource"
+  - "virt-controller"
+  - "virt-handler"
+  - "vm-resource"
