@@ -103,7 +103,7 @@ main() {
 
     local cluster_type="${CLUSTER_TYPE:-openshift}"
     local ansible_modules_version="${ANSIBLE_MODULES_VERSION:-openshift-ansible-3.7.29-1}"
-    local openshift_image_tag="${OPENSHIFT_IMAGE_TAG:-v3.7.0}"
+    local openshift_ver="${OPENSHIFT_VER:-3.7}"
     local openshift_playbook_path="${OPENSHIFT_PLAYBOOK_PATH:-playbooks/byo/config.yml}"
     local mode="${MODE:-release}"
     local provider="${PROVIDER:-lago}"
@@ -141,7 +141,7 @@ main() {
         "inventory_file=$inventory_file"
         "cluster_type=$cluster_type"
         "ansible_modules_version=$ansible_modules_version"
-	"openshift_image_tag=$openshift_image_tag"
+        "openshift_ver=$openshift_ver"
         "openshift_playbook_path=$openshift_playbook_path"
     )
 

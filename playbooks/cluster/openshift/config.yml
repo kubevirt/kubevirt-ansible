@@ -2,21 +2,63 @@
 - hosts: all
   remote_user: root
   pre_tasks:
+    - name: include_vars
+      include_vars:
+        file: "{{ item }}"
+      with_items:
+        - "{{ playbook_dir }}/../../../vars/global_vars.yml"
+        - "{{ playbook_dir }}/vars/{{ openshift_ver }}.yml"
+
+    - name: set SELinux to permissive mode
+      command: setenforce 0
+
+    - name: set SELinux to permissive mode under configuration file
+      selinux:
+        policy: targeted
+        state: permissive
+
+    - name: stop and disable firewalld
+      register: result
+      service:
+        state: stopped
+        enabled: no
+        name: firewalld
+      failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
+
+    - name: install epel repository
+      yum:
+        name: "{{ epel_release_rpm_url }}"
+        state: present
+
     - name: Install openshift_facts requirements
       yum:
         name: "{{ item }}"
       with_items:
         - python-yaml
         - python-ipaddress
+        - wget
+        - git
+        - net-tools
+        - bind-utils
+        - iptables-services
+        - bridge-utils
+        - bash-completion
+        - kexec-tools
+        - sos
+        - psacct
+        - docker
+
     - name: Include openshift_facts module
       import_role:
         name: "{{ openshift_ansible_dir }}/roles/openshift_facts"
+
     - name: Load openshift facts
       openshift_facts:
         role: common
+
     - name: Set facts for docker-storage-setup
       block:
-        - name: Detecting Operating System from ostree_booted
+        - name: Detect Operating System from ostree_booted
           stat:
             path: /run/ostree-booted
           register: ostree_booted
@@ -24,9 +66,10 @@
           set_fact:
             openshift: "{{ openshift | combine({'common':{'is_atomic': ostree_booted.stat.exists}}, recursive=True) }}"
       when: "'is_atomic' not in openshift.common"
+
   roles:
-    - "{{ playbook_dir }}/openshift/roles/prerequisites"
     - "openshift-contrib/roles/docker-storage-setup"
+
   post_tasks:
     - name: Enable and start docker service
       service:
