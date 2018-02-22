@@ -16,7 +16,7 @@
         prefix: "{{ prefix | default('.lago') }}"
     - name: Init Lago env
       command:
-        lago init "{{ prefix }}" LagoInitFile.yml
+        lago init "{{ prefix }}" "{{ playbook_dir }}/LagoInitFile.yml"
       args:
         creates: "{{ prefix }}/default/uuid"
     - name: Remove user defined settings from inventory

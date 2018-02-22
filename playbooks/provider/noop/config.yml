@@ -1,0 +1,4 @@
+# The noop provider should be used when VM provisioning is not needed.
+- name: Skipping hosts provisioning step
+  hosts: localhost
+  gather_facts: False
