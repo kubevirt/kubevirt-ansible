@@ -135,6 +135,12 @@ main() {
         exit 1
     fi
 
+    [[ -f "$STD_CI_YUMREPOS" ]] && {
+        echo "Using std-ci yum repos:"
+	    cat "$STD_CI_YUMREPOS"
+        args+=("std_ci_yum_repos=$(realpath "$STD_CI_YUMREPOS")")
+    }
+
     args+=(
         "mode=$mode"
         "provider=$provider"
