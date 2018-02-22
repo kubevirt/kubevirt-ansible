@@ -12,6 +12,8 @@ openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true',
 openshift_disable_check=memory_availability,disk_availability,docker_image_availability
 openshift_enable_excluders=false
 template_service_broker_install=false
+openshift_use_manageiq=false
+openshift_install_examples=false
 
 # BEGIN ANSIBLE BROKER CONFIG
 openshift_hosted_etcd_storage_kind=nfs
