@@ -27,7 +27,7 @@
 
 - name: Check for kubevirt.yaml template in {{ kubevirt_template_dir }}
   stat:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yaml"
+    path: "{{ playbook_dir }}/{{ kubevirt_template_dir }}/kubevirt.yaml"
   register: byo_template
 
 - name: Use kubevirt.yaml template from {{ kubevirt_template_dir }}
