@@ -1,7 +1,7 @@
 # KubeVirt Ansible
 
 This repository provides a collection of playbooks to
-- [x] [Deploy an OpenShift cluster on given machines](#deploy-kubernetes-or-openshift-and-kubevirt): `deploy-openshift.yml`
+- [x] [Deploy an OpenShift cluster on given machines](#deploy-kubernetes-or-openshift-and-kubevirt): `playbooks/cluster/openshift/config.yml`
 - [x] [Install KubeVirt on an existing OpenShift cluster](#install-kubevirt-on-existing-cluster): `install-kubevirt-on-openshift.yml`
 - [ ] Deploy a Kubernetes cluster on given machines and install KubeVirt: `deploy-kubernetes.yml`
 - [x] [Provision resources, deploy a cluster and install KubeVirt](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago): `control.yml`
@@ -88,7 +88,7 @@ Follow [docker-storage-setup] documentation for more details.
 ```bash
 $ ansible-playbook -i inventory \
     -e "openshift_ansible_dir=openshift-ansible/ \
-    openshift_playbook_path=playbooks/byo/config.yml" deploy-openshift.yml
+    openshift_playbook_path=playbooks/byo/config.yml" playbooks/cluster/openshift/config.yml
 ```
 where
 * `openshift_ansible_dir` is a path to a cloned [OpenShift Ansible][openshift-ansible-project] git repository.
