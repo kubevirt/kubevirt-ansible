@@ -13,13 +13,13 @@ Once you submit a PR for this repository, the [oVirt CI System][ovirt-ci-system-
 triggers [Jenkins job](http://jenkins.ovirt.org/blue/organizations/jenkins/kubevirt_kubevirt-ansible_standard-check-pr/activity)
 which executes the [`automation/check-patch.sh`](./check-patch.sh) script.
 
-This script will execute the Ansible playbook [`./control.yml`](../control.yml)
+This script will execute the Ansible playbook [`./playbooks/automation/check-patch.yml`](../playbooks/automation/check-patch.yml)
 which wraps entire testing flow.
 
 
-## `control.yml` Ansible playbook
+## `check-patch.yml` Ansible playbook
 
-This Ansible playbook is wrapper for entire testing flow which is composed from
+This Ansible playbook is a wrapper for the entire testing flow which is composed from
 following steps (partial playbooks)
 * [provision testing environment](#testing-environment)
 * [deploy OpenShift](#deploy-openshift)
@@ -33,14 +33,14 @@ Parameters and usage of this playbook is described at
 [Deploy new Kubernetes or OpenShift cluster and KubeVirt with Lago](../README.md#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago).
 
 This is list of playbooks which are executed.
-* [control.yml](../control.yml)
-  * [deploy-with-lago.yml](../deploy-with-lago.yml)
-  * [deploy-openshift.yml](../deploy-openshift.yml)
-  * [install-kubevirt-release.yml](../install-kubevirt-release.yml)
+* [check-patch.yml](../playbooks/automation/check-patch.yml)
+  * [playbooks/provider/lago/config.yml](../playbooks/provider/lago/config.yml)
+  * [playbooks/cluster/openshift/config.yml](../playbooks/cluster/openshift/config.yml)
+  * [playbooks/components/install-kubevirt-release.yml](../playbooks/components/install-kubevirt-release.yml)
 
 ### Testing environment
 
-To provision testing environment the [`./deploy-with-lago.yml`](../deploy-with-lago.yml) playbook is used.
+To provision testing environment the [`playbooks/provider/lago/config.yml`](../playbooks/provider/lago/config.yml) playbook is used.
 
 Testing environment is populated by
 [Lago](https://github.com/lago-project/lago) project, it provisions desired
@@ -61,17 +61,26 @@ It will provision three virtual machines with CentOS 7.4
 
 ### Deploy OpenShift
 
-To deploy OpenShift the [`./deploy-openshift.yml`](../deploy-openshift.yml) playbook is used.
+To deploy OpenShift the [`./playbooks/cluster/openshift/config.yml`](../playbooks/cluster/openshift/config.yml) playbook is used.
 
 Test flow deploys OpenShift in two versions:
 
 * OpenShift 3.7
 * OpenShift 3.9
 
+These two deployments are running simultaneously, each in it's own separated environment.
+The flow maybe be extended with upcoming OpenShift releases in future.
+
 ### Install KubeVirt
 
-To install KubeVirt on top of  OpenShift the [`./install-kubevirt-release.yml`](../install-kubevirt-release.yml) playbook is used.
+To install KubeVirt on top of  OpenShift the [`./playbooks/components/install-kubevirt-release.yml`](../playbooks/components/install-kubevirt-release.yml) playbook is used.
 
 Test flow installs KubeVirt v0.2.0 .
+
+
+# oVirt CI Integration
+
+The [oVirt CI][ovirt-ci-system-doc] project is open to integrating additional
+KubeVirt related projects or integrations, to run per each submitted PR.
 
 [ovirt-ci-system-doc]: http://ovirt-infra-docs.readthedocs.io/en/latest/CI/Build_and_test_standards/index.html
