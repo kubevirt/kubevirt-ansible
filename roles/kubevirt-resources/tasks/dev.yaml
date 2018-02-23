@@ -1,19 +1,19 @@
 - name: Download KubeVirt Template
   get_url:
     url: "{{ kubevirt_manifest_url }}/dev/{{ item }}.yaml.in"
-    dest: "{{ playbook_dir }}/{{ kubevirt_template_dir }}/{{ item }}.yaml"
+    dest: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
   with_items:
     - "{{ dev_template_resources }}"
 
 - name: Rendering KubeVirt Yaml
   template:
-    src: "{{ playbook_dir }}/{{ kubevirt_template_dir }}/{{ item }}.yaml"
+    src: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
     dest: "/tmp/{{ item }}.yaml"
   with_items:
     - "{{ dev_template_resources }}"
 
 - file:
-    path: "{{ playbook_dir }}/{{ kubevirt_template_dir }}/{{ item }}.yaml"
+    path: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
     state: absent
   with_items:
     - "{{ dev_template_resources }}"
