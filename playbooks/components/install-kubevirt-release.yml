@@ -11,12 +11,12 @@
     http_proxy: ""
   vars:
     kubevirt_repo_url: "https://github.com/kubevirt/kubevirt.git"
-    kubevirt_repo_path: "{{ playbook_dir }}/kubevirt"
+    kubevirt_repo_path: "/tmp/kubevirt"
     kubevirt_mf_template: "{{ kubevirt_repo_path }}/manifests/release/kubevirt.yaml.in"
     kubevirt_mf: "{{ kubevirt_repo_path }}/manifests/release/kubevirt.yaml"
     docker_prefix: kubevirt
     docker_tag: latest
-    lib_oc_path: "{{ playbook_dir }}/openshift-ansible/roles/lib_openshift"
+    lib_oc_path: "{{ openshift_ansible_dir }}/roles/lib_openshift"
   pre_tasks:
     - name: Clone Kubevirt's repo
       git:
@@ -46,12 +46,16 @@
           --insecure-skip-tls-verify=true \
           "https://${master_fqdn}:8443"
 
+    - name: Set kubeconfig path
+      set_fact:
+        kubeconfig: "{{ '.kube/config' | realpath }}"
+
     - name: Install Kubevirt
       debug:
         msg: "Installing Kubevirt"
 
   roles:
-    - "{{ playbook_dir }}/openshift/roles/kubevirt"
+    - kubevirt
 
   post_tasks:
     - name: List Kubevirt's reousrces

@@ -9,6 +9,10 @@
         - "{{ playbook_dir }}/../../../vars/global_vars.yml"
         - "{{ playbook_dir }}/vars/{{ openshift_ver }}.yml"
 
+    - name: Include lib_utils
+      import_role:
+        name: lib_utils
+
     - name: set SELinux to permissive mode
       command: setenforce 0
 
