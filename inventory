@@ -12,6 +12,8 @@ openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true',
 openshift_disable_check=memory_availability,disk_availability,docker_image_availability
 openshift_enable_excluders=false
 template_service_broker_install=false
+openshift_use_manageiq=false
+openshift_install_examples=false
 
 # BEGIN ANSIBLE BROKER CONFIG
 openshift_hosted_etcd_storage_kind=nfs
@@ -23,6 +25,7 @@ openshift_hosted_etcd_storage_volume_size=1100M
 openshift_hosted_etcd_storage_labels={'storage': 'etcd'}
 
 ansible_service_broker_refresh_interval=20s
+ansible_service_broker_registry_whitelist=[".*-apb$"]
 ansible_service_broker_local_registry_whitelist=[".*-apb$"]
 ansible_service_broker_image_prefix=ansibleplaybookbundle/origin-
 ansible_service_broker_image_tag=latest
