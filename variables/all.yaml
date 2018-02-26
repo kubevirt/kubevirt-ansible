@@ -4,7 +4,7 @@ docker_prefix: kubevirt
 docker_tag: latest
 
 kubevirt_ansible_dir: "{{ playbook_dir }}/.."
-kubevirt_template_dir: "{{ kubevirt_ansible_dir }}/roles/kubevirt-resources/templates"
+kubevirt_template_dir: "{{ kubevirt_ansible_dir }}/roles/kubevirt/templates"
 kubevirt_manifest_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/master/manifests"
 
 cluster: "openshift"

@@ -5,4 +5,4 @@
   environment:
     http_proxy: ""
   roles:
-    - role: kubevirt-resources
+    - role: kubevirt

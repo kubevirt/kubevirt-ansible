@@ -1,3 +1,13 @@
-project: "kube-system"
-state: present
-kubeconfig: ".kube/config"
+namespace: "kube-system"
+docker_prefix: "kubevirt"
+docker_tag: "latest"
+cluster: "openshift"
+action: "provision"
+manifest_version: "release"
+
+dev_template_resources:
+  - "rbac.authorization.k8s"
+  - "replicase-resource"
+  - "virt-controller"
+  - "virt-handler"
+  - "vm-resource"
