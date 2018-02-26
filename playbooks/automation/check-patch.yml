@@ -2,4 +2,5 @@
 - import_playbook: "{{ playbook_dir }}/../utils/configure-std-ci-repos.yml"
   when: std_ci_yum_repos is defined
 - import_playbook: "{{ playbook_dir }}/../cluster/{{ cluster_type | default('openshift') }}/config.yml"
-- import_playbook: "{{ playbook_dir }}/../components/install-kubevirt-release.yml"
+- import_playbook: "{{ playbook_dir }}/../cluster-login.yml"
+- import_playbook: "{{ playbook_dir }}/../kubevirt.yml"
