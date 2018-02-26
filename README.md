@@ -109,7 +109,8 @@ Currently we don't have a playbook which installs KubeVirt on a Kubernetes clust
 ### OpenShift cluster
 
 Install KubeVirt on your OpenShift cluster.
-[KubeVirt parameters doc](https://github.com/rthallisey/kubevirt-ansible/blob/master/roles/kubevirt/README.md)
+
+[KubeVirt parameters doc](https://github.com/kubevirt/kubevirt-ansible/blob/master/roles/kubevirt/README.md)
 
 ```bash
 $ ansible-playbook -i localhost playbooks/kubevirt.yml
