@@ -3,7 +3,7 @@
 This repository provides a collection of playbooks to
 - [x] [Deploy an OpenShift cluster on given machines](#deploy-kubernetes-or-openshift-and-kubevirt): `playbooks/cluster/openshift/config.yml`
 - [x] [Install KubeVirt on an existing OpenShift cluster](#install-kubevirt-on-existing-cluster): `playbooks/components/install-kubevirt-on-openshift.yml`
-- [ ] Deploy a Kubernetes cluster on given machines and install KubeVirt: `deploy-kubernetes.yml`
+- [ ] Deploy a Kubernetes cluster on given machines and install KubeVirt: `playbooks/cluster/kubernetes/config.yml`
 - [x] [Provision resources, deploy a cluster and install KubeVirt](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago): `control.yml`
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
@@ -74,7 +74,7 @@ Using this inventory file one can deploy a Kubernetes or OpenShift cluster.
 
 
 ```bash
-$ ansible-playbook -i inventory deploy-kubernetes.yml
+$ ansible-playbook -i inventory playbooks/cluster/kubernetes/config.yml
 ```
 
 ### OpenShift cluster
