@@ -1,0 +1,20 @@
+---
+- hosts: all
+  remote_user: root
+  pre_tasks:
+    - name: override roles variables
+      include_vars: "{{ item }}"
+      with_items:
+        - "{{ playbook_dir }}/vars/default_vars.yml"
+  roles:
+    - kubernetes-prerequisites
+
+- hosts: masters
+  remote_user: root
+  roles:
+    - kubernetes-master
+
+- hosts: nodes
+  remote_user: root
+  roles:
+    - "{{ playbook_dir }}/kubernetes/roles/node"
