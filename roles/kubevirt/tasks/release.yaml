@@ -1,6 +1,6 @@
 - name: Download KubeVirt Template
   get_url:
-    url: "https://raw.githubusercontent.com/kubevirt/kubevirt/master/manifests/release/kubevirt.yaml.in"
+    url: "{{ kubevirt_manifest_url }}/{{ manifest_version }}/kubevirt.yaml.in"
     dest: "{{ kubevirt_template_dir }}/kubevirt.yaml"
   when: byo_template.stat.exists == False
 
@@ -9,7 +9,8 @@
     src: "{{ kubevirt_template_dir }}/kubevirt.yaml"
     dest: /tmp/kubevirt.yaml
 
-- file:
+- name: Remove rendered templates
+  file:
     path: "{{ kubevirt_template_dir }}/kubevirt.yaml"
     state: absent
   when: byo_template.stat.exists == False
