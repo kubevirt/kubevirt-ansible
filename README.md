@@ -4,7 +4,7 @@ This repository provides a collection of playbooks to
 - [x] [Deploy an OpenShift cluster on given machines](#deploy-kubernetes-or-openshift-and-kubevirt): `playbooks/cluster/openshift/config.yml`
 - [x] [Install KubeVirt on an existing OpenShift cluster](#install-kubevirt-on-existing-cluster): `playbooks/components/install-kubevirt-on-openshift.yml`
 - [ ] Deploy a Kubernetes cluster on given machines and install KubeVirt: `playbooks/cluster/kubernetes/config.yml`
-- [x] [Provision resources, deploy a cluster and install KubeVirt](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago): `control.yml`
+- [x] [Provision resources, deploy a cluster and install KubeVirt](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago): `playbooks/automation/check-patch.yml`
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
 
@@ -131,7 +131,7 @@ where
 
 This section describes how to deploy a KubeVirt or OpenShift cluster with KubeVirt installed on it using Lago.
 
-Following example is executing top level playbook `control.yml`.
+Following example is executing top level playbook `playbooks/automation/check-patch.yml`.
 
 ```bash
 $ ansible-playbook -i inventory \
@@ -141,7 +141,7 @@ $ ansible-playbook -i inventory \
     openshift_ver=3.7 \
     openshift_playbook_path=playbooks/byo/config.yml \
     openshift_ansible_dir=openshift-ansible/" \
-    control.yml
+    playbooks/automation/check-patch.yml
 ```
 
 where
