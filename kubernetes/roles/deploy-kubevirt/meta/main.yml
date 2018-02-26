@@ -1,3 +1,0 @@
-dependencies:
-  - role: ansible.kubernetes-modules
-    when: wait_kubevirt_rollout
