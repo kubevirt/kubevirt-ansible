@@ -156,7 +156,7 @@ main() {
         -i "$inventory_file" \
         -v \
         -e "${args[*]}" \
-        control.yml
+        playbooks/automation/check-patch.yml
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
