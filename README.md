@@ -1,9 +1,9 @@
 # KubeVirt Ansible
 
 This repository provides a collection of playbooks to
-- [x] [Deploy an OpenShift cluster on given machines](#deploy-kubernetes-or-openshift-and-kubevirt): `deploy-openshift.yml`
-- [x] [Install KubeVirt on an existing OpenShift cluster](#install-kubevirt-on-existing-cluster): `install-kubevirt-on-openshift.yml`
-- [ ] Deploy a Kubernetes cluster on given machines and install KubeVirt: `deploy-kubernetes.yml`
+- [x] [Deploy an OpenShift cluster on given machines](#deploy-kubernetes-or-openshift-and-kubevirt): `playbooks/cluster/openshift/config.yml`
+- [x] [Install KubeVirt on an existing OpenShift cluster](#install-kubevirt-on-existing-cluster): `playbooks/components/install-kubevirt-on-openshift.yml`
+- [ ] Deploy a Kubernetes cluster on given machines and install KubeVirt: `playbooks/cluster/kubernetes/config.yml`
 - [x] [Provision resources, deploy a cluster and install KubeVirt](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago): `control.yml`
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
@@ -74,7 +74,7 @@ Using this inventory file one can deploy a Kubernetes or OpenShift cluster.
 
 
 ```bash
-$ ansible-playbook -i inventory deploy-kubernetes.yml
+$ ansible-playbook -i inventory playbooks/cluster/kubernetes/config.yml
 ```
 
 ### OpenShift cluster
@@ -88,9 +88,13 @@ Follow [docker-storage-setup] documentation for more details.
 ```bash
 $ ansible-playbook -i inventory \
     -e "openshift_ansible_dir=openshift-ansible/ \
-    openshift_playbook_path=playbooks/byo/config.yml" deploy-openshift.yml
+    openshift_playbook_path=playbooks/byo/config.yml \
+    openshift_ver=3.7" playbooks/cluster/openshift/config.yml
 ```
 where
+* `openshift_ver` specifies what version of OpenShift one wants to deploy. Choose from
+  * 3.7
+  * 3.9
 * `openshift_ansible_dir` is a path to a cloned [OpenShift Ansible][openshift-ansible-project] git repository.
 * `openshift_playbook_path` is a path to OpenShift deploy playbook in [OpenShift Ansible][openshift-ansible-project]. Choose from
   * `playbooks/byo/config.yml` for OpenShift 3.7 (default)
@@ -113,7 +117,7 @@ $ ansible-playbook -i localhost, --connection=local \
         -e "openshift_ansible_dir=openshift-ansible/ \
         kubeconfig=$HOME/.kube/config \
         kubevirt_mf=kubevirt.yaml" \
-        install-kubevirt-on-openshift.yml
+        playbooks/components/install-kubevirt-on-openshift.yml
 ```
 where
 * `kubevirt_mf` is a path to KubeVirt manifest. See [releases](https://github.com/kubevirt/kubevirt/releases) or build it from sources,
@@ -134,6 +138,7 @@ $ ansible-playbook -i inventory \
     -e "cluster_type=openshift \
     provider=lago \
     inventory_file=inventory \
+    openshift_ver=3.7 \
     openshift_playbook_path=playbooks/byo/config.yml \
     openshift_ansible_dir=openshift-ansible/" \
     control.yml
@@ -141,6 +146,9 @@ $ ansible-playbook -i inventory \
 
 where
 * `cluster_type=kubernetes|openshift` defines a desired cluster type,
+* `openshift_ver` specifies what version of OpenShift one wants to deploy. Choose from
+  * 3.7
+  * 3.9
 * `openshift_ansible_dir` is a path to a cloned [OpenShift Ansible][openshift-ansible-project] git repository,
 * `openshift_playbook_path` is a path to OpenShift deploy playbook in [OpenShift Ansible][openshift-ansible-project]. Choose from
   * `playbooks/byo/config.yml` for OpenShift 3.7 (default)
