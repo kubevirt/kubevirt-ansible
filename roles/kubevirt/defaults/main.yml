@@ -4,6 +4,8 @@ docker_tag: "latest"
 cluster: "openshift"
 action: "provision"
 manifest_version: "release"
+kubevirt_manifest_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/master/manifests"
+kubevirt_template_dir: "{{ role_path }}/templates"
 
 dev_template_resources:
   - "rbac.authorization.k8s"
