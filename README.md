@@ -112,7 +112,7 @@ Install KubeVirt on your OpenShift cluster.
 [KubeVirt parameters doc](https://github.com/rthallisey/kubevirt-ansible/blob/master/roles/kubevirt/README.md)
 
 ```bash
-$ ansible-playbook -i localhost playbooks/kubevirt.yml -e @variables/all.yaml
+$ ansible-playbook -i localhost playbooks/kubevirt.yml
 ```
 
 ## Deploy a new Kubernetes or OpenShift cluster and KubeVirt with Lago
