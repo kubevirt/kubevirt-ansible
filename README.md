@@ -2,7 +2,7 @@
 
 This repository provides a collection of playbooks to
 - [x] [Deploy an OpenShift cluster on given machines](#deploy-kubernetes-or-openshift-and-kubevirt): `playbooks/cluster/openshift/config.yml`
-- [x] [Install KubeVirt on an existing OpenShift cluster](#install-kubevirt-on-existing-cluster): `playbooks/components/install-kubevirt-on-openshift.yml`
+- [x] [Install KubeVirt on an existing OpenShift cluster](#install-kubevirt-on-existing-cluster): `playbooks/kubevirt.yml`
 - [ ] Deploy a Kubernetes cluster on given machines and install KubeVirt: `playbooks/cluster/kubernetes/config.yml`
 - [x] [Provision resources, deploy a cluster and install KubeVirt](#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago): `playbooks/automation/check-patch.yml`
 
@@ -53,7 +53,7 @@ There are two supported cluster configurations:
 * All-in-one, where all cluster components are deployed on a single machine
 * Single master and multiple nodes, where master, etcd and persistant storage are assiged to a single machine, and nodes are on separated machines.
 
-For more inforamation on cluster configuration please see [Planning](https://docs.openshift.org/latest/install_config/install/planning.html) and [Requirements](https://docs.openshift.org/latest/install_config/install/prerequisites.html) documentation.
+For more information on cluster configuration please see [Planning](https://docs.openshift.org/latest/install_config/install/planning.html) and [Requirements](https://docs.openshift.org/latest/install_config/install/prerequisites.html) documentation.
 
 Edit the [inventory](./inventory) file according to chosen cluster configuration. For example, for an `all-in-one` case it will look like:
 
@@ -114,8 +114,6 @@ Install KubeVirt on your OpenShift cluster.
 ```bash
 $ ansible-playbook -i localhost playbooks/kubevirt.yml
 ```
-
-[![asciicast](https://asciinema.org/a/161278.png)](https://asciinema.org/a/161278)
 
 ## Deploy a new Kubernetes or OpenShift cluster and KubeVirt with Lago
 
