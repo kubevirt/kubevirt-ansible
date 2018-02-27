@@ -152,6 +152,10 @@ Stop by the [#kubevirt](https://webchat.freenode.net/?channels=kubevirt) chat ch
 
 Please see the [contributing guidelines](./CONTRIBUTING.md) for information regarding the contribution process.
 
+# Automation & Testing
+
+Please see [automation/README.md](./automation/README.md) for information regarding the testing process.
+
 # Useful Links
 - [**KubeVirt**](https://github.com/kubevirt/kubevirt)
 - [**OpenShift Ansible**][openshift-ansible-project]
