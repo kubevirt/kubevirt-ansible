@@ -110,11 +110,11 @@ Currently we don't have a playbook which installs KubeVirt on a Kubernetes clust
 
 Install KubeVirt on your OpenShift cluster.
 
-[KubeVirt parameters doc](https://github.com/kubevirt/kubevirt-ansible/blob/master/roles/kubevirt/README.md)
-
 ```bash
 $ ansible-playbook -i localhost playbooks/kubevirt.yml
 ```
+
+See [KubeVirt parameters documentation](./roles/kubevirt/README.md) for more details on parameters.
 
 ## Deploy a new Kubernetes or OpenShift cluster and KubeVirt with Lago
 
