@@ -112,7 +112,7 @@ Install KubeVirt on your OpenShift cluster.
 [KubeVirt parameters doc](https://github.com/rthallisey/kubevirt-ansible/blob/master/roles/kubevirt/README.md)
 
 ```bash
-$ ansible-playbook -i localhost playbooks/kubevirt.yml -e @variables/all.yaml
+$ ansible-playbook -i localhost playbooks/kubevirt.yml
 ```
 
 [![asciicast](https://asciinema.org/a/161278.png)](https://asciinema.org/a/161278)

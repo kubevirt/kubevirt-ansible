@@ -155,7 +155,6 @@ main() {
         -i "$inventory_file" \
         -v \
         -e "${args[*]}" \
-        -e @variables/all.yaml \
         playbooks/automation/check-patch.yml
 }
 
