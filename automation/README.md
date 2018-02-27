@@ -4,6 +4,8 @@ In order to keep playbooks in this repository operational,
 it is being integrated with [oVirt CI System][ovirt-ci-system-doc].
 Everything located under `automation` directory is related to integration
 to [oVirt CI System][ovirt-ci-system-doc].
+In addition there is [`stdci.yaml`](../stdci.yaml) a configuration file for
+[oVirt CI System][ovirt-ci-system-doc].
 
 There is a list of events which can trigger a job on [oVirt CI System][ovirt-ci-system-doc],
 The KubeVirt Ansible repository uses the `check-patch` event at the moment,
@@ -22,8 +24,8 @@ which wraps entire testing flow.
 This Ansible playbook is a wrapper for the entire testing flow which is composed from
 following steps (partial playbooks)
 * [provision testing environment](#testing-environment)
-* [deploy OpenShift](#deploy-openshift)
-* [install KubeVirt](#install-kubevirt)
+* [deploy OpenShift](../README.md#cluster-configuration)
+* [install KubeVirt](../README.md#install-kubevirt-on-an-existing-cluster)
 
 This playbook is executed inside of CentOS 7.4 mock.
 There is additional software installed, please read
@@ -33,10 +35,10 @@ Parameters and usage of this playbook is described at
 [Deploy new Kubernetes or OpenShift cluster and KubeVirt with Lago](../README.md#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago).
 
 This is list of playbooks which are executed.
-* [check-patch.yml](../playbooks/automation/check-patch.yml)
+* [playbooks/automation/check-patch.yml](../playbooks/automation/check-patch.yml)
   * [playbooks/provider/lago/config.yml](../playbooks/provider/lago/config.yml)
   * [playbooks/cluster/openshift/config.yml](../playbooks/cluster/openshift/config.yml)
-  * [playbooks/components/install-kubevirt-release.yml](../playbooks/components/install-kubevirt-release.yml)
+  * [playbooks/kubevirt.yml](../playbooks/kubevirt.yml)
 
 ### Testing environment
 
@@ -45,38 +47,29 @@ To provision testing environment the [`playbooks/provider/lago/config.yml`](../p
 Testing environment is populated by
 [Lago](https://github.com/lago-project/lago) project, it provisions desired
 resources to match requirements described in Lago configuration file.
-This configuration file is located in root of repository
-[`LagoInitFile.yml`](../LagoInitFile.yml).
+This configuration file is located in `playbooks/provider/lago` directory
+named [`LagoInitFile.yml`](../playbooks/provider/lago/LagoInitFile.yml),
+and it contains all details about testing environment.
 
 It will provision three virtual machines with CentOS 7.4
 * 1x master node
 * 2x compute node
 
+For any details regarding these virtual machines, for example memory,
+number of CPUs, disks alocation and etcetera, please read
+[`LagoInitFile.yml`](../playbooks/provider/lago/LagoInitFile.yml) !
 
-| Node type | Memory | CPUs | Disks | Ansible Groups |
-| ---- | ---- | ---- | ---- | ---- |
-| master | 4Gb | ? | * root<br> * docker\_storage (10Gb)<br> * docker\_lib (10Gb)<br> * main\_nfs (101Gb) | * masters<br> * nodes<br> * nfs<br> * etcd |
-| node   | 2Gb | ? | * root<br> * docker\_storage (10Gb)<br> * docker\_lib (10Gb) | * nodes |
+### Testing matrix
 
+The testing environment is populated with different versions of OpenShift cluster.
+Please read [`stdci.yaml`](../stdci.yaml) configuration file,
+current matrix is defined under `substage` section.
 
-### Deploy OpenShift
+If you take a look under [`automation`](./automation) you can find files there,
+which has a name of substage in name. So then you can understand what files
+are related to specific substage.
 
-To deploy OpenShift the [`./playbooks/cluster/openshift/config.yml`](../playbooks/cluster/openshift/config.yml) playbook is used.
-
-Test flow deploys OpenShift in two versions:
-
-* OpenShift 3.7
-* OpenShift 3.9
-
-These two deployments are running simultaneously, each in it's own separated environment.
-The flow maybe be extended with upcoming OpenShift releases in future.
-
-### Install KubeVirt
-
-To install KubeVirt on top of  OpenShift the [`./playbooks/components/install-kubevirt-release.yml`](../playbooks/components/install-kubevirt-release.yml) playbook is used.
-
-Test flow installs KubeVirt v0.2.0 .
-
+The KubeVirt version is static for whole matrix.
 
 # oVirt CI Integration
 
