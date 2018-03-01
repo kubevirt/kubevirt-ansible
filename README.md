@@ -81,13 +81,13 @@ $ ansible-playbook -i inventory playbooks/cluster/kubernetes/config.yml
 
 
 Be sure that you have enough space on your machines for docker storage and
-modify [defaults values](docker-storage-setup-defaults) accordingly.
+modify [defaults values][docker-storage-setup-defaults] accordingly.
 Follow [docker-storage-setup] documentation for more details.
 
 
 ```bash
 $ ansible-playbook -i inventory \
-    -e "openshift_ansible_dir=openshift-ansible/ \
+    -e "openshift_ansible_dir=$PWD/openshift-ansible/ \
     openshift_playbook_path=playbooks/byo/config.yml \
     openshift_ver=3.7" playbooks/cluster/openshift/config.yml
 ```
