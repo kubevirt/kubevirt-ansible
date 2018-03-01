@@ -25,7 +25,8 @@ $ export ANSIBLE_ROLES_PATH=$HOME/galaxy-roles
 For OpenShift deployment clone [**OpenShift Ansible**][openshift-ansible-project]
 
 ```bash
-$ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
+$ git clone -b release-3.7 https://github.com/openshift/openshift-ansible $HOME/openshift-ansible
+$ export ANSIBLE_ROLES_PATH=$HOME/openshift-ansible
 ```
 
 ## Cluster configuration
@@ -87,8 +88,7 @@ Follow [docker-storage-setup] documentation for more details.
 
 ```bash
 $ ansible-playbook -i inventory \
-    -e "openshift_ansible_dir=openshift-ansible/ \
-    openshift_playbook_path=playbooks/byo/config.yml \
+    -e "openshift_playbook_path=playbooks/byo/config.yml \
     openshift_ver=3.7" playbooks/cluster/openshift/config.yml
 ```
 where
