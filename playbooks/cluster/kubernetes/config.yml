@@ -17,4 +17,4 @@
 - hosts: nodes
   remote_user: root
   roles:
-    - "{{ playbook_dir }}/kubernetes/roles/node"
+    - kubernetes-node
