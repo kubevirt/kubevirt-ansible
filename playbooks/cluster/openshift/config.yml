@@ -54,7 +54,7 @@
 
     - name: Include openshift_facts module
       import_role:
-        name: "{{ openshift_ansible_dir }}/roles/openshift_facts"
+        name: "{{ lookup('env','openshift_ansible_dir') }}/roles/openshift_facts"
 
     - name: Load openshift facts
       openshift_facts:
@@ -81,8 +81,8 @@
         enabled: yes
         name: docker
 
-- import_playbook: "{{ openshift_ansible_dir }}/playbooks/prerequisites.yml"
-- import_playbook: "{{ openshift_ansible_dir | join_paths(openshift_playbook_path | default('playbooks/byo/config.yml')) }}"
+- import_playbook: "{{ lookup('env','openshift_ansible_dir') }}/playbooks/prerequisites.yml"
+- import_playbook: "{{ lookup('env','openshift_ansible_dir') | join_paths(openshift_playbook_path | default('playbooks/byo/config.yml')) }}"
 
 - hosts: masters
   tasks:
