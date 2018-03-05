@@ -6,7 +6,7 @@
       include_vars:
         file: "{{ item }}"
       with_items:
-        - "{{ playbook_dir }}/../../../vars/global_vars.yml"
+        - "{{ playbook_dir }}/../../../vars/all.yml"
         - "{{ playbook_dir }}/vars/{{ openshift_version }}.yml"
 
     - name: Include lib_utils

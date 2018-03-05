@@ -3,7 +3,7 @@ cluster: openshift
 namespace: kube-system
 
 # OpenShift #
-openshift_version
+openshift_version: "3.7"
 
 ### KubeVirt ###
 manifest_version: release

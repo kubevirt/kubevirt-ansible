@@ -1,6 +1,1 @@
-cluster: "openshift"
-provider: "lago"
 inventory_file: "inventory"
-openshift_version: "3.7"
-openshift_playbook_path: "playbooks/byo/config.yml"
-openshift_ansible_dir: "openshift-ansible/"
