@@ -20,7 +20,7 @@
 
 
 - name: remove firewalld and NetworkManager packages
-  yum:
+  package:
     name: "{{ item }}"
     state: absent
   with_items:
@@ -38,7 +38,7 @@
   ignore_errors: yes
 
 - name: install epel repository
-  yum:
+  package:
     name: "{{ epel_repo_rpm }}"
     state: present
 
@@ -63,7 +63,7 @@
   command: yum -q makecache -y --disablerepo=* --enablerepo=kubernetes
 
 - name: install all kubernetes packages
-  yum:
+  package: 
     name: "{{ item }}"
     state: present
     update_cache: yes

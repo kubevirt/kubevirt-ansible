@@ -30,12 +30,12 @@
       failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
 
     - name: install epel repository
-      yum:
+      package:
         name: "{{ epel_release_rpm_url }}"
         state: present
 
     - name: Install openshift_facts requirements
-      yum:
+      package:
         name: "{{ item }}"
       with_items:
         - python-yaml
