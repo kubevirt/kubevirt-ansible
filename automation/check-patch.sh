@@ -156,6 +156,8 @@ main() {
         -v \
         -e "${args[*]}" \
         playbooks/automation/check-patch.yml
+
+    make kubevirt-apb
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
