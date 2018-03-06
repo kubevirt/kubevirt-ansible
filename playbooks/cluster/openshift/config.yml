@@ -33,6 +33,8 @@
       package:
         name: "{{ epel_release_rpm_url }}"
         state: present
+      when:
+        - ansible_distribution in ["CentOS","RedHat"]
 
     - name: Install openshift_facts requirements
       package:
