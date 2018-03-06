@@ -1,6 +1,6 @@
 ---
 - name: install cockpit packages
-  yum:
+  package:
     name: "{{ item }}"
     state: present
     update_cache: yes
