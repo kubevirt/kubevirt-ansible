@@ -89,6 +89,7 @@
     - name: Configure oc admin user for testing
       shell: |
         user_name="{{ admin_test_user_name | default('test_admin') }}"
-        oc login -u system:admin
-        oc get user "$user_name" || oc create user "$user_name"
-        oc adm policy add-cluster-role-to-user cluster-admin "$user_name"
+        kubeconfig="/etc/origin/master/admin.kubeconfig"
+        oc login -u system:admin --config=$kubeconfig
+        oc get user "$user_name" --config=$kubeconfig || oc create user "$user_name" --config=$kubeconfig
+        oc adm policy add-cluster-role-to-user cluster-admin "$user_name" --config=$kubeconfig
