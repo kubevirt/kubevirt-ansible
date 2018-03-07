@@ -1,0 +1,12 @@
+### Cluster ###
+cluster: openshift
+namespace: kube-system
+
+# OpenShift #
+openshift_version: "3.7"
+
+### KubeVirt ###
+manifest_version: release
+docker_tag: latest
+
+### Components ###

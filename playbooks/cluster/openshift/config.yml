@@ -1,13 +1,18 @@
 ---
 - hosts: all
   remote_user: root
+  vars:
+    epel_release_rpm_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+    openshift_ansible_dir: "openshift-ansible/"
+    openshift_playbook_path: "playbooks/byo/config.yml"
+    openshift_version: "3.7"
   pre_tasks:
     - name: include_vars
       include_vars:
         file: "{{ item }}"
       with_items:
-        - "{{ playbook_dir }}/../../../vars/global_vars.yml"
-        - "{{ playbook_dir }}/vars/{{ openshift_ver }}.yml"
+        - "{{ playbook_dir }}/../../../vars/all.yml"
+        - "{{ playbook_dir }}/vars/{{ openshift_version }}.yml"
 
     - name: Include lib_utils
       import_role:
@@ -30,12 +35,14 @@
       failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
 
     - name: install epel repository
-      yum:
+      package:
         name: "{{ epel_release_rpm_url }}"
         state: present
+      when:
+        - ansible_distribution in ["CentOS","RedHat"]
 
     - name: Install openshift_facts requirements
-      yum:
+      package:
         name: "{{ item }}"
       with_items:
         - python-yaml
@@ -89,6 +96,7 @@
     - name: Configure oc admin user for testing
       shell: |
         user_name="{{ admin_test_user_name | default('test_admin') }}"
-        oc login -u system:admin
-        oc get user "$user_name" || oc create user "$user_name"
-        oc adm policy add-cluster-role-to-user cluster-admin "$user_name"
+        kubeconfig="/etc/origin/master/admin.kubeconfig"
+        oc login -u system:admin --config=$kubeconfig
+        oc get user "$user_name" --config=$kubeconfig || oc create user "$user_name" --config=$kubeconfig
+        oc adm policy add-cluster-role-to-user cluster-admin "$user_name" --config=$kubeconfig

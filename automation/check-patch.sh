@@ -93,7 +93,7 @@ is_code_changed() {
 }
 
 main() {
-    # cluster_type: Openshift or Kubernetes
+    # cluster: Openshift or Kubernetes
     # mode:
     #   release - install kubevirt with kubevirt.yaml,
     #   and fetch kubevirt's containers from docker hub
@@ -101,13 +101,13 @@ main() {
     #   dev - install kubevirt with the dev manifests, and
     #   build kubevirt's containers on the vms
 
-    local cluster_type="${CLUSTER_TYPE:-openshift}"
+    local cluster="${CLUSTER:-openshift}"
     local ansible_modules_version="${ANSIBLE_MODULES_VERSION:-openshift-ansible-3.7.29-1}"
-    local openshift_ver="${OPENSHIFT_VER:-3.7}"
+    local openshift_version="${OPENSHIFT_VERSION:-3.7}"
     local openshift_playbook_path="${OPENSHIFT_PLAYBOOK_PATH:-playbooks/byo/config.yml}"
     local mode="${MODE:-release}"
     local provider="${PROVIDER:-lago}"
-    local run_path="$(get_run_path "$cluster_type")"
+    local run_path="$(get_run_path "$cluster")"
     local args=("prefix=$run_path")
     local inventory_file="$(realpath inventory)"
 
@@ -116,7 +116,7 @@ main() {
     set_params
     install_requirements
 
-    if [[ "$cluster_type" == "openshift" ]]; then
+    if [[ "$cluster" == "openshift" ]]; then
         [[ -e openshift-ansible ]] \
         || git clone https://github.com/openshift/openshift-ansible
 
@@ -130,8 +130,8 @@ main() {
 
         args+=("openshift_ansible_dir=$(realpath openshift-ansible)")
 
-    elif ! [[ "$cluster_type" == "kubernetes" ]]; then
-        echo "$cluster_type unkown cluster type"
+    elif ! [[ "$cluster" == "kubernetes" ]]; then
+        echo "$cluster unkown cluster type"
         exit 1
     fi
 
@@ -145,9 +145,9 @@ main() {
         "mode=$mode"
         "provider=$provider"
         "inventory_file=$inventory_file"
-        "cluster_type=$cluster_type"
+        "cluster=$cluster"
         "ansible_modules_version=$ansible_modules_version"
-        "openshift_ver=$openshift_ver"
+        "openshift_version=$openshift_version"
         "openshift_playbook_path=$openshift_playbook_path"
     )
     ansible-playbook \
