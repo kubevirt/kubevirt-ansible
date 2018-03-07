@@ -1,9 +1,17 @@
 # KubeVirt-apb
 This *Ansible Playbook Bundle* deploys [Kubevirt](http://www.kubevirt.io)
 
-As the resources deployed need cluster-admin privileges, credentials of a super user are required for the APB to execute correctly
+As the resources deployed need cluster-admin privileges, credentials of a
+super user are required for the APB to execute correctly.
 
 ## Build the APB
+
+The apb-tool is required to prepare render the Dockerfile.
+```bash
+pip install apb
+```
+
+Build the APB.
 ```bash
 make kubevirt-apb
 ```
