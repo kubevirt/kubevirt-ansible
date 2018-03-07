@@ -85,19 +85,9 @@ Follow [docker-storage-setup] documentation for more details.
 
 
 ```bash
-$ ansible-playbook -i inventory \
-    -e "openshift_ansible_dir=$PWD/openshift-ansible/ \
-    openshift_playbook_path=playbooks/byo/config.yml \
-    openshift_ver=3.7" playbooks/cluster/openshift/config.yml
+$ ansible-playbook -i inventory -e@vars/all.yml playbooks/cluster/openshift/config.yml
 ```
-where
-* `openshift_ver` specifies what version of OpenShift one wants to deploy. Choose from
-  * 3.7
-  * 3.9
-* `openshift_ansible_dir` is a path to a cloned [OpenShift Ansible][openshift-ansible-project] git repository.
-* `openshift_playbook_path` is a path to OpenShift deploy playbook in [OpenShift Ansible][openshift-ansible-project]. Choose from
-  * `playbooks/byo/config.yml` for OpenShift 3.7 (default)
-  * `playbooks/deploy_cluster.yml` for OpenShift 3.9
+See [OpenShift parameters documentation](./playbooks/cluster/openshift/README.md) for more details.
 
 ## Install KubeVirt on an existing cluster
 
@@ -110,7 +100,7 @@ Currently we don't have a playbook which installs KubeVirt on a Kubernetes clust
 Install KubeVirt on your OpenShift cluster.
 
 ```bash
-$ ansible-playbook -i localhost playbooks/kubevirt.yml
+$ ansible-playbook -i localhost playbooks/kubevirt.yml -e@vars/all.yml
 ```
 
 See [KubeVirt parameters documentation](./roles/kubevirt/README.md) for more details on parameters.
@@ -122,27 +112,10 @@ This section describes how to deploy a KubeVirt or OpenShift cluster with KubeVi
 Following example is executing top level playbook `playbooks/automation/check-patch.yml`.
 
 ```bash
-$ ansible-playbook -i inventory \
-    -e "cluster_type=openshift \
-    provider=lago \
-    inventory_file=inventory \
-    openshift_ver=3.7 \
-    openshift_playbook_path=playbooks/byo/config.yml \
-    openshift_ansible_dir=openshift-ansible/" \
-    playbooks/automation/check-patch.yml
+$ ansible-playbook -i inventory -e@vars/all.yml playbooks/automation/check-patch.yml
 ```
 
-where
-* `cluster_type=kubernetes|openshift` defines a desired cluster type,
-* `openshift_ver` specifies what version of OpenShift one wants to deploy. Choose from
-  * 3.7
-  * 3.9
-* `openshift_ansible_dir` is a path to a cloned [OpenShift Ansible][openshift-ansible-project] git repository,
-* `openshift_playbook_path` is a path to OpenShift deploy playbook in [OpenShift Ansible][openshift-ansible-project]. Choose from
-  * `playbooks/byo/config.yml` for OpenShift 3.7 (default)
-  * `playbooks/deploy_cluster.yml` for OpenShift 3.9
-* `provider` defines provider. At the moment, `lago` is the only supported provider,
-* `inventory_file` is a path to the inventory file. Lago adds VMs into the inventory file once they are created, so it needs to know where it is located.
+See [Lago parameters documentation](./playbooks/provider/lago/README.md) for more details.
 
 
 [docker-storage-setup]: https://docs.openshift.org/latest/install_config/install/host_preparation.html#configuring-docker-storage
