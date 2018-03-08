@@ -65,7 +65,7 @@
   tasks:
     - name: Mount nfs storage
       shell: |
-        disk="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_4"
+        disk="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_5"
         mount_path="/opt"
         mkdir -p "$mount_path"
         mkfs.ext4 -F "$disk"
