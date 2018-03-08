@@ -1,0 +1,3 @@
+cluster: "openshift"
+action: "provision"
+

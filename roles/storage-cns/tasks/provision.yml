@@ -1,0 +1,14 @@
+---
+- name: Login As Super User
+  command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+  when: cluster=="openshift"
+        and admin_user is defined
+        and admin_password is defined
+
+- name: Render storage-cns deployment yaml
+  template:
+    src: storage-cns.yml
+    dest: /tmp/storage-cns.yml
+
+- name: Create storage-cns Resources
+  command: kubectl apply -f /tmp/storage-cns.yml
