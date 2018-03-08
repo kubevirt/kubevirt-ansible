@@ -1,0 +1,11 @@
+---
+- set_fact:
+    storage_demo_node_hostname: "nohost"
+
+- name: Render storage-demo deployment yaml
+  template:
+    src: "{{ storage_demo_template_dir }}/storage-demo.yml"
+    dest: /tmp/storage-demo.yml
+
+- name: Delete storage-demo Resources
+  command: kubectl delete -f /tmp/storage-demo.yml --ignore-not-found
