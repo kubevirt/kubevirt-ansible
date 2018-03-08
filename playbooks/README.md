@@ -21,7 +21,7 @@ $ ansible-galaxy install -p $HOME/galaxy-roles -r requirements.yml
 $ export ANSIBLE_ROLES_PATH=$HOME/galaxy-roles
 ```
 
-For OpenShift deployment clone [**OpenShift Ansible**][openshift-ansible-project]
+For OpenShift deployment clone [**OpenShift Ansible**](openshift-ansible-project)
 
 ```bash
 $ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
@@ -78,7 +78,6 @@ $ ansible-playbook -i inventory playbooks/cluster/kubernetes/config.yml
 
 ### OpenShift cluster
 
-
 Be sure that you have enough space on your machines for docker storage and
 modify [defaults values][docker-storage-setup-defaults] accordingly.
 Follow [docker-storage-setup] documentation for more details.
@@ -96,6 +95,10 @@ See [OpenShift parameters documentation](./playbooks/cluster/openshift/README.md
 Currently we don't have a playbook which installs KubeVirt on a Kubernetes cluster.
 
 ### OpenShift cluster
+
+The playbook expects you have the client installed and a config file in
+```$HOME/.kube/config```.  Also make sure you indentified with the cluster
+using ```oc login```.
 
 Install KubeVirt on your OpenShift cluster.
 
