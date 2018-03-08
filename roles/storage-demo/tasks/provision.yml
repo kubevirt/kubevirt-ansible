@@ -1,0 +1,45 @@
+---
+- name: Login As Super User
+  command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+  when: cluster=="openshift"
+        and admin_user is defined
+        and admin_password is defined
+
+- name: Check if namespace {{ namespace }} exists
+  shell: kubectl get ns | grep -w {{ namespace }} | awk '{ print $1 }'
+  register: ns
+
+- name: Create {{ namespace }} namespace
+  shell: kubectl create namespace {{ namespace }}
+  when: ns.stdout != namespace
+
+- name: Check for storage-demo serviceaccount
+  command: kubectl get serviceaccount storage-demo -n {{ namespace }}
+  register: user
+  failed_when: user.rc > 1
+
+- name: Create storage-demo serviceaccount
+  command: kubectl create serviceaccount storage-demo -n {{ namespace }}
+  when: user.stdout == ""
+
+- name: Grant privileged access to storage-demo serviceaccount
+  command: oc adm policy add-scc-to-user privileged system:serviceaccount:{{ namespace }}:storage-demo
+  when: cluster=="openshift"
+
+- name: Select a target node
+  command: kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="Hostname")].address}'
+  register: node_hostname
+  when: storage_demo_node_hostname is not defined
+
+- name: Set the target node
+  set_fact:
+    storage_demo_node_hostname: "{{ node_hostname.stdout }}"
+  when: storage_demo_node_hostname is not defined
+
+- name: Render storage-demo deployment yaml
+  template:
+    src: "{{ storage_demo_template_dir }}/storage-demo.yml"
+    dest: /tmp/storage-demo.yml
+
+- name: Create storage-demo Resources
+  command: kubectl apply -f /tmp/storage-demo.yml
