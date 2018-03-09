@@ -21,10 +21,18 @@ $ ansible-galaxy install -p $HOME/galaxy-roles -r requirements.yml
 $ export ANSIBLE_ROLES_PATH=$HOME/galaxy-roles
 ```
 
-For OpenShift deployment clone [**OpenShift Ansible**][openshift-ansible-project]
+### For OpenShift deployment
+
+Clone [**OpenShift Ansible**][openshift-ansible-project]:
 
 ```bash
 $ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
+```
+
+Configure path to openshift-ansible by adding following to `kubevirt-ansible/vars/all.yml`:
+
+```
+openshift_ansible_dir: $HOME/kubevirt-ansible/openshift-ansible
 ```
 
 ## Cluster configuration
