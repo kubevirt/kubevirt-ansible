@@ -1,0 +1,10 @@
+---
+namespace: kube-system
+service_account: cinder
+privileged_service_account: cinder_privileged
+mariadb_root_password: weakpassword
+mariadb_user: root
+cinder_password: cinderpassword
+cinder_user: cinder
+rabbitmq_password: rabbitmqpassword
+rabbitmq_user: guest
