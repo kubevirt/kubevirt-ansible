@@ -2,6 +2,7 @@
 masters
 nodes
 etcd
+glusterfs
 
 [OSEv3:vars]
 openshift_deployment_type=origin
@@ -47,6 +48,12 @@ ansible_service_broker_etcd_image_tag=latest
 
 [nfs]
 # Your nfs server FQDN
+
+[glusterfs]
+# Your glusterfs nodes FQDN
+# Each node should have the "glusterfs_devices" variable, which
+# points to the block device that will be used by gluster.
+
 #
 # If you run openshift deployment
 # You can add your master as schedulable node with option openshift_schedulable=true
