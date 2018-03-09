@@ -13,7 +13,7 @@ vm-common-settings: &vm-common-settings
 
 host-settings: &nodes-settings
     <<: *vm-common-settings
-    groups: [nodes]
+    groups: [nodes, glusterfs]
     memory: 2047
     nics:
       - net: lago-management-network
@@ -44,7 +44,7 @@ host-settings: &nodes-settings
 domains:
   lago-master:
     <<: *vm-common-settings
-    groups: [masters, nodes, etcd, nfs]
+    groups: [masters, nodes, etcd, nfs, glusterfs]
     memory: 4096
     nics:
       - net: lago-management-network

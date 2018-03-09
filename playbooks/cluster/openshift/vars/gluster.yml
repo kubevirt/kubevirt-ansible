@@ -1,0 +1,8 @@
+# Namespace to create for the CNS pods
+openshift_storage_glusterfs_namespace: app-storage
+# Create a StorageClass referencing the CNS cluster
+openshift_storage_glusterfs_storageclass: true
+# glusterblock functionality is not supported outside of Logging/Metrics
+openshift_storage_glusterfs_block_deploy: false
+# Disable any other default StorageClass
+openshift_storageclass_default: false
