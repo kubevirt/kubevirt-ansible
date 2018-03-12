@@ -44,7 +44,7 @@
   register: node_hostname
 
 - name: Label node to host Mariadb
-  command: kubectl label node "{{ node_hostname.stdout }}" mariadb=true
+  command: kubectl label node "{{ node_hostname.stdout }}" mariadb=true --overwrite=true
 
 - name: Render Common yml
   template:
