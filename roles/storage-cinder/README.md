@@ -23,27 +23,27 @@ for storage.
 * **rabbitmq_user**: Defaults to 'guest'
 
 ## Backend Specific Parameters
-* cinder_enable_xtremio_backend: false
-* cinder_enable_rbd_backend: false
-* cinder_enable_netapp_backend: false
+One of more of the backends have to be enabled.
+* **cinder_enable_xtremio_backend**: Default is 'false'
+* **cinder_enable_rbd_backend**: Default is 'false'
+* **cinder_enable_netapp_backend**: Default is 'false'
 
-# Xtremio
-xtremio:
-    max_over_subscription_ratio: 40
-    use_multipath_for_image_xfer: true
-    san_ip:
-    xtremio_cluster_name:
-    san_login:
-    san_password:
-    image_volume_cache_enabled:
+### Xtremio
+Required when xtremio backend is enabled.
+* **xtremio.max_over_subscription_ratio**: Default is '40'
+* **xtremio.use_multipath_for_image_xfer**: Default is 'true'
+* **xtremio.san_ip**:
+* **xtremio.xtremio_cluster_name**:
+* **xtremio.san_login**:
+* **xtremio.san_password**:
+* **xtremio.image_volume_cache_enabled**:
 
 ## Ceph
-ceph:
-    cinder_rbd_pool_name: cinder_volumes
-    cinder_rbd_user_name: cinder
-    client_key:
-    ceph_authentication_type: cephx
-    ceph_mon_host:
+* **ceph.cinder_rbd_pool_name**: Default is 'cinder_volumes'
+* **ceph.cinder_rbd_user_name**: Default is 'cinder'
+* **ceph.ceph_authentication_type**: Default is 'cephx'
+* **ceph.client_key**:
+* **ceph.ceph_mon_host**:
 
 
   
