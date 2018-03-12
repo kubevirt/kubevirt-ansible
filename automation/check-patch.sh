@@ -110,6 +110,7 @@ main() {
     local run_path="$(get_run_path "$cluster")"
     local args=("prefix=$run_path")
     local inventory_file="$(realpath inventory)"
+    local enable_storage="${ENABLE_STORAGE:-yes}"
 
     trap "cleanup $run_path" EXIT
 
@@ -149,6 +150,7 @@ main() {
         "ansible_modules_version=$ansible_modules_version"
         "openshift_version=$openshift_version"
         "openshift_playbook_path=$openshift_playbook_path"
+	"enable_storage=$enable_storage"
     )
     ansible-playbook \
         -u root \
