@@ -96,9 +96,9 @@ Currently we don't have a playbook which installs KubeVirt on a Kubernetes clust
 
 ### OpenShift cluster
 
-The playbook expects you have the client installed and a config file in
-```$HOME/.kube/config```.  Also make sure you indentified with the cluster
-using ```oc login```.
+The playbook expects you have ```oc```, rpm package ```origin-clients```,
+installed and a config file in ```$HOME/.kube/config```.  Also make sure you
+indentified with the cluster using ```oc login```.
 
 Install KubeVirt on your OpenShift cluster.
 
