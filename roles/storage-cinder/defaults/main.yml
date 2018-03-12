@@ -1,10 +1,21 @@
 ---
+cluster: "openshift"
+action: "provision"
+
+cinder_enable_xtremio_backend: false
+cinder_enable_rbd_backend: false
+cinder_enable_netapp_backend: false
+
 namespace: kube-system
+
 service_account: cinder
 privileged_service_account: cinder_privileged
+
 mariadb_root_password: weakpassword
 mariadb_user: root
+
 cinder_password: cinderpassword
 cinder_user: cinder
+
 rabbitmq_password: rabbitmqpassword
 rabbitmq_user: guest

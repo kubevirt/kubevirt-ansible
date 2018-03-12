@@ -1,0 +1,21 @@
+---
+- name: Render cinder yml
+  template:
+    src: cinder-xtremio.yml.j2"
+    dest: /tmp/cinder.yml
+  when: cinder_enable_rbd_backend
+
+- name: Render cinder yml
+  template:
+    src: cinder-xtremio.yml.j2"
+    dest: /tmp/cinder.yml
+  when: cinder_enable_xtremio_backend
+
+- name: Render cinder yml
+  template:
+    src: cinder-netapp.yml.j2"
+    dest: /tmp/cinder.yml
+  when: cinder_enable_netapp_backend
+
+- name: Delete cinder Resources
+  command: kubectl delete -f /tmp/cinder.yml --ignore-not-found
