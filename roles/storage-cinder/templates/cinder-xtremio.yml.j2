@@ -306,7 +306,7 @@ spec:
     spec:
       containers:
       - name: cinder-db-sync
-        image: tripleomaster/centos-binary-cinder-api:current-tripleo
+        image: tripleoupstream/centos-binary-cinder-api:latest
         imagePullPolicy: "IfNotPresent"
         env:
         - name: KOLLA_KUBERNETES
@@ -378,7 +378,7 @@ spec:
       serviceAccount: {{ service_account }}
       serviceAccountName: {{ service_account }}
       containers:
-      - image: tripleomaster/centos-binary-cinder-api:current-tripleo
+      - image: tripleoupstream/centos-binary-cinder-api:latest
         imagePullPolicy: "IfNotPresent"
         name: cinder-api
         env:
@@ -420,7 +420,7 @@ spec:
       serviceAccount: {{ service_account }}
       serviceAccountName: {{ service_account }}
       containers:
-      - image: tripleomaster/centos-binary-cinder-scheduler:current-tripleo
+      - image: tripleoupstream/centos-binary-cinder-scheduler:latest
         imagePullPolicy: "IfNotPresent"
         name: cinder-api
         env:
@@ -459,7 +459,7 @@ spec:
       serviceAccount: {{ service_account }}
       serviceAccountName: {{ service_account }}
       containers:
-      - image: tripleomaster/centos-binary-cinder-volume:current-tripleo
+      - image: tripleoupstream/centos-binary-cinder-volume:latest
         imagePullPolicy: "IfNotPresent"
         name: cinder-volume
         env:
