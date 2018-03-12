@@ -26,15 +26,6 @@
   command: oc adm policy add-scc-to-user anyuid -z {{service_account}} -n {{namespace}}
   when: cluster == "openshift"
 
-- name: Check if cinder secrets exists
-  command: kubectl get secret cinder-secrets -n {{namespace}}
-  register: cinder_secret
-  failed_when: cinder_secret.rc > 1
-
-- name: Create cinder secrets
-  command: kubectl create secret generic cinder-secrets -n {{namespace}} --from-literal=db-root-password={{ mariadb_root_password }} --from-literal=cinder-password={{cinder_db_password}} --from-literal=rabbitmq-password={{ rabbitmq_password }}
-  when: cinder_secret.stdout == ""
-
 - name: Check for {{privileged_service_account}} serviceaccount
   command: kubectl get serviceaccount {{service_account}} -n {{ namespace }}
   register: psa
@@ -52,7 +43,7 @@
   command: kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="Hostname")].address}'
   register: node_hostname
 
-- name: Set the target node
+- name: Label node to host Mariadb
   command: kubectl label node "{{ node_hostname.stdout }}" mariadb=true
 
 - name: Render Cinder Ceph yaml

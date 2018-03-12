@@ -2,10 +2,6 @@
 cluster: "openshift"
 action: "provision"
 
-cinder_enable_xtremio_backend: false
-cinder_enable_rbd_backend: false
-cinder_enable_netapp_backend: false
-
 namespace: kube-system
 
 service_account: cinder
@@ -19,3 +15,29 @@ cinder_user: cinder
 
 rabbitmq_password: rabbitmqpassword
 rabbitmq_user: guest
+
+#
+# Backend Specific
+cinder_enable_xtremio_backend: false
+cinder_enable_rbd_backend: false
+cinder_enable_netapp_backend: false
+
+# Xtremio
+xtremio:
+    max_over_subscription_ratio: 40
+    use_multipath_for_image_xfer: true
+    volume_backend_name: xtremio
+    volume_driver: cinder.volume.drivers.emc.xtremio.XtremIOISCSIDriver
+    san_ip: 
+    xtremio_cluster_name:
+    san_login: 
+    san_password:
+    image_volume_cache_enabled:
+
+## Ceph
+ceph:
+    cinder_rbd_pool_name: cinder_volumes
+    cinder_rbd_user_name: cinder
+    client_key: 
+    ceph_authentication_type: cephx
+    ceph_mon_host: 

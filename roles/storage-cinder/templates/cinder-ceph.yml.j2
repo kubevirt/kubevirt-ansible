@@ -1,44 +1,5 @@
 ---
 apiVersion: v1
-kind: ServiceAccount
-metadata:
-    name: {{ service_account }}
-    namespace: {{ namespace }}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-    name: {{ privileged_service_account }}
-    namespace: {{ namespace }}
-
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ privileged_service_account }}
-  namespace: {{ namespace }}
-roleRef:
-  kind: ClusterRole
-  name: cinder-privileged
-subjects:
-  - kind: ServiceAccount
-    name: {{ privileged_service_account }}
-    namespace: {{ namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1beta1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ service_account }}
-  namespace: {{ namespace }}
-roleRef:
-  kind: ClusterRole
-  name: {{ service_account }}
-subjects:
-  - kind: ServiceAccount
-    name: {{ service_account }}
-    namespace: {{ namespace }}
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   labels:
@@ -154,7 +115,7 @@ spec:
         - name: KOLLA_CONFIG_STRATEGY
           value: COPY_ALWAYS
         - name: KOLLA_KUBERNETES
-        image: tripleoupstream/centos-binary-rabbitmq:latest
+        image:  tripleomaster/centos-binary-rabbitmq:current-tripleo
         imagePullPolicy: "IfNotPresent"
         name: rabbitmq
         ports:
@@ -168,8 +129,8 @@ spec:
         - mountPath: /var/lib/kolla/config_files/
           name: kolla-config
       restartPolicy: Always
-      serviceAccount: cinder-anyuid
-      serviceAccountName: cinder-anyuid
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
       volumes:
       - configMap:
           name: rabbitmq
@@ -208,10 +169,7 @@ spec:
         name: mariadb
         env:
         - name: MYSQL_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: mariadb-root-password
+          value: {{ mariadb_root_password }}
         ports:
         - containerPort: 3306
           name: mariadb
@@ -255,22 +213,22 @@ data:
     scheduler_driver = cinder.scheduler.filter_scheduler.FilterScheduler
     nova_catalog_info = compute:nova:internalURL
     api_paste_config = /etc/cinder/api-paste.ini
-    transport_url = rabbit://guest:rabbitmqpassword@rabbitmq:5672/?ssl=0
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
     public_bind_host = 0.0.0.0
     auth_strategy = noauth
 
     [oslo_messaging_notifications]
-    transport_url = rabbit://guest:rabbitmqpassword@rabbitmq:5672/?ssl=0
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
     driver = messagingv2
 
     [database]
     db_max_retries = -1
     host = mariadb
     max_retries = -1
-    connection = mysql+pymysql://root:weakpassword@mariadb:3306/cinder
-    user = {{cinder_user}}
-    password = {{cinder_password}}
-    dbname = {{cinder_user}}
+    connection = mysql+pymysql://{{mariadb_user}}:{{mariadb_root_password}}@mariadb:3306/{{cinder_user}}
+    user = {{ cinder_user }}
+    password = {{ cinder_password }}
+    dbname = {{ cinder_user }}
 
     [oslo_concurrency]
     lock_path = /var/lib/cinder/tmp
@@ -282,8 +240,8 @@ data:
     rbd_ceph_conf = /etc/ceph/ceph.conf
     volume_backend_name = tripleo_ceph
     volume_driver = cinder.volume.drivers.rbd.RBDDriver
-    rbd_pool = cinder_volumes
-    rbd_user = cinder
+    rbd_pool = {{ceph.cinder_rbd_pool_name}}
+    rbd_user = {{ceph.cinder_rbd_user_name}}
 
     [privsep_entrypoint]
     helper_command = sudo cinder-rootwrap /etc/cinder/rootwrap.conf privsep-helper --config-file /etc/cinder/cinder.conf
@@ -356,22 +314,22 @@ data:
     scheduler_driver = cinder.scheduler.filter_scheduler.FilterScheduler
     nova_catalog_info = compute:nova:internalURL
     api_paste_config = /etc/cinder/api-paste.ini
-    transport_url = rabbit://guest:rabbitmqpassword@rabbitmq:5672/?ssl=0
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
     public_bind_host = 0.0.0.0
     auth_strategy = noauth
 
     [oslo_messaging_notifications]
-    transport_url = rabbit://guest:rabbitmqpassword@rabbitmq:5672/?ssl=0
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
     driver = messagingv2
 
     [database]
     db_max_retries = -1
     host = mariadb
     max_retries = -1
-    connection = mysql+pymysql://root:weakpassword@mariadb:3306/cinder
-    user = cinder
-    password = cinderpassword
-    dbname = cinder
+    connection = mysql+pymysql://{{mariadb_user}}:{{mariadb_root_password}}@mariadb:3306/{{cinder_user}}
+    user = {{ cinder_user }}
+    password = {{ cinder_password }}
+    dbname = {{ cinder_user }}
 
     [oslo_concurrency]
     lock_path = /var/lib/cinder/tmp
@@ -383,8 +341,8 @@ data:
     rbd_ceph_conf = /etc/ceph/ceph.conf
     volume_backend_name = tripleo_ceph
     volume_driver = cinder.volume.drivers.rbd.RBDDriver
-    rbd_pool = cinder_volumes
-    rbd_user = cinder
+    rbd_pool = {{ceph.cinder_rbd_pool_name}}
+    rbd_user = {{ceph.cinder_rbd_user_name}}
 
     [privsep_entrypoint]
     helper_command = sudo cinder-rootwrap /etc/cinder/rootwrap.conf privsep-helper --config-file /etc/cinder/cinder.conf
@@ -433,22 +391,22 @@ data:
     scheduler_driver = cinder.scheduler.filter_scheduler.FilterScheduler
     nova_catalog_info = compute:nova:internalURL
     api_paste_config = /etc/cinder/api-paste.ini
-    transport_url = rabbit://guest:rabbitmqpassword@rabbitmq:5672/?ssl=0
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
     public_bind_host = 0.0.0.0
     auth_strategy = noauth
 
     [oslo_messaging_notifications]
-    transport_url = rabbit://guest:rabbitmqpassword@rabbitmq:5672/?ssl=0
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
     driver = messagingv2
 
     [database]
     db_max_retries = -1
     host = mariadb
     max_retries = -1
-    connection = mysql+pymysql://root:weakpassword@mariadb:3306/cinder
-    user = cinder
-    password = cinderpassword
-    dbname = cinder
+    connection = mysql+pymysql://{{mariadb_user}}:{{mariadb_root_password}}@mariadb:3306/{{cinder_user}}
+    user = {{ cinder_user }}
+    password = {{ cinder_password }}
+    dbname = {{ cinder_user }}
 
     [oslo_concurrency]
     lock_path = /var/lib/cinder/tmp
@@ -460,11 +418,26 @@ data:
     rbd_ceph_conf = /etc/ceph/ceph.conf
     volume_backend_name = tripleo_ceph
     volume_driver = cinder.volume.drivers.rbd.RBDDriver
-    rbd_pool = cinder_volumes
-    rbd_user = cinder
+    rbd_pool = {{ceph.cinder_rbd_pool_name}}
+    rbd_user = {{ceph.cinder_rbd_user_name}}
 
     [privsep_entrypoint]
     helper_command = sudo cinder-rootwrap /etc/cinder/rootwrap.conf privsep-helper --config-file /etc/cinder/cinder.conf
+
+  ceph.conf: |
+    [global]
+    mon_host = {{ceph.ceph_mon_host}}
+    auth_cluster_required = {{ceph.authentication_type}}
+    auth_service_required = {{ceph.authentication_type}}
+    auth_client_required = {{ceph.authentication_type}}
+    auth_supported = {{ceph.authentication_type}}
+
+    [client]
+    rbd_default_features = 1
+
+  keyring: |
+    [client.{{ ceph.cinder_rbd_user_name }}]
+            key = {{ ceph.client_key }}
 
   config.json: |
     {
@@ -477,10 +450,10 @@ data:
                 "perm": "0600"
             },
             {
-                "source": "/var/lib/kolla/config_files/ceph.*",
+                "source": "/var/lib/kolla/config_files/keyring",
                 "dest": "/etc/ceph/",
                 "owner": "cinder",
-                "perm": "0700",
+                "perm": "0600",
                 "optional": true
             },
             {
@@ -516,7 +489,7 @@ spec:
     spec:
       containers:
       - name: cinder-create-db
-        image: tripleoupstream/centos-binary-kolla-toolbox:latest
+        image:  tripleomaster/centos-binary-kolla-toolbox:current-tripleo
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -528,14 +501,11 @@ spec:
              name=cinder"
         env:
         - name: DATABASE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: mariadb-root-password
+          value: {{ mariadb_root_password }}
         - name: TZ
-          ###value: UTC
-      serviceAccount: cinder-anyuid
-      serviceAccountName: cinder-anyuid
+          value: UTC
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
       restartPolicy: OnFailure 
 ---
 apiVersion: batch/v1
@@ -548,7 +518,7 @@ spec:
     spec:
       containers:
       - name: cinder-db-sync
-        image: tripleoupstream/centos-binary-cinder-api:latest
+        image:  tripleomaster/centos-binary-cinder-api:current-tripleo
         imagePullPolicy: "IfNotPresent"
         env:
         - name: KOLLA_KUBERNETES
@@ -560,8 +530,8 @@ spec:
         volumeMounts:
         - mountPath: /var/lib/kolla/config_files/
           name: kolla-config
-      serviceAccount: cinder-anyuid
-      serviceAccountName: cinder-anyuid
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
       restartPolicy: OnFailure
       volumes:
       - configMap:
@@ -579,7 +549,7 @@ spec:
     spec:
       containers:
       - name: cinder-create-db
-        image: tripleoupstream/centos-binary-kolla-toolbox:latest
+        image:  tripleomaster/centos-binary-kolla-toolbox:current-tripleo
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -588,19 +558,13 @@ spec:
           host='%' priv='cinder.*:ALL' append_privs='yes'"
         env:
         - name: CINDER_DATABASE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: cinder-password
+          value: {{ cinder_password }}
         - name: DATABASE_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: mariadb-root-password
+          value: {{ mariadb_root_password }}
         - name: TZ
           value: UTC
-      serviceAccount: cinder-anyuid
-      serviceAccountName: cinder-anyuid
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
       restartPolicy: OnFailure
 ---
 apiVersion: apps/v1beta1
@@ -618,47 +582,10 @@ spec:
       labels:
         app: cinder
     spec:
-      serviceAccount: cinder-anyuid
-      serviceAccountName: cinder-anyuid
-      initContainers:
-      - name: updated-config
-        image: tripleoupstream/centos-binary-kolla-toolbox
-        imagePullPolicy: "IfNotPresent"
-        command:
-          - /bin/sh
-          - -c
-          - |
-            cp -a /srv/configmap/..data/* /srv/pod-main-config/;
-            CONF=/srv/pod-main-config/cinder.conf;
-            crudini --set $CONF DEFAULT transport_url rabbit://guest:$RABBITMQ_PASSWORD@rabbitmq:5672/?ssl=0;
-            crudini --set $CONF oslo_messaging_notifications transport_url rabbit://guest:$RABBITMQ_PASSWORD@rabbitmq:5672/?ssl=0;
-            crudini --set $CONF database connection mysql+pymysql://root:$DB_ROOT_PASSWORD@mariadb:3306/cinder;
-            crudini --set $CONF database password $CINDER_PASSWORD;
-        env:
-        - name: DB_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: mariadb-root-password
-        - name: CINDER_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: cinder-password
-        - name: RABBITMQ_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: rabbitmq-password
-
-        volumeMounts:
-         - name: template-config
-           mountPath: /srv/configmap
-         - name: final-config
-           mountPath: /srv/pod-main-config
-
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
       containers:
-      - image: tripleoupstream/centos-binary-cinder-api:latest
+      - image:  tripleomaster/centos-binary-cinder-api:current-tripleo
         imagePullPolicy: "IfNotPresent"
         name: cinder-api
         env:
@@ -673,16 +600,14 @@ spec:
           name: cinder-api
         volumeMounts:
         - mountPath: /var/lib/kolla/config_files/
-          name: final-config
+          name: kolla-config
       restartPolicy: Always
-      serviceAccount: cinder-anyuid
-      serviceAccountName: cinder-anyuid
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
       volumes:
       - configMap:
           name: cinder-api
-        name: template-config
-      - name: final-config
-        emptyDir: {}
+        name: kolla-config
 ---
 apiVersion: apps/v1beta1
 kind: Deployment
@@ -699,47 +624,10 @@ spec:
       labels:
         app: cinder
     spec:
-      serviceAccount: cinder-anyuid
-      serviceAccountName: cinder-anyuid
-      initContainers:
-      - name: updated-config
-        image: tripleoupstream/centos-binary-kolla-toolbox
-        imagePullPolicy: "IfNotPresent"
-        command:
-          - /bin/sh
-          - -c
-          - |
-            cp -a /srv/configmap/..data/* /srv/pod-main-config/;
-            CONF=/srv/pod-main-config/cinder.conf;
-            crudini --set $CONF DEFAULT transport_url rabbit://guest:$RABBITMQ_PASSWORD@rabbitmq:5672/?ssl=0;
-            crudini --set $CONF oslo_messaging_notifications transport_url rabbit://guest:$RABBITMQ_PASSWORD@rabbitmq:5672/?ssl=0;
-            crudini --set $CONF database connection mysql+pymysql://root:$DB_ROOT_PASSWORD@mariadb:3306/cinder;
-            crudini --set $CONF database password $CINDER_PASSWORD;
-        env:
-        - name: DB_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: mariadb-root-password
-        - name: CINDER_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: cinder-password
-        - name: RABBITMQ_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: rabbitmq-password
-
-        volumeMounts:
-         - name: template-config
-           mountPath: /srv/configmap
-         - name: final-config
-           mountPath: /srv/pod-main-config
-
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
       containers:
-      - image: tripleoupstream/centos-binary-cinder-scheduler:latest
+      - image:  tripleomaster/centos-binary-cinder-scheduler:current-tripleo
         imagePullPolicy: "IfNotPresent"
         name: cinder-api
         env:
@@ -750,17 +638,15 @@ spec:
         - name: KOLLA_KUBERNETES
           value: ""
         volumeMounts:
-        - name: final-config
+        - name: kolla-config
           mountPath: /var/lib/kolla/config_files/
       restartPolicy: Always
-      serviceAccount: cinder-anyuid
-      serviceAccountName: cinder-anyuid
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
       volumes:
       - configMap:
           name: cinder-scheduler
-        name: template-config
-      - name: final-config
-        emptyDir: {}
+        name: kolla-config
 ---
 apiVersion: apps/v1beta1
 kind: Deployment
@@ -777,49 +663,10 @@ spec:
       labels:
         app: cinder
     spec:
-      serviceAccount: cinder-anyuid
-      serviceAccountName: cinder-anyuid
-      initContainers:
-      - name: updated-config
-        image: tripleoupstream/centos-binary-kolla-toolbox
-        imagePullPolicy: "IfNotPresent"
-        command:
-          - /bin/sh
-          - -c
-          - |
-            cp -a /srv/configmap/..data/* /srv/pod-main-config/;
-            cp -a /srv/ceph/..data/* /srv/pod-main-config/;
-            CONF=/srv/pod-main-config/cinder.conf;
-            crudini --set $CONF DEFAULT transport_url rabbit://guest:$RABBITMQ_PASSWORD@rabbitmq:5672/?ssl=0;
-            crudini --set $CONF oslo_messaging_notifications transport_url rabbit://guest:$RABBITMQ_PASSWORD@rabbitmq:5672/?ssl=0;
-            crudini --set $CONF database connection mysql+pymysql://root:$DB_ROOT_PASSWORD@mariadb:3306/cinder;
-            crudini --set $CONF database password $CINDER_PASSWORD;
-        env:
-        - name: DB_ROOT_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: mariadb-root-password
-        - name: CINDER_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: cinder-password
-        - name: RABBITMQ_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: cinder-secrets
-              key: rabbitmq-password
-
-        volumeMounts:
-         - name: template-config
-           mountPath: /srv/configmap
-         - name: final-config
-           mountPath: /srv/pod-main-config
-         - name: ceph-secrets
-           mountPath: /srv/ceph
+      serviceAccount: {{service_account}}
+      serviceAccountName: {{service_account}}
       containers:
-      - image: tripleoupstream/centos-binary-cinder-volume:latest
+      - image:  tripleomaster/centos-binary-cinder-volume:current-tripleo
         imagePullPolicy: "IfNotPresent"
         name: cinder-volume
         env:
@@ -830,15 +677,9 @@ spec:
         - name: KOLLA_KUBERNETES
           value: ""
         volumeMounts:
-        - name: final-config
+        - name: kolla-config
           mountPath: /var/lib/kolla/config_files/
       volumes:
-        - name: template-config
+        - name: kolla-config
           configMap:
             name: cinder-volume-ceph
-        - name: final-config
-          emptyDir: {}
-        - name: ceph-secrets
-          secret:
-            secretName: ceph-secrets
-
