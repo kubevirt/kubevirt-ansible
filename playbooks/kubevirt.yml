@@ -6,3 +6,5 @@
     http_proxy: ""
   roles:
     - role: kubevirt
+    - role: kubevirt-apb
+      when: ci

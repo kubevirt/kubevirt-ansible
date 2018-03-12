@@ -1,0 +1,9 @@
+- name: Launch KubeVirt Using the APB
+  shell: kubectl create -f "{{ playbook_dir }}/../../kubevirt-apb/templates/kubevirt-apb.yml"
+
+- name: Get serviceinstance
+  shell: kubectl get serviceinstance -n {{ namespace }} -o yaml
+  register: serviceinstance
+
+- debug:
+    var: serviceinstance.stdout_lines

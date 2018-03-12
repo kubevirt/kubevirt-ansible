@@ -1,0 +1,31 @@
+version: 1.0
+name: kubevirt-apb
+description: APB for managing KubeVirt deployments
+bindable: False
+async: optional
+metadata:
+  displayName: kubevirt (APB)
+  imageUrl: https://cdn.pbrd.co/images/H5Gutd7.png
+plans:
+  - name: default
+    description: Default deployment plan for kubevirt-apb
+    free: True
+    metadata: {}
+    parameters:
+      - title: Openshift Admin User
+        name: admin_user
+        type: string
+        required: true
+      - title: Openshift Admin Password
+        name: admin_password
+        type: string
+        required: true
+        display_type: password
+      - name: release
+        title: Use Release files
+        type: boolean
+        default: True
+      - name: tag
+        title: Tag to use
+        type: string
+        default: sprint5
