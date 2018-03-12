@@ -1,0 +1,19 @@
+---
+- name: "Remove rule: Allow ceph OSD traffic"
+  iptables:
+    state: absent
+    chain: INPUT
+    protocol: tcp
+    destination_port: 6789
+    jump: ACCEPT
+
+- name: "Remove rule: Allow ceph MDS traffic"
+  iptables:
+    state: absent
+    chain: INPUT
+    protocol: tcp
+    destination_port: 6800:7300
+    jump: ACCEPT
+
+- name: Save iptables configuration
+  command: iptables-save

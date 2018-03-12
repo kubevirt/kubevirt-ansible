@@ -35,6 +35,12 @@ host-settings: &nodes-settings
         name: docker_lib
         dev: sdc
         format: raw
+      - comment: Gluster Storage
+        size: 50G
+        type: empty
+        name: gluster_storage
+        dev: sdd
+        format: qcow2
 domains:
   lago-master:
     <<: *vm-common-settings
@@ -60,11 +66,17 @@ domains:
         name: docker_lib
         dev: sdc
         format: raw
+      - comment: Gluster Storage
+        size: 50G
+        type: empty
+        name: gluster_storage
+        dev: sdd
+        format: qcow2
       - comment: Main NFS device
         size: 101G
         type: empty
         name: nfs
-        dev: sdd
+        dev: sde
         format: raw
 
   lago-node0:
