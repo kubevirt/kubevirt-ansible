@@ -18,13 +18,13 @@
 - include_tasks: "{{ manifest_version }}.yml"
 
 - name: Delete KubeVirt Resources
-  command: "kubectl delete -f /tmp/{{ item }}.yml"
+  command: "kubectl delete -f /tmp/{{ item }}.yml --ignore-not-found=true"
   with_items:
     - "{{ dev_template_resources }}"
   when: manifest_version=="dev"
 
 - name: Delete KubeVirt Resources
-  command: kubectl delete -f /tmp/kubevirt.yml
+  command: kubectl delete -f /tmp/kubevirt.yml --ignore-not-found=true
   when: manifest_version=="release"
 
 
