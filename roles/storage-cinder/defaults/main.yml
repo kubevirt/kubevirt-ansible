@@ -3,6 +3,7 @@ cluster: "openshift"
 action: "provision"
 
 namespace: kube-system
+image_release: latest
 
 service_account: cinder
 privileged_service_account: cinder_privileged

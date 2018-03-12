@@ -323,7 +323,7 @@ spec:
     spec:
       containers:
       - name: cinder-db-sync
-        image:  tripleoupstream/centos-binary-cinder-api:latest
+        image:  tripleoupstream/centos-binary-cinder-api:{{image_release}}
         imagePullPolicy: "IfNotPresent"
         env:
         - name: KOLLA_KUBERNETES
@@ -390,7 +390,7 @@ spec:
       serviceAccount: {{service_account}}
       serviceAccountName: {{service_account}}
       containers:
-      - image:  tripleoupstream/centos-binary-cinder-api:latest
+      - image:  tripleoupstream/centos-binary-cinder-api:{{image_release}}
         imagePullPolicy: "IfNotPresent"
         name: cinder-api
         env:
@@ -432,7 +432,7 @@ spec:
       serviceAccount: {{service_account}}
       serviceAccountName: {{service_account}}
       containers:
-      - image:  tripleoupstream/centos-binary-cinder-scheduler:latest
+      - image:  tripleoupstream/centos-binary-cinder-scheduler:{{image_release}}
         imagePullPolicy: "IfNotPresent"
         name: cinder-api
         env:
@@ -471,7 +471,7 @@ spec:
       serviceAccount: {{service_account}}
       serviceAccountName: {{service_account}}
       containers:
-      - image:  tripleoupstream/centos-binary-cinder-volume:latest
+      - image:  tripleoupstream/centos-binary-cinder-volume:{{image_release}}
         imagePullPolicy: "IfNotPresent"
         name: cinder-volume
         env:
