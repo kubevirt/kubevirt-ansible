@@ -277,7 +277,7 @@ spec:
     spec:
       containers:
       - name: cinder-create-db
-        image: tripleomaster/centos-binary-kolla-toolbox:current-tripleo
+        image: tripleoupstream/centos-binary-kolla-toolbox
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -286,7 +286,7 @@ spec:
              login_port=3306
              login_user=root
              login_password=$DATABASE_PASSWORD
-             name=cinder"
+             name={{cinder_user}}"
         env:
         - name: DATABASE_PASSWORD
           value: {{ mariadb_root_password }}
@@ -337,17 +337,17 @@ spec:
     spec:
       containers:
       - name: cinder-create-db
-        image: tripleomaster/centos-binary-kolla-toolbox:current-tripleo
+        image: tripleoupstream/centos-binary-kolla-toolbox
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
         - ansible localhost -m mysql_user -a 
-	  "login_host=mariadb
-	   login_port=3306
+          "login_host=mariadb
+           login_port=3306
            login_user=root
-	   login_password=$DATABASE_PASSWORD
-	   name={{cinder_user}}
-	   password=$CINDER_DATABASE_PASSWORD
+           login_password=$DATABASE_PASSWORD
+           name={{cinder_user}}
+           password=$CINDER_DATABASE_PASSWORD
            host='%' priv='cinder.*:ALL' append_privs='yes'"
         env:
         - name: CINDER_DATABASE_PASSWORD

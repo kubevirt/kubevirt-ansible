@@ -294,7 +294,7 @@ spec:
     spec:
       containers:
       - name: cinder-create-db
-        image:  tripleomaster/centos-binary-kolla-toolbox:current-tripleo
+        image:  tripleoupstream/centos-binary-kolla-toolbox
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
@@ -354,7 +354,7 @@ spec:
     spec:
       containers:
       - name: cinder-create-db
-        image:  tripleomaster/centos-binary-kolla-toolbox:current-tripleo
+        image:  tripleoupstream/centos-binary-kolla-toolbox
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
