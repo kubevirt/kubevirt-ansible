@@ -12,15 +12,10 @@
   with_items:
     - "{{ dev_template_resources }}"
 
-- name: Remove rendered templates
+- name: Remove downloaded templates
   file:
     path: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
     state: absent
   with_items:
     - "{{ dev_template_resources }}"
   when: byo_template.stat.exists == False
-
-- name: Create KubeVirt Resources
-  command: "kubectl apply -f /tmp/{{ item }}.yaml"
-  with_items:
-    - "{{ dev_template_resources }}"

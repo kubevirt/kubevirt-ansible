@@ -9,11 +9,8 @@
     src: "{{ kubevirt_template_dir }}/kubevirt.yaml"
     dest: /tmp/kubevirt.yaml
 
-- name: Remove rendered templates
+- name: Remove downloaded templates
   file:
     path: "{{ kubevirt_template_dir }}/kubevirt.yaml"
     state: absent
   when: byo_template.stat.exists == False
-
-- name: Create KubeVirt Resources
-  command: kubectl apply -f /tmp/kubevirt.yaml

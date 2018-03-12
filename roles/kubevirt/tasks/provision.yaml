@@ -36,3 +36,13 @@
   when: byo_template.stat.exists == True
 
 - include_tasks: "{{ manifest_version }}.yaml"
+
+- name: Create KubeVirt Resources
+  command: "kubectl apply -f /tmp/{{ item }}.yaml"
+  with_items:
+    - "{{ dev_template_resources }}"
+  when: template_version=="dev"
+
+- name: Create KubeVirt Resources
+  command: kubectl apply -f /tmp/kubevirt.yaml
+  when: template_version=="release"
