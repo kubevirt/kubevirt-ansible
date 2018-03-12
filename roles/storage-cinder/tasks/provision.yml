@@ -49,13 +49,13 @@
 - name: Render Cinder Ceph yaml
   template:
     src: "cinder-ceph.yml.j2"
-    dest: /tmp/cinder.yml
+    dest: /tmp/cinder-ceph.yml
   when: cinder_enable_rbd_backend
 
 - name: Render Cinder Xtremio yaml
   template:
     src: "cinder-xtremio.yml.j2"
-    dest: /tmp/cinder.yml
+    dest: /tmp/cinder-xtremio.yml
   when: cinder_enable_xtremio_backend
 
 - name: Create storage-demo Resources
