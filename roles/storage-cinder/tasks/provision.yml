@@ -46,6 +46,14 @@
 - name: Label node to host Mariadb
   command: kubectl label node "{{ node_hostname.stdout }}" mariadb=true
 
+- name: Render Common yml
+  template:
+    src: "common.yml.j2"
+    dest: /tmp/common.yml
+
+- name: Create common Resources
+  command: kubectl apply -f /tmp/common.yml
+
 - name: Render Cinder Ceph yaml
   template:
     src: "cinder-ceph.yml.j2"
@@ -58,5 +66,10 @@
     dest: /tmp/cinder-xtremio.yml
   when: cinder_enable_xtremio_backend
 
-- name: Create storage-demo Resources
-  command: kubectl apply -f /tmp/cinder.yml
+- name: Create Cinder Ceph Resources
+  command: kubectl apply -f /tmp/cinder-ceph.yml
+  when: cinder_enable_rbd_backend
+
+- name: Create Cinder Xtremio Resources
+  command: kubectl apply -f /tmp/cinder-xtremio.yml
+  when: cinder_enable_xtremio_backend

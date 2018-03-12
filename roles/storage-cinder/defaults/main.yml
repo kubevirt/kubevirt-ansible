@@ -26,8 +26,6 @@ cinder_enable_netapp_backend: false
 xtremio:
     max_over_subscription_ratio: 40
     use_multipath_for_image_xfer: true
-    volume_backend_name: xtremio
-    volume_driver: cinder.volume.drivers.emc.xtremio.XtremIOISCSIDriver
     san_ip: 
     xtremio_cluster_name:
     san_login: 
