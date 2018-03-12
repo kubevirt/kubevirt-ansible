@@ -291,7 +291,7 @@ spec:
         - name: DATABASE_PASSWORD
           value: {{ mariadb_root_password }}
         - name: TZ
-          ###value: UTC
+          value: UTC
       serviceAccount: {{ service_account }}
       serviceAccountName: {{ service_account }}
       restartPolicy: OnFailure 
@@ -341,14 +341,19 @@ spec:
         imagePullPolicy: IfNotPresent
         command: ["sh", "-c"]
         args:
-        - ansible localhost -m mysql_user -a "login_host=mariadb login_port=3306
-          login_user=root login_password=$DATABASE_PASSWORD name=cinder password=$CINDER_DATABASE_PASSWORD
-          host='%' priv='cinder.*:ALL' append_privs='yes'"
+        - ansible localhost -m mysql_user -a 
+	  "login_host=mariadb
+	   login_port=3306
+           login_user=root
+	   login_password=$DATABASE_PASSWORD
+	   name={{cinder_user}}
+	   password=$CINDER_DATABASE_PASSWORD
+           host='%' priv='cinder.*:ALL' append_privs='yes'"
         env:
         - name: CINDER_DATABASE_PASSWORD
           value: {{ cinder_password }}
         - name: DATABASE_PASSWORD
-	  value: {{ mariadb_root_password }}
+          value: {{ mariadb_root_password }}
         - name: TZ
           value: UTC
       serviceAccount: {{ service_account }}
