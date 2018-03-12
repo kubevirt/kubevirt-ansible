@@ -1,16 +1,16 @@
 - name: Download KubeVirt Template
   get_url:
     url: "{{ kubevirt_manifest_url }}/{{ manifest_version }}/kubevirt.yaml.in"
-    dest: "{{ kubevirt_template_dir }}/kubevirt.yaml"
+    dest: "{{ kubevirt_template_dir }}/kubevirt.yml"
   when: byo_template.stat.exists == False
 
-- name: Render KubeVirt Yaml
+- name: Render KubeVirt Yml
   template:
-    src: "{{ kubevirt_template_dir }}/kubevirt.yaml"
-    dest: /tmp/kubevirt.yaml
+    src: "{{ kubevirt_template_dir }}/kubevirt.yml"
+    dest: /tmp/kubevirt.yml
 
 - name: Remove downloaded templates
   file:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yaml"
+    path: "{{ kubevirt_template_dir }}/kubevirt.yml"
     state: absent
   when: byo_template.stat.exists == False

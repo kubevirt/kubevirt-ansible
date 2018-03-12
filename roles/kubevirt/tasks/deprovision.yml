@@ -5,27 +5,28 @@
         and admin_user is defined
         and admin_password is defined
 
-- name: Check for kubevirt.yaml template in {{ kubevirt_template_dir }}
+- name: Check for kubevirt.yml template in {{ kubevirt_template_dir }}
   stat:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yaml"
+    path: "{{ kubevirt_template_dir }}/kubevirt.yml"
   register: byo_template
 
-- name: Use kubevirt.yaml template from {{ kubevirt_template_dir }}
+- name: Use kubevirt.yml template from {{ kubevirt_template_dir }}
   set_fact:
-    template_version: "release"
+    manifest_version: "release"
   when: byo_template.stat.exists == True
 
-- include_tasks: "{{ manifest_version }}.yaml"
+- include_tasks: "{{ manifest_version }}.yml"
 
 - name: Delete KubeVirt Resources
-  command: "kubectl delete -f /tmp/{{ item }}.yaml"
+  command: "kubectl delete -f /tmp/{{ item }}.yml"
   with_items:
     - "{{ dev_template_resources }}"
-  when: template_version=="dev"
+  when: manifest_version=="dev"
 
 - name: Delete KubeVirt Resources
-  command: kubectl delete -f /tmp/kubevirt.yaml
-  when: template_version=="release"
+  command: kubectl delete -f /tmp/kubevirt.yml
+  when: manifest_version=="release"
+
 
 - name: Delete Privileged Policy
   command: "oc adm policy remove-scc-from-user privileged -z kubevirt-infra -n {{ namespace }}"

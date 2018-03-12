@@ -1,20 +1,20 @@
 - name: Download KubeVirt Template
   get_url:
     url: "{{ kubevirt_manifest_url }}/{{ manifest_version }}/{{ item }}.yaml.in"
-    dest: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
+    dest: "{{ kubevirt_template_dir }}/{{ item }}.yml"
   with_items:
     - "{{ dev_template_resources }}"
 
-- name: Render KubeVirt Yaml
+- name: Render KubeVirt Yml
   template:
-    src: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
-    dest: "/tmp/{{ item }}.yaml"
+    src: "{{ kubevirt_template_dir }}/{{ item }}.yml"
+    dest: "/tmp/{{ item }}.yml"
   with_items:
     - "{{ dev_template_resources }}"
 
 - name: Remove downloaded templates
   file:
-    path: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
+    path: "{{ kubevirt_template_dir }}/{{ item }}.yml"
     state: absent
   with_items:
     - "{{ dev_template_resources }}"
