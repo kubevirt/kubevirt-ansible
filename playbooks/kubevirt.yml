@@ -8,4 +8,4 @@
     - role: kubevirt
 
 - import_playbook: "{{ playbook_dir }}/storage.yml"
-  when: enable_storage | bool
+  when: storage_role is defined and storage_role != "None"

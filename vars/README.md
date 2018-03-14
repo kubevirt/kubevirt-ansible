@@ -10,4 +10,4 @@ List of top level variables.
 | openshift_version | 3.7 | OpenShift cluster version. Either 3.7 or 3.9 |
 | manifest_version | release | KubeVirt manifest version |
 | docker_tag | latest | Container image tag |
-| enable_storage | no | Bool to enable storage for KubeVirt |
+| storage_role | None | Storage role to install with KubeVirt |
