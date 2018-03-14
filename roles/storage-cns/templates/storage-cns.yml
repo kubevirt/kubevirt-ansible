@@ -1,0 +1,14 @@
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: kubevirt
+provisioner: kubernetes.io/glusterfs
+reclaimPolicy: Delete
+parameters:
+  # Enable this when CNS supports cloning
+  # smartclone: "true"
+  resturl: http://heketi-storage-app-storage.router.default.svc.cluster.local
+  restuser: admin
+  secretName: heketi-storage-admin-secret
+  secretNamespace: app-storage
