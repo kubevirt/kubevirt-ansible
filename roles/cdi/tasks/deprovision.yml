@@ -1,0 +1,9 @@
+---
+- name: Render CDI deprovision yaml
+  template:
+    src:  cdi-controller-deployment.yml
+    dest: /tmp/cdi-deprovision.yml
+
+- name: Delete CDI Resources
+  command: kubectl delete -f /tmp/cdi-deprovision.yml --ignore-not-found
+
