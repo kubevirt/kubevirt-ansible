@@ -1,0 +1,479 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: cinder
+  name: cinder-api
+  namespace: {{ namespace }}
+data:
+  cinder.conf: |
+    [DEFAULT]
+    enable_v3_api = true
+    glance_api_servers = none
+    enabled_backends = xtremio
+    glance_api_version = 2
+    log_dir = /var/log/cinder
+    osapi_volume_listen = 0.0.0.0
+    scheduler_driver = cinder.scheduler.filter_scheduler.FilterScheduler
+    nova_catalog_info = compute:nova:internalURL
+    api_paste_config = /etc/cinder/api-paste.ini
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
+    public_bind_host = 0.0.0.0
+    auth_strategy = noauth
+
+    [oslo_messaging_notifications]
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
+    driver = messagingv2
+
+    [database]
+    db_max_retries = -1
+    host = mariadb
+    max_retries = -1
+    connection = mysql+pymysql://{{mariadb_user}}:{{mariadb_root_password}}@mariadb:3306/{{cinder_user}}
+    user = {{ cinder_user }}
+    password = {{ cinder_password }}
+    dbname = {{ cinder_user }}
+
+    [oslo_concurrency]
+    lock_path = /var/lib/cinder/tmp
+
+    [oslo_policy]
+    policy_file = /etc/cinder/policy.json
+
+    [privsep_entrypoint]
+    helper_command = sudo cinder-rootwrap /etc/cinder/rootwrap.conf privsep-helper --config-file /etc/cinder/cinder.conf
+
+    [xtremio]
+    max_over_subscription_ratio={{xtremio.max_over_subscription_ratio}}
+    use_multipath_for_image_xfer={{xtremio.use_multipath_for_image_xfer}}
+    volume_backend_name=xtremio
+    volume_driver=cinder.volume.drivers.emc.xtremio.XtremIOISCSIDriver
+    san_ip={{xtremio.san_ip}}
+    xtremio_cluster_name={{xtremio.xtremio_cluster_name}}
+    san_login={{xtremio.san_login}}
+    san_password={{xtremio.san_password}}
+    image_volume_cache_enabled={{xtremio.image_volume_cache_enabled}}
+
+  cinder-wsgi.conf: |
+    Listen 0.0.0.0:8776
+
+    TraceEnable off
+
+    <VirtualHost *:8776>
+        WSGIDaemonProcess cinder-api processes=5 threads=1 user=cinder group=cinder display-name=%{GROUP} python-path=/usr/lib/python2.7/site-packages
+        WSGIProcessGroup cinder-api
+        WSGIScriptAlias / /var/www/cgi-bin/cinder/cinder-wsgi
+        WSGIApplicationGroup %{GLOBAL}
+        WSGIPassAuthorization On
+        <IfVersion >= 2.4>
+          ErrorLogFormat "%{cu}t %M"
+        </IfVersion>
+        ErrorLog /var/log/kolla/cinder/cinder-api.log
+        LogFormat "%{X-Forwarded-For}i %l %u %t \"%r\" %>s %b %D \"%{Referer}i\" \"%{User-Agent}i\"" logformat
+        CustomLog /var/log/kolla/cinder/cinder-api-access.log logformat
+    </VirtualHost>
+  config.json: |
+    {
+        "command": "httpd -DFOREGROUND",
+        "config_files": [
+            {
+                "source": "/var/lib/kolla/config_files/cinder-wsgi.conf",
+                "dest": "/etc/httpd/conf.d/cinder-wsgi.conf",
+                "owner": "cinder",
+                "perm": "0600"
+            },
+            {
+                "source": "/var/lib/kolla/config_files/cinder.conf",
+                "dest": "/etc/cinder/cinder.conf",
+                "owner": "cinder",
+                "perm": "0600"
+            }
+        ],
+        "permissions": [
+            {
+                "path": "/var/lib/cinder",
+                "owner": "cinder:cinder",
+                "recurse": true
+            },
+            {
+                "path": "/var/log/kolla/cinder",
+                "owner": "cinder:cinder",
+                "recurse": true
+            }
+        ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: cinder
+  name: cinder-scheduler
+  namespace: {{ namespace }}
+data:
+  cinder.conf: |
+    [DEFAULT]
+    enable_v3_api = true
+    glance_api_servers = none
+    enabled_backends = xtremio
+    glance_api_version = 2
+    log_dir = /var/log/cinder
+    osapi_volume_listen = 0.0.0.0
+    scheduler_driver = cinder.scheduler.filter_scheduler.FilterScheduler
+    nova_catalog_info = compute:nova:internalURL
+    api_paste_config = /etc/cinder/api-paste.ini
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
+    public_bind_host = 0.0.0.0
+    auth_strategy = noauth
+
+    [oslo_messaging_notifications]
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
+    driver = messagingv2
+
+    [database]
+    db_max_retries = -1
+    host = mariadb
+    max_retries = -1
+    connection = mysql+pymysql://{{mariadb_user}}:{{mariadb_root_password}}@mariadb:3306/{{cinder_user}}
+    user = {{ cinder_user }}
+    password = {{ cinder_password }}
+    dbname = {{ cinder_user }}
+
+    [oslo_concurrency]
+    lock_path = /var/lib/cinder/tmp
+
+    [oslo_policy]
+    policy_file = /etc/cinder/policy.json
+
+    [privsep_entrypoint]
+    helper_command = sudo cinder-rootwrap /etc/cinder/rootwrap.conf privsep-helper --config-file /etc/cinder/cinder.conf
+
+    [xtremio]
+    max_over_subscription_ratio={{xtremio.max_over_subscription_ratio}}
+    use_multipath_for_image_xfer={{xtremio.use_multipath_for_image_xfer}}
+    volume_backend_name=xtremio
+    volume_driver=cinder.volume.drivers.emc.xtremio.XtremIOISCSIDriver
+    san_ip={{xtremio.san_ip}}
+    xtremio_cluster_name={{xtremio.xtremio_cluster_name}}
+    san_login={{xtremio.san_login}}
+    san_password={{xtremio.san_password}}
+    image_volume_cache_enabled={{xtremio.image_volume_cache_enabled}}
+
+  config.json: |
+    {
+        "command": "cinder-scheduler --config-file /var/lib/kolla/config_files/cinder.conf",
+        "config_files": [
+            {
+                "source": "/var/lib/kolla/config_files/cinder.conf",
+                "dest": "/etc/cinder/cinder.conf",
+                "owner": "cinder",
+                "perm": "0600"
+            }
+        ],
+        "permissions": [
+            {
+                "path": "/var/lib/cinder",
+                "owner": "cinder:cinder",
+                "recurse": true
+            },
+            {
+                "path": "/var/log/kolla/cinder",
+                "owner": "cinder:cinder",
+                "recurse": true
+            }
+        ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: cinder
+  name: cinder-volume-xtremio
+  namespace: {{ namespace }}
+data:
+  cinder.conf: |
+    [DEFAULT]
+    enable_v3_api = true
+    glance_api_servers = none
+    enabled_backends = xtremio
+    glance_api_version = 2
+    log_dir = /var/log/cinder
+    osapi_volume_listen = 0.0.0.0
+    scheduler_driver = cinder.scheduler.filter_scheduler.FilterScheduler
+    nova_catalog_info = compute:nova:internalURL
+    api_paste_config = /etc/cinder/api-paste.ini
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
+    public_bind_host = 0.0.0.0
+    auth_strategy = noauth
+
+    [oslo_messaging_notifications]
+    transport_url = rabbit://{{rabbitmq_user}}:{{rabbitmq_password}}@rabbitmq:5672/?ssl=0
+    driver = messagingv2
+
+    [database]
+    db_max_retries = -1
+    host = mariadb
+    max_retries = -1
+    connection = mysql+pymysql://{{mariadb_user}}:{{mariadb_root_password}}@mariadb:3306/{{cinder_user}}
+    user = {{ cinder_user }}
+    password = {{ cinder_password }}
+    dbname = {{ cinder_user }}
+
+    [oslo_concurrency]
+    lock_path = /var/lib/cinder/tmp
+
+    [oslo_policy]
+    policy_file = /etc/cinder/policy.json
+
+    [privsep_entrypoint]
+    helper_command = sudo cinder-rootwrap /etc/cinder/rootwrap.conf privsep-helper --config-file /etc/cinder/cinder.conf
+
+    [xtremio]
+    max_over_subscription_ratio={{xtremio.max_over_subscription_ratio}}
+    use_multipath_for_image_xfer={{xtremio.use_multipath_for_image_xfer}}
+    volume_backend_name=xtremio
+    volume_driver=cinder.volume.drivers.emc.xtremio.XtremIOISCSIDriver
+    san_ip={{xtremio.san_ip}}
+    xtremio_cluster_name={{xtremio.xtremio_cluster_name}}
+    san_login={{xtremio.san_login}}
+    san_password={{xtremio.san_password}}
+    image_volume_cache_enabled={{xtremio.image_volume_cache_enabled}}
+
+  config.json: |
+    {
+        "command": "cinder-volume --config-file /etc/cinder/cinder.conf",
+        "config_files": [
+            {
+                "source": "/var/lib/kolla/config_files/cinder.conf",
+                "dest": "/etc/cinder/cinder.conf",
+                "owner": "cinder",
+                "perm": "0600"
+            }
+        ],
+        "permissions": [
+            {
+                "path": "/var/lib/cinder",
+                "owner": "cinder:cinder",
+                "recurse": true
+            },
+            {
+                "path": "/var/log/kolla/cinder",
+                "owner": "cinder:cinder",
+                "recurse": true
+            }
+        ]
+    }
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cinder-create-db
+  namespace: {{ namespace }}
+spec:
+  template:
+    spec:
+      containers:
+      - name: cinder-create-db
+        image: tripleoupstream/centos-binary-kolla-toolbox
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+          - ansible localhost -m mysql_db -a
+            "login_host=mariadb
+             login_port=3306
+             login_user=root
+             login_password=$DATABASE_PASSWORD
+             name={{cinder_user}}"
+        env:
+        - name: DATABASE_PASSWORD
+          value: {{ mariadb_root_password }}
+        - name: TZ
+          value: UTC
+      serviceAccount: {{ service_account }}
+      serviceAccountName: {{ service_account }}
+      restartPolicy: OnFailure 
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cinder-db-sync
+  namespace: {{ namespace }}
+spec:
+  template:
+    spec:
+      containers:
+      - name: cinder-db-sync
+        image: tripleoupstream/centos-binary-cinder-api:{{image_release}}
+        imagePullPolicy: "IfNotPresent"
+        env:
+        - name: KOLLA_KUBERNETES
+        - name: KOLLA_BOOTSTRAP
+        - name: KOLLA_CONFIG_STRATEGY
+          value: COPY_ONCE
+        - name: TZ
+          value: UTC
+        volumeMounts:
+        - mountPath: /var/lib/kolla/config_files/
+          name: kolla-config
+      serviceAccount: {{ service_account }}
+      serviceAccountName: {{ service_account }}
+      restartPolicy: OnFailure
+      volumes:
+      - configMap:
+          name: cinder-scheduler
+        name: kolla-config
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cinder-create-user
+  namespace: {{ namespace }}
+spec:
+  template:
+    spec:
+      containers:
+      - name: cinder-create-db
+        image: tripleoupstream/centos-binary-kolla-toolbox
+        imagePullPolicy: IfNotPresent
+        command: ["sh", "-c"]
+        args:
+        - ansible localhost -m mysql_user -a 
+          "login_host=mariadb
+           login_port=3306
+           login_user=root
+           login_password=$DATABASE_PASSWORD
+           name={{cinder_user}}
+           password=$CINDER_DATABASE_PASSWORD
+           host='%' priv='cinder.*:ALL' append_privs='yes'"
+        env:
+        - name: CINDER_DATABASE_PASSWORD
+          value: {{ cinder_password }}
+        - name: DATABASE_PASSWORD
+          value: {{ mariadb_root_password }}
+        - name: TZ
+          value: UTC
+      serviceAccount: {{ service_account }}
+      serviceAccountName: {{ service_account }}
+      restartPolicy: OnFailure
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: cinder-api
+  namespace: {{ namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cinder
+  template:
+    metadata:
+      labels:
+        app: cinder
+    spec:
+      serviceAccount: {{ service_account }}
+      serviceAccountName: {{ service_account }}
+      containers:
+      - image: tripleoupstream/centos-binary-cinder-api:{{image_release}}
+        imagePullPolicy: "IfNotPresent"
+        name: cinder-api
+        env:
+        - name: TZ
+          value: UTC
+        - name: KOLLA_CONFIG_STRATEGY
+          value: COPY_ALWAYS
+        - name: KOLLA_KUBERNETES
+          value: ""
+        ports:
+        - containerPort: 8776
+          name: cinder-api
+        volumeMounts:
+        - mountPath: /var/lib/kolla/config_files/
+          name: kolla-config
+      restartPolicy: Always
+      serviceAccount: {{ service_account }}
+      serviceAccountName: {{ service_account }}
+      volumes:
+      - configMap:
+          name: cinder-api
+        name: kolla-config
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: cinder-scheduler
+  namespace: {{ namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cinder
+  template:
+    metadata:
+      labels:
+        app: cinder
+    spec:
+      serviceAccount: {{ service_account }}
+      serviceAccountName: {{ service_account }}
+      containers:
+      - image: tripleoupstream/centos-binary-cinder-scheduler:{{image_release}}
+        imagePullPolicy: "IfNotPresent"
+        name: cinder-api
+        env:
+        - name: TZ
+          value: UTC
+        - name: KOLLA_CONFIG_STRATEGY
+          value: COPY_ALWAYS
+        - name: KOLLA_KUBERNETES
+          value: ""
+        volumeMounts:
+        - name: kolla-config
+          mountPath: /var/lib/kolla/config_files/
+      restartPolicy: Always
+      serviceAccount: {{ service_account }}
+      serviceAccountName: {{ service_account }}
+      volumes:
+      - configMap:
+          name: cinder-scheduler
+        name: kolla-config
+---
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: cinder-volume-xtremio
+  namespace: {{ namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cinder
+  template:
+    metadata:
+      labels:
+        app: cinder
+    spec:
+      serviceAccount: {{ service_account }}
+      serviceAccountName: {{ service_account }}
+      containers:
+      - image: tripleoupstream/centos-binary-cinder-volume:{{image_release}}
+        imagePullPolicy: "IfNotPresent"
+        name: cinder-volume
+        env:
+        - name: TZ
+          value: UTC
+        - name: KOLLA_CONFIG_STRATEGY
+          value: COPY_ALWAYS
+        - name: KOLLA_KUBERNETES
+          value: ""
+        volumeMounts:
+        - name: kolla-config
+          mountPath: /var/lib/kolla/config_files/
+      volumes:
+        - name: kolla-config
+          configMap:
+            name: cinder-volume-xtremio
+

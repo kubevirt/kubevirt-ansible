@@ -1,0 +1,42 @@
+---
+cluster: "openshift"
+action: "provision"
+
+namespace: kube-system
+image_release: latest
+
+service_account: cinder
+privileged_service_account: cinder_privileged
+
+mariadb_root_password: weakpassword
+mariadb_user: root
+
+cinder_password: cinderpassword
+cinder_user: cinder
+
+rabbitmq_password: rabbitmqpassword
+rabbitmq_user: guest
+
+#
+# Backend Specific
+cinder_enable_xtremio_backend: false
+cinder_enable_rbd_backend: false
+cinder_enable_netapp_backend: false
+
+# Xtremio
+xtremio:
+    max_over_subscription_ratio: 40
+    use_multipath_for_image_xfer: true
+    san_ip: 
+    xtremio_cluster_name:
+    san_login: 
+    san_password:
+    image_volume_cache_enabled:
+
+## Ceph
+ceph:
+    cinder_rbd_pool_name: cinder_volumes
+    cinder_rbd_user_name: cinder
+    client_key: 
+    ceph_authentication_type: cephx
+    ceph_mon_host: 
