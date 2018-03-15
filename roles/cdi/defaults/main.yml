@@ -1,0 +1,4 @@
+cdi_namespace: "{{ cdi_image_namespace | default('golden-images') }}"
+action: "provision"
+repo_tag: "{{ cdi_repo_tag | default('jcoperh') }}"
+release_tag: "{{ cdi_release_tag | default('latest') }}"
