@@ -5,6 +5,9 @@
         and admin_user is defined
         and admin_password is defined
 
+- set_fact:
+    heketi_route: unused
+
 - name: Render storage-cns deployment yaml
   template:
     src: storage-cns.yml

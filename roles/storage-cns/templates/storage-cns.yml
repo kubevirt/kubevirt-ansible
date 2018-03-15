@@ -8,7 +8,7 @@ reclaimPolicy: Delete
 parameters:
   # Enable this when CNS supports cloning
   # smartclone: "true"
-  resturl: http://heketi-storage-app-storage.router.default.svc.cluster.local
+  resturl: "http://{{ heketi_route }}"
   restuser: admin
-  secretName: heketi-storage-admin-secret
-  secretNamespace: app-storage
+  secretName: "{{ heketi_secret_name }}"
+  secretNamespace: "{{ heketi_namespace }}"
