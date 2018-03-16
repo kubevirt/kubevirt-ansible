@@ -8,10 +8,10 @@
 - set_fact:
     heketi_route: unused
 
-- name: Render storage-cns deployment yaml
+- name: Render storage-glusterfs deployment yaml
   template:
-    src: storage-cns.yml
-    dest: /tmp/storage-cns.yml
+    src: storage-glusterfs.yml
+    dest: /tmp/storage-glusterfs.yml
 
-- name: Delete storage-cns Resources
-  command: kubectl delete -f /tmp/storage-cns.yml --ignore-not-found
+- name: Delete storage-glusterfs Resources
+  command: kubectl delete -f /tmp/storage-glusterfs.yml --ignore-not-found

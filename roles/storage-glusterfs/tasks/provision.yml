@@ -14,10 +14,10 @@
     heketi_route: "{{ route_cmd.stdout }}"
   when: route_cmd is defined
 
-- name: Render storage-cns deployment yaml
+- name: Render storage-glusterfs deployment yaml
   template:
-    src: storage-cns.yml
-    dest: /tmp/storage-cns.yml
+    src: storage-glusterfs.yml
+    dest: /tmp/storage-glusterfs.yml
 
-- name: Create storage-cns Resources
-  command: kubectl apply -f /tmp/storage-cns.yml
+- name: Create storage-glusterfs Resources
+  command: kubectl apply -f /tmp/storage-glusterfs.yml

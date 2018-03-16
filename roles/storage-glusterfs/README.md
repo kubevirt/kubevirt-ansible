@@ -1,8 +1,8 @@
-# Storage CNS
+# Ansible role: storage-glusterfs
 
-This role deploys cluster resources necessary for KubeVirt to interface with
-CNS (glusterfs) storage.  This role assumes that CNS itself has already been
-installed.
+This role deploys cluster resources necessary for kubevirt to interface with
+GlusterFS storage.  This role assumes that a GlusterFS cluster managed by heketi
+has already been installed.
 
 ### Role Variables
 | variable       | default           |choices           | comments  |
