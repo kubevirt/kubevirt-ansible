@@ -8,6 +8,8 @@ This repository provides collection of playbooks to
 Tested on CentOS Linux release 7.3.1611 (Core), OpenShift 3.7 and Ansible 2.3.1
 
 
+
+
 ## Install KubeVirt on existing OpenShift cluster
 
 When you have your cluster up and running you can use
