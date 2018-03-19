@@ -58,6 +58,7 @@
         - sos
         - psacct
         - docker
+        - NetworkManager
 
     - name: Include openshift_facts module
       import_role:
@@ -87,6 +88,12 @@
         state: started
         enabled: yes
         name: docker
+
+    - name: Enable and start NetworkManager service
+      service:
+        state: started
+        enabled: yes
+        name: NetworkManager
 
 - import_playbook: "{{ openshift_ansible_dir }}/playbooks/prerequisites.yml"
 - import_playbook: "{{ openshift_ansible_dir | join_paths(openshift_playbook_path | default('playbooks/byo/config.yml')) }}"
