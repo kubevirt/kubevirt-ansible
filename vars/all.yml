@@ -12,4 +12,4 @@ manifest_version: release
 docker_tag: latest
 
 ### Components ###
-storage_role: "None"
+storage_role: "storage-none"

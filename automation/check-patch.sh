@@ -110,7 +110,7 @@ main() {
     local run_path="$(get_run_path "$cluster")"
     local args=("prefix=$run_path")
     local inventory_file="$(realpath inventory)"
-    local storage_role="${STORAGE_ROLE:-None}"
+    local storage_role="${STORAGE_ROLE:-storage-none}"
 
     trap "cleanup $run_path" EXIT
 

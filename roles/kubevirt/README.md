@@ -14,4 +14,4 @@ Deploy KubeVirt resources onto a cluster.
 | docker_tag | latest | Container image tag |
 | action | provision | The action of provisioning or deprovisioning KubeVirt |
 | cluster | openshift | The cluster we're running on |
-| storage_role | None | Storage role to install with KubeVirt |
+| storage_role | ["storage-none", "storage-demo", "storage-cns"] | Storage role  to install with KubeVirt |
