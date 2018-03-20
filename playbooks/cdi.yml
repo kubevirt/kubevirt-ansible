@@ -1,3 +1,4 @@
+---
 - hosts: localhost
   connection: local
   gather_facts: False
@@ -5,6 +6,4 @@
   environment:
     http_proxy: ""
   roles:
-    - role: kubevirt
-
-- import_playbook: "{{ playbook_dir }}/storage.yml"
+    - role: "cdi"

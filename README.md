@@ -25,6 +25,13 @@ To deploy KubeVirt on an existing OpenShift cluster run the command below. For m
 ansible-playbook -i localhost playbooks/kubevirt.yml -e@vars/all.yml
 ```
 
+## Variable Override
+
+Every variable in the playbook can be overwritten in the top level variables
+file: ```vars/all.yml```.  For example, to change the inventory file used,
+add ```inventory_file: my_inventory``` to ```vars/all.yml```.
+
+
 ## Questions ? Help ? Ideas ?
 
 Stop by the [#kubevirt](https://webchat.freenode.net/?channels=kubevirt) chat channel on freenode IRC

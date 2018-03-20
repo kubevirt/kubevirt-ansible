@@ -7,25 +7,22 @@
     policy: targeted
     state: permissive
 
-- name: stop and disable firewalld and NetworkManager
+- name: remove firewalld package
+  package:
+    name: firewalld
+
+- name: stop and disable firewalld
   register: result
   service:
     state: stopped
     enabled: no
-    name: "{{ item }}"
-  with_items:
-    - firewalld
-    - NetworkManager
+    name: firewalld
   failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
 
-
-- name: remove firewalld and NetworkManager packages
+- name: remove firewalld package
   package:
-    name: "{{ item }}"
+    name: firewalld
     state: absent
-  with_items:
-    - firewalld
-    - NetworkManager
 
 - name: Remove current swaps from fstab
   lineinfile:
