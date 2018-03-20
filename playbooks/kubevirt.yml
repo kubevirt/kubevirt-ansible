@@ -6,3 +6,5 @@
     http_proxy: ""
   roles:
     - role: kubevirt
+
+- import_playbook: "{{ playbook_dir }}/storage.yml"

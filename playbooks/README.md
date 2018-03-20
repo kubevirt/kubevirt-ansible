@@ -120,6 +120,17 @@ $ ansible-playbook -i inventory -e@vars/all.yml playbooks/automation/check-patch
 
 See [Lago parameters documentation](./playbooks/provider/lago/README.md) for more details.
 
+### Storage
+
+**storage-demo**
+All-in-one ephemeral storage.
+
+**CNS**
+```openshift-ansible``` will provide Gluster storage and the CNS role will
+create the storage class.
+
+**Cinder**
+
 
 [docker-storage-setup]: https://docs.openshift.org/latest/install_config/install/host_preparation.html#configuring-docker-storage
 [docker-storage-setup-defaults]: https://github.com/openshift/openshift-ansible-contrib/blob/master/roles/docker-storage-setup/defaults/main.yaml
