@@ -12,6 +12,7 @@ ansible-playbook -i inventory -e action=provision -e cdi_image_namespace=golden 
 | Variable        | Default Value           | Description  |
 |:------------- |:-------------|:----- |
 | cdi_image_namespace | golden-images | The namespace into which the CDI components should be installed |
+| cdi_kubevirt_storageclass | kubevirt | The storageclass that CDI will use create PersistentVolumes |
 | action | provision | The action of provisioning or deprovisioning CDI |
 | cdi_repo_tag | jcoperh | CDI docker hub repo tag |
 | cdi_release_tag | latest | CDI docker hub release tag |

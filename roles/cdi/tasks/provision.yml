@@ -1,12 +1,33 @@
 ---
 # CDI Deployment
+- name: Determine Environment
+  shell: "oc version> /dev/null 2>&1; if [ \"$?\" -eq 127 ]; then echo 'kubectl'; else echo 'oc'; fi"
+  register: cli
+
 - name: Check if namespace {{ cdi_namespace }} exists
   shell: kubectl get ns | grep -w {{ cdi_namespace }} | awk '{ print $1 }'
   register: ns
 
-- name: Create {{ cdi_namespace }} namespace
+- name: Create {{ cdi_namespace }} namespace using kubectl
   shell: kubectl create namespace {{ cdi_namespace }}
   when: ns.stdout != cdi_namespace
+        and cli.stdout == "kubectl"
+
+- name: Create {{ cdi_namespace }} namespace using oc
+  shell: oc new-project {{ cdi_namespace }}
+  when: ns.stdout != cdi_namespace
+        and cli.stdout == "oc"
+
+- name: Create RBAC for CDI
+  shell: kubectl create clusterrolebinding c-{{ cdi_namespace }}-default --clusterrole=cluster-admin  --serviceaccount={{ cdi_namespace }}:default
+
+- name: Render {{ cdi_namespace }} ResourceQuota deployment yaml
+  template:
+    src:  cdi-resourcequota.yml
+    dest: /tmp/cdi-provision-resourcequota.yml
+
+- name: Create {{ cdi_namespace }} ResourceQuota
+  command: "kubectl apply -f /tmp/cdi-provision-resourcequota.yml -n {{ cdi_namespace }}"
 
 - name: Render CDI deployment yaml
   template:
