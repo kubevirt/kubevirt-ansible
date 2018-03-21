@@ -27,6 +27,10 @@ For OpenShift deployment clone [**OpenShift Ansible**](openshift-ansible-project
 $ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
 ```
 
+> **NOTE:** For OpenShift 3.9 there is no release yet,
+please read [this file](../automation/check-patch.openshift_3-9.sh) to see
+what branch is currently used for automation.
+
 ## Cluster configuration
 This section describes how to set up a new cluster on given machines. [Skip](#install-kubevirt-on-an-existing-cluster) this part if you already have a cluster.
 
@@ -68,6 +72,7 @@ master.example.com
 ```
 
 Using this inventory file one can deploy a Kubernetes or OpenShift cluster.
+Make sure that you have **passwordless ssh access** to all machines of the cluster.
 
 ### Kubernetes cluster
 
@@ -78,9 +83,11 @@ $ ansible-playbook -i inventory playbooks/cluster/kubernetes/config.yml
 
 ### OpenShift cluster
 
-Be sure that you have enough space on your machines for docker storage and
-modify [defaults values][docker-storage-setup-defaults] accordingly.
-Follow [docker-storage-setup] documentation for more details.
+Be sure that you have an **extra disk** attached to your machines
+for **docker storage** and modify [defaults values][docker-storage-setup-defaults]
+accordingly. In most of cases you need to set `docker_dev` variable
+to match the name of your extra disk for docker storage.
+Please follow [docker-storage-setup] documentation for more details.
 
 
 ```bash
