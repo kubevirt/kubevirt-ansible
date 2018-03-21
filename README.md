@@ -8,7 +8,7 @@ KubeVirt Ansible consists of a set of Ansible playbooks that deploy fully functi
 
 ## Contents
 
-* `atomation/`: CI scripts to verify the functionality of playbooks.
+* `automation/`: CI scripts to verify the functionality of playbooks.
 * `playbooks/`: Ansible playbooks to provision resources, deploy a cluster and install KubeVirt for various scenarios.
 * `roles/`: Roles to use in playbooks.
 * `vars/`: Variables to use in playbooks.
