@@ -2,20 +2,32 @@
 
 A brief summary of a role.
 
-### Usage
+### Requirements
 
-```
-Bash command to execute a playbook
-```
+Remove this section, if there is no requirements. 
 
-### Options
-| parameter       | default           |choices           | comments  |
+### Role Variables
+| variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-| parameter |  keep_empty_if_none | keep_empty_if_none |keep_empty_if_none|
+| variable |  keep_empty_if_none | keep_empty_if_none |keep_empty_if_none|
 | drink| |<ul><li>coffee</li><li>tea</li><li>milk</li></ul> |If **milk** curdles when added to hot **coffee** and **tea**, it's bad.|
 | | | | | 
 | | | | |
 | | | | |
 | | | | |
 
-> **NOTE:** Text here. This is optional. Keep this syntax and use where needed.
+### Dependencies
+
+Remove this section, if there is no dependencies.
+
+### Usage
+
+```
+An example of how to use your role.
+```
+
+### Author Information
+
+An optional section for the role authors to include contact information.
+
+> **NOTE:** Keep this syntax and use where needed.
