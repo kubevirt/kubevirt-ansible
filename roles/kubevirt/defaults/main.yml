@@ -8,8 +8,10 @@ kubevirt_manifest_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/mast
 kubevirt_template_dir: "{{ role_path }}/templates"
 
 dev_template_resources:
+  - "offline-vm"
   - "rbac.authorization.k8s"
   - "replicase-resource"
   - "virt-controller"
   - "virt-handler"
   - "vm-resource"
+  - "vmpreset-resource"
