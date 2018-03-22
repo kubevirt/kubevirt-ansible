@@ -3,6 +3,6 @@
 Create VMs with Lago
 
 ### Variables
-| Variable        | Default Value           | Description  |
-|:------------- |:-------------|:----- |
-| inventory_file | inventory | Path to inventory file for ansible to use |
+| variable       | default           |choices           | comments  |
+|:-------------|:-------------|:----------|:----------|
+| inventory_file | inventory | |Path to the inventory file.|
