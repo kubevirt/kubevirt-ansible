@@ -10,7 +10,7 @@ Deploy KubeVirt resources onto a cluster.
 | namespace | kube-system | Namespace to create resources |
 | manifest_version | release | KubeVirt manifest version |
 | docker_prefix | kubevirt | Container image organization |
-| dev_template_resources | [ "rbac.authorization.k8s", "replicase-resource", "virt-controller", "virt-handler", "vm-resource" ] | Individual resource templates |
+| dev_template_resources | [ "rbac.authorization.k8s", "replicase-resource", "virt-controller", "virt-handler", "vm-resource", "offline-vm", "vmpreset-resource" ] | Individual resource templates |
 | docker_tag | latest | Container image tag |
 | action | provision | The action of provisioning or deprovisioning KubeVirt |
 | cluster | openshift | The cluster we're running on |
