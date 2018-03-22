@@ -1,9 +1,17 @@
 ---
+- name: Render {{ cdi_namespace }} ResourceQuota deprovision yaml
+  template:
+    src:  cdi-resourcequota.yml
+    dest: /tmp/cdi-deprovision-resourcequota.yml
+
+- name: Delete {{ cdi_namespace }} ResourceQuota
+  command: kubectl delete -f /tmp/cdi-deprovision-resourcequota.yml -n {{ cdi_namespace }} --ignore-not-found
+
 - name: Render CDI deprovision yaml
   template:
     src:  cdi-controller-deployment.yml
     dest: /tmp/cdi-deprovision.yml
 
 - name: Delete CDI Resources
-  command: kubectl delete -f /tmp/cdi-deprovision.yml --ignore-not-found
+  command: kubectl delete -f /tmp/cdi-deprovision.yml -n {{ cdi_namespace }} --ignore-not-found
 

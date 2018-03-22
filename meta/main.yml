@@ -1,0 +1,8 @@
+---
+galaxy_info:
+  description: Tools to provision resources, deploy clusters and install KubeVirt
+  issue_tracker_url: https://github.com/kubevirt/kubevirt-ansible/issues
+  license: Apache 2.0
+  min_ansible_version: 2.4.2
+
+dependencies: []
