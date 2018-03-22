@@ -25,14 +25,24 @@
   command: "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
   when: cluster=="openshift"
 
-- name: Check for kubevirt.yaml template in {{ kubevirt_template_dir }}
+- name: Check for kubevirt.yml template in {{ kubevirt_template_dir }}
   stat:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yaml"
+    path: "{{ kubevirt_template_dir }}/kubevirt.yml"
   register: byo_template
 
-- name: Use kubevirt.yaml template from {{ kubevirt_template_dir }}
+- name: Use kubevirt.yml template from {{ kubevirt_template_dir }}
   set_fact:
-    template_version: "release"
+    manifest_version: "release"
   when: byo_template.stat.exists == True
 
-- include_tasks: "{{ manifest_version }}.yaml"
+- include_tasks: "{{ manifest_version }}.yml"
+
+- name: Create KubeVirt Resources
+  command: "kubectl apply -f /tmp/{{ item }}.yml"
+  with_items:
+    - "{{ dev_template_resources }}"
+  when: manifest_version=="dev"
+
+- name: Create KubeVirt Resources
+  command: kubectl apply -f /tmp/kubevirt.yml
+  when: manifest_version=="release"

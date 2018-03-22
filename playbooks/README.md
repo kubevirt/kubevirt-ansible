@@ -109,6 +109,11 @@ indentified with the cluster using ```oc login```.
 
 Install KubeVirt on your OpenShift cluster.
 
+Before installing KubeVirt on an existing OpenShift cluster, ensure that SELinux is disabled on all hosts:
+```bash
+$ ansible-playbook -i inventory playbooks/selinux.yml
+```
+
 ```bash
 $ ansible-playbook -i localhost playbooks/kubevirt.yml -e@vars/all.yml
 ```
