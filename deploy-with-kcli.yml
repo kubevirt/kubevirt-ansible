@@ -1,0 +1,37 @@
+---
+- name: Deploy Openshift
+  hosts: localhost
+  connection: local
+  vars:
+    ansible_python_interpreter: "/usr/bin/env python"
+  tasks:
+    - name: Deploy Openshift Kcli Product
+      register: openshift_installed
+      kvirt_product:
+        name: kubevirt
+        state: present
+        product: asb
+    - name: Wait for Ip of Master to be available
+      wait_for:
+       timeout: 150
+      when: openshift_installed.changed
+    - name: Refresh Inventory
+      meta: refresh_inventory
+      when: openshift_installed.changed
+
+- name: Deploy kubevirt
+  hosts: asb
+  tasks:
+   - name: Wait For Openshift To Be Up
+     wait_for:
+      port: 8443
+      timeout: 300
+   - name: Login Openshift
+     command: "oc login localhost:8443 --insecure-skip-tls-verify=true --username=developer --password=developer"
+   - name: Render Kubevirt Service Instance Yaml
+     template:
+       src: templates/kubevirt-apb.yml.j2
+       dest: /tmp/kubevirt.yml
+   - name: Deploy Kubevirt Service Instance
+     command: "oc create -f /tmp/kubevirt.yml"
+     ignore_errors: true

@@ -1,0 +1,63 @@
+apiVersion: v1
+data:
+  broker-config: |
+    registry:
+      - type: "dockerhub"
+        name: "dh"
+        url: "https://registry.hub.docker.com"
+        org: "ansibleplaybookbundle"
+        tag: "latest"
+        white_list:
+          - ".*-apb$"
+      - type: local_openshift
+        name: localregistry
+        namespaces: ['openshift']
+        white_list:
+          - ".*-apb$"
+      - type: "dockerhub"
+        name: "karmab"
+        url: "https://registry.hub.docker.com"
+        org: "karmab"
+        tag: "latest"
+        white_list:
+          - ".*-apb$"
+    dao:
+      etcd_host: asb-etcd.ansible-service-broker.svc
+      etcd_port: 2379
+      etcd_ca_file: /var/run/secrets/kubernetes.io/serviceaccount/service-ca.crt
+      etcd_client_cert: /var/run/asb-etcd-auth/client.crt
+      etcd_client_key: /var/run/asb-etcd-auth/client.key
+    log:
+      logfile: /var/log/ansible-service-broker/asb.log
+      stdout: true
+      level: debug
+      color: true
+    openshift:
+      host: ""
+      ca_file: ""
+      bearer_token_file: ""
+      image_pull_policy: "IfNotPresent"
+      sandbox_role: "edit"
+      namespace: ansible-service-broker
+      keep_namespace: false
+      keep_namespace_on_error: true
+    broker:
+      dev_broker: true
+      bootstrap_on_startup: true
+      refresh_interval: "600s"
+      launch_apb_on_bind: false
+      output_request: true
+      recovery: true
+      ssl_cert_key: /etc/tls/private/tls.key
+      ssl_cert: /etc/tls/private/tls.crt
+      auto_escalate: false
+      auth:
+        - type: basic
+          enabled: false
+kind: ConfigMap
+metadata:
+  creationTimestamp: 2018-02-01T18:19:47Z
+  labels:
+    app: ansible-service-broker
+  name: broker-config
+  namespace: ansible-service-broker
