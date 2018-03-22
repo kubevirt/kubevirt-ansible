@@ -150,6 +150,14 @@ main() {
         -v \
         -e "${args[*]}" \
         playbooks/automation/check-patch.yml
+
+    # Deprovision resources
+    ansible-playbook \
+        -u root \
+        -i "$inventory_file" \
+        -v \
+        -e "action=deprovision" \
+        playbooks/automation/deprovision.yml
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
