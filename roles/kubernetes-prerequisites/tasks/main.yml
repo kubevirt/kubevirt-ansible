@@ -10,6 +10,7 @@
 - name: remove firewalld package
   package:
     name: firewalld
+    state: absent
 
 - name: stop and disable firewalld
   register: result
@@ -18,11 +19,6 @@
     enabled: no
     name: firewalld
   failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
-
-- name: remove firewalld package
-  package:
-    name: firewalld
-    state: absent
 
 - name: Remove current swaps from fstab
   lineinfile:
