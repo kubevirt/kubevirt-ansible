@@ -13,6 +13,7 @@ get_run_path() {
         mkdir -p "/dev/shm/ost" && \
         echo "/dev/shm/ost/deployment-$suffix" || \
         echo "$PWD/deployment-$suffix"
+        echo "End of get_run_path..."
 }
 
 collect_logs() {
