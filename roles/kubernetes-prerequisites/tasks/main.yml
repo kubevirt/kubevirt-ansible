@@ -7,10 +7,6 @@
     policy: targeted
     state: permissive
 
-- name: remove firewalld package
-  package:
-    name: firewalld
-
 - name: stop and disable firewalld
   register: result
   service:
