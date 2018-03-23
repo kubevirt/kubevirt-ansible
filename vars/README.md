@@ -2,12 +2,11 @@
 
 List of top level variables.
 
-### Variables
-| Variable        | Default Value           | Description  |
-|:------------- |:-------------|:----- |
-| cluster | openshift | The cluster we're running on |
-| namespace | kube-system | Namespace to create resources |
-| openshift_version | 3.7 | OpenShift cluster version. Either 3.7 or 3.9 |
-| manifest_version | release | KubeVirt manifest version |
-| docker_tag | latest | Container image tag |
-| storage_role | ["storage-none", "storage-demo", "storage-cns"] | Storage role  to install with KubeVirt |
+| variable       | default           |choices           | comments  |
+|:-------------|:-------------|:----------|:----------|
+| cluster| openshift|<ul><li>openshift</li><li>kubernetes</li></ul> |Cluster type to deploy KubeVirt on.|
+| namespace|kube-system | |Namespace to create resources.| 
+| openshift_version| 3.7| <ul><li>3.7</li><li>3.9</li></ul>|OpenShift cluster version.|
+|manifest_version | release|<ul><li>release</li><li>dev</li></ul>|KubeVirt manifest version.|
+| docker_tag|latest| | Container image tag.|
+| storage_role|storage-none|<ul><li>storage-none</li><li>storage-demo</li><li>storage-cns</li></ul>| Storage role  to install with KubeVirt.|

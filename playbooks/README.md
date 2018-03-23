@@ -93,7 +93,7 @@ Please follow [docker-storage-setup] documentation for more details.
 ```bash
 $ ansible-playbook -i inventory -e@vars/all.yml playbooks/cluster/openshift/config.yml
 ```
-See [OpenShift parameters documentation](./playbooks/cluster/openshift/README.md) for more details.
+See [OpenShift parameters documentation](./cluster/openshift/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
 
 ## Install KubeVirt on an existing cluster
 
@@ -107,18 +107,18 @@ The playbook expects you have ```oc```, rpm package ```origin-clients```,
 installed and a config file in ```$HOME/.kube/config```.  Also make sure you
 indentified with the cluster using ```oc login```.
 
-Install KubeVirt on your OpenShift cluster.
-
 Before installing KubeVirt on an existing OpenShift cluster, ensure that SELinux is disabled on all hosts:
 ```bash
 $ ansible-playbook -i inventory playbooks/selinux.yml
 ```
 
+Install KubeVirt on your OpenShift cluster:
+
 ```bash
 $ ansible-playbook -i localhost playbooks/kubevirt.yml -e@vars/all.yml
 ```
 
-See [KubeVirt parameters documentation](./roles/kubevirt/README.md) for more details on parameters.
+See [KubeVirt parameters documentation](./roles/kubevirt/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
 
 ## Deploy a new Kubernetes or OpenShift cluster and KubeVirt with Lago
 
@@ -130,7 +130,7 @@ Following example is executing top level playbook `playbooks/automation/check-pa
 $ ansible-playbook -i inventory -e@vars/all.yml playbooks/automation/check-patch.yml
 ```
 
-See [Lago parameters documentation](./playbooks/provider/lago/README.md) for more details.
+See [Lago parameters documentation](./playbooks/provider/lago/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
 
 ### Storage
 
