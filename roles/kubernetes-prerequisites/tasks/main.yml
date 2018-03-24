@@ -7,11 +7,6 @@
     policy: targeted
     state: permissive
 
-- name: remove firewalld package
-  package:
-    name: firewalld
-    state: absent
-
 - name: stop and disable firewalld
   register: result
   service:
@@ -19,6 +14,11 @@
     enabled: no
     name: firewalld
   failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
+
+- name: remove firewalld package
+  package:
+    name: firewalld
+    state: absent
 
 - name: Remove current swaps from fstab
   lineinfile:
@@ -34,6 +34,8 @@
   package:
     name: "{{ epel_repo_rpm }}"
     state: present
+  when:
+    - ansible_distribution in ["CentOS","RedHat"]
 
 - name: import kubernetes rpm keys
   rpm_key:
@@ -59,7 +61,6 @@
   package: 
     name: "{{ item }}"
     state: present
-    update_cache: yes
   with_items:
     - "{{ kubernetes_packages }}"
 
