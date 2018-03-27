@@ -97,7 +97,7 @@ main() {
 
     local cluster="${CLUSTER:-openshift}"
     local ansible_modules_version="${ANSIBLE_MODULES_VERSION:-openshift-ansible-3.7.29-1}"
-    local openshift_version="${OPENSHIFT_VERSION:-3.7}"
+    local kubevirt_openshift_version="${OPENSHIFT_VERSION:-3.7}"
     local openshift_playbook_path="${OPENSHIFT_PLAYBOOK_PATH:-playbooks/byo/config.yml}"
     local provider="${PROVIDER:-lago}"
     local run_path="$(get_run_path "$cluster")"
@@ -140,7 +140,7 @@ main() {
         "inventory_file=$inventory_file"
         "cluster=$cluster"
         "ansible_modules_version=$ansible_modules_version"
-        "openshift_version=$openshift_version"
+        "kubevirt_openshift_version=$kubevirt_openshift_version"
         "openshift_playbook_path=$openshift_playbook_path"
 	"storage_role=$storage_role"
     )

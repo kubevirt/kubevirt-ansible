@@ -5,14 +5,14 @@
     epel_release_rpm_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
     openshift_ansible_dir: "openshift-ansible/"
     openshift_playbook_path: "playbooks/byo/config.yml"
-    openshift_version: "3.7"
+    kubevirt_openshift_version: "3.7"
   pre_tasks:
     - name: include_vars
       include_vars:
         file: "{{ item }}"
       with_items:
         - "{{ playbook_dir }}/../../../vars/all.yml"
-        - "{{ playbook_dir }}/vars/{{ openshift_version }}.yml"
+        - "{{ playbook_dir }}/vars/{{ kubevirt_openshift_version }}.yml"
 
     - name: Include lib_utils
       import_role:
