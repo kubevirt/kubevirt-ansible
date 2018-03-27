@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # deploy kubernetes
-kubeadm init --token {{ kubernetes_token }} --skip-preflight-checks
+kubeadm init --token {{ kubernetes_token }} --ignore-preflight-errors=all
 
 # create directory for kubernetes config
 mkdir -p $HOME/.kube
-cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+scp /etc/kubernetes/admin.conf $HOME/.kube/config
 
 # install weave pod network plugin
 export kubever=$(kubectl version | base64 | tr -d '\n')

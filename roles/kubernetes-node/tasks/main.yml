@@ -1,4 +1,7 @@
 ---
-- name: deploy host as kubernetes node
-  command: "kubeadm join --token {{ kubernetes_token }} {{ groups['masters'][0] }}:6443 --skip-preflight-checks"
+- name: retrieve token ca cert hash
+  shell: openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'
+  register: sha
 
+- name: deploy host as kubernetes node
+  command: "kubeadm join --token {{ kubernetes_token }} {{ groups['masters'][0] }}:6443 --discovery-token-ca-cert-hash sha256:{{sha.stdout}} --ignore-preflight-errors=all"
