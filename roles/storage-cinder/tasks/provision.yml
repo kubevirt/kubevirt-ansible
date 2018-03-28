@@ -46,7 +46,11 @@
 - name: Label node to host Mariadb
   command: kubectl label node "{{ node_hostname.stdout }}" "{{infra_node_label}}"=true --overwrite=true
 
-- name: Include  Rabbitmq
+- name: Include MariaDB
+  include_role:
+    name: ansible-role-k8s-mariadb
+
+- name: Include Rabbitmq
   include_role:
     name: ansible-role-k8s-rabbitmq
 
