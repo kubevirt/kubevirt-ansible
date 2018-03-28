@@ -11,4 +11,4 @@
     dest: /tmp/storage-cns.yml
 
 - name: Delete storage-cns Resources
-  command: kubectl delete -f /tmp/storage-cns.yml
+  command: kubectl delete -f /tmp/storage-cns.yml --ignore-not-found

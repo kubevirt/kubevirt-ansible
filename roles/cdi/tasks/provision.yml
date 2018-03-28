@@ -18,8 +18,13 @@
   when: ns.stdout != cdi_namespace
         and cli.stdout == "oc"
 
+- name: Check if RBAC for CDI exists
+  shell: kubectl get clusterrolebinding | grep -w c-{{ cdi_namespace }}-default | awk '{ print $1 }'
+  register: rbac
+
 - name: Create RBAC for CDI
   shell: kubectl create clusterrolebinding c-{{ cdi_namespace }}-default --clusterrole=cluster-admin  --serviceaccount={{ cdi_namespace }}:default
+  when: rbac.stdout != "c-{{ cdi_namespace }}-default"
 
 - name: Render {{ cdi_namespace }} ResourceQuota deployment yaml
   template:
