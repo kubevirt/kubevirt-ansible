@@ -16,7 +16,7 @@
 
 - name: Render storage-glusterfs deployment yaml
   template:
-    src: storage-glusterfs.yml
+    src: storage-glusterfs.yml.j2
     dest: /tmp/storage-glusterfs.yml
 
 - name: Create storage-glusterfs Resources
