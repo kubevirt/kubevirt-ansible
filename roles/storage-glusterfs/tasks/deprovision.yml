@@ -5,9 +5,6 @@
         and admin_user is defined
         and admin_password is defined
 
-- set_fact:
-    heketi_route: unused
-
 - name: Render storage-glusterfs deployment yaml
   template:
     src: storage-glusterfs.yml.j2

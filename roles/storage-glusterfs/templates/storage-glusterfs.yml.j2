@@ -8,7 +8,7 @@ reclaimPolicy: Delete
 parameters:
   # Enable this when GlusterFS provisioner supports cloning
   # smartclone: "true"
-  resturl: "http://{{ heketi_route }}"
+  resturl: "http://{{ heketi_url | default(omit) }}"
   restuser: admin
   secretName: "{{ heketi_secret_name }}"
   secretNamespace: "{{ heketi_namespace }}"
