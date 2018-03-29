@@ -5,6 +5,16 @@
         and admin_user is defined
         and admin_password is defined
 
+- block:
+  - name: Copy glusterfile provisioner YAML
+    copy:
+      src: glusterfile-provisioner.yml
+      dest: /tmp/glusterfile-provisioner.yml
+
+  - name: Delete glusterfile provisioner pod
+    command: "kubectl delete -n {{ namespace }} -f /tmp/glusterfile-provisioner.yml --ignore-not-found"
+  when: external_provisioner
+
 - name: Render storage-glusterfs deployment yaml
   template:
     src: storage-glusterfs.yml.j2

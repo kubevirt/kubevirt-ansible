@@ -5,8 +5,18 @@
         and admin_user is defined
         and admin_password is defined
 
+- block:
+  - name: Copy glusterfile provisioner YAML
+    copy:
+      src: glusterfile-provisioner.yml
+      dest: /tmp/glusterfile-provisioner.yml
+
+  - name: Deploy glusterfile provisioner pod
+    command: "kubectl apply -n {{ namespace }} -f /tmp/glusterfile-provisioner.yml"
+  when: external_provisioner
+
 - name: Determine the heketi route
-  command: "oc get route {{ heketi_route_name }}  -n {{ heketi_namespace }} -o jsonpath='{.spec.host}'"
+  command: "oc get route {{ heketi_route_name }} -n {{ namespace }} -o jsonpath='{.spec.host}'"
   register: route_cmd
   when: cluster == "openshift"
 
