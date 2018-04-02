@@ -9,4 +9,4 @@ List of top level variables.
 | kubevirt_openshift_version | 3.7| <ul><li>3.7</li><li>3.9</li></ul>|OpenShift cluster version.|
 |manifest_version | release|<ul><li>release</li><li>dev</li></ul>|KubeVirt manifest version.|
 | docker_tag|latest| | Container image tag.|
-| storage_role|storage-none|<ul><li>storage-none</li><li>storage-demo</li><li>storage-cns</li></ul>| Storage role  to install with KubeVirt.|
+| storage_role|storage-none|<ul><li>storage-none</li><li>storage-demo</li><li>storage-glusterfs</li></ul>| Storage role  to install with KubeVirt.|

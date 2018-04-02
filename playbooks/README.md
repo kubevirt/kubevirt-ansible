@@ -137,9 +137,9 @@ See [Lago parameters documentation](./playbooks/provider/lago/README.md) for mor
 **storage-demo**
 All-in-one ephemeral storage.
 
-**CNS**
-```openshift-ansible``` will provide Gluster storage and the CNS role will
-create the storage class.
+**GlusterFS**
+```openshift-ansible``` will provide GlusterFS storage and the storage-glusterfs role will
+create the StorageClass.
 
 **Cinder**
 
