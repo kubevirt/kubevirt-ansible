@@ -15,7 +15,7 @@ spec:
       containers:
       - name: cdi-controller
         image: {{ repo_tag }}/import-controller:{{ release_tag }}
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         env:
           - name: OWN_NAMESPACE
             valueFrom:
