@@ -1,0 +1,23 @@
+---
+- name: Login As Super User
+  command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+  when: cluster=="openshift"
+        and admin_user is defined
+        and admin_password is defined
+
+- name: Determine the heketi route
+  command: "oc get route {{ heketi_route_name }}  -n {{ heketi_namespace }} -o jsonpath='{.spec.host}'"
+  register: route_cmd
+  when: cluster == "openshift"
+
+- set_fact:
+    heketi_url: "{{ route_cmd.stdout }}"
+  when: route_cmd is defined
+
+- name: Render storage-glusterfs deployment yaml
+  template:
+    src: storage-glusterfs.yml.j2
+    dest: /tmp/storage-glusterfs.yml
+
+- name: Create storage-glusterfs Resources
+  command: kubectl apply -f /tmp/storage-glusterfs.yml
