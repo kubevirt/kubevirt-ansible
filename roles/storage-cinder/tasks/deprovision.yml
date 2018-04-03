@@ -27,3 +27,11 @@
   vars:
     action: deprovision
 
+- name: Render Mariadb
+  template:
+    src: "{{ storage_cinder_template_dir }}/mariadb.yml.j2"
+    dest: /tmp/storage-cinder-mariadb.yml
+
+- name: Delete storage-cinder-mariadb Resources
+  command: kubectl delete -f /tmp/storage-cinder-mariadb.yml --ignore-not-found
+
