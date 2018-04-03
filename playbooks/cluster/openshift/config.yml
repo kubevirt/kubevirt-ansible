@@ -19,7 +19,7 @@
         file: "{{ playbook_dir }}/vars/gluster.yml"
       when:
         - storage_role is defined
-        - storage_role == 'storage_cns'
+        - storage_role == 'storage-glusterfs'
 
     - name: Include lib_utils
       import_role:
