@@ -1,8 +1,11 @@
-# Namespace to create for the CNS pods
+# Namespace to create for the GlusterFS and Heketi resources
 openshift_storage_glusterfs_namespace: app-storage
-# Create a StorageClass referencing the CNS cluster
-openshift_storage_glusterfs_storageclass: true
+# Do not create a StorageClass; a custom StorageClass will be created via APB
+# for use by kubevirt
+openshift_storage_glusterfs_storageclass: false
 # glusterblock functionality is not supported outside of Logging/Metrics
 openshift_storage_glusterfs_block_deploy: false
+# (Temp) Use a custom Heketi image to enable cloning support
+openshift_storage_glusterfs_heketi_image: gluster/heketiclone
 # Disable any other default StorageClass
 openshift_storageclass_default: false
