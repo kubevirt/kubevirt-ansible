@@ -2,7 +2,6 @@
 masters
 nodes
 etcd
-glusterfs
 
 [OSEv3:vars]
 openshift_deployment_type=origin
