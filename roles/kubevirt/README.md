@@ -16,4 +16,4 @@ Deploy KubeVirt resources onto a cluster.
 |docker_prefix| kubevirt | |Container image organization.|
 |dev_template_resources| |<ul><li>rbac.authorization.k8s</li><li>replicase-resource</li><li>virt-controller</li><li>virt-handler</li><li>vm-resource</li><li>offline-vm</li><li>vmpreset-resource</li></ul>| Individual resource templates.|
 | docker_tag|latest| | Container image tag.|
-|storage_role|storage-none|<ul><li>storage-none</li><li>storage-demo</li><li>storage-cns</li></ul>| Storage role  to install with KubeVirt.|
+|storage_role|storage-none|<ul><li>storage-none</li><li>storage-demo</li><li>storage-glusterfs</li></ul>| Storage role  to install with KubeVirt.|
