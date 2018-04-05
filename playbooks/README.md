@@ -7,7 +7,7 @@ This repository provides a collection of playbooks to
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
 
-**Tested on CentOS Linux release 7.4 (Core), OpenShift 3.7, OpenShift 3.9 and Ansible 2.4.2**
+**Tested on CentOS Linux release 7.4 (Core), OpenShift 3.7, OpenShift 3.9 and Ansible 2.4.2, 2.4.3**
 
 ## Requirements
 
@@ -27,9 +27,7 @@ For OpenShift deployment clone [**OpenShift Ansible**](openshift-ansible-project
 $ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
 ```
 
-> **NOTE:** For OpenShift 3.9 there is no release yet,
-please read [this file](../automation/check-patch.openshift_3-9.sh) to see
-what branch is currently used for automation.
+> **NOTE:** For OpenShift 3.9 use `release-3.9` branch.
 
 ## Cluster configuration
 This section describes how to set up a new cluster on given machines. [Skip](#install-kubevirt-on-an-existing-cluster) this part if you already have a cluster.

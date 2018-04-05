@@ -96,9 +96,9 @@ main() {
     # cluster: Openshift or Kubernetes
 
     local cluster="${CLUSTER:-openshift}"
-    local ansible_modules_version="${ANSIBLE_MODULES_VERSION:-openshift-ansible-3.7.29-1}"
-    local kubevirt_openshift_version="${OPENSHIFT_VERSION:-3.7}"
-    local openshift_playbook_path="${OPENSHIFT_PLAYBOOK_PATH:-playbooks/byo/config.yml}"
+    local ansible_modules_version="${ANSIBLE_MODULES_VERSION:-release-3.9}"
+    local kubevirt_openshift_version="${OPENSHIFT_VERSION:-3.9}"
+    local openshift_playbook_path="${OPENSHIFT_PLAYBOOK_PATH:-playbooks/deploy_cluster.yml}"
     local provider="${PROVIDER:-lago}"
     local run_path="$(get_run_path "$cluster")"
     local args=("prefix=$run_path")
