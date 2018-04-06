@@ -7,15 +7,15 @@
   command: kubectl create serviceaccount {{privileged_service_account}} -n {{ namespace }}
   when: psa.stdout == ""
 
-- name: Select a host for Mariadb hostpath
+- name: Select a host for MariaDB hostpath
   command: kubectl get nodes --selector="{{infra_node_label}}"=true
   register: infra_node_hostnames
 
-- name: Remove label on the nodes that host Mariadb
+- name: Remove label on the nodes that host MariaDB
   command: kubectl label node "{{ item }}" "{{infra_node_label}}"-
   with_items: "{{ infra_node_hostnames.stdout.split() }}"
 
-- name: Include  Rabbitmq
+- name: Include  RabbitMQ
   include_role:
     name: ansible-role-k8s-rabbitmq
   vars:
@@ -27,7 +27,7 @@
   vars:
     action: deprovision
 
-- name: Render Mariadb
+- name: Render MariaDB
   template:
     src: "{{ storage_cinder_template_dir }}/mariadb.yml.j2"
     dest: /tmp/storage-cinder-mariadb.yml

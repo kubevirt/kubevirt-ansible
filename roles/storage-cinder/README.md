@@ -3,20 +3,17 @@
 This role aggregates Cinder, RabbitMQ and MariaDB to deploy Standalone
 Cinder with no authentication (noauth).
 
-MariaDB is deployed on a node with label=mariadb. MariaDB uses hostPath
+MariaDB is deployed on a node with label={{infra_node_label}}. MariaDB uses hostPath
 for storage.
-
-### Requirements
-
 
 ### Role Variables
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-| action |  provision | <ul><li>provision</li><li>deprovision</li></ul>| Action to perform on the role|
-| infra_node_label | controller | | Label a node to allow MariaDB to utilize its hostpath
-| namespace | openstack | | A namespace where cinder and its dependencies will be deployed | 
-| service_account | cinder | | A service account with at least anyuid capability for use in OpenShift |
-| privileged_service_account | cinder_privileged | | A privileged service account for elevated privileges in OpenShift |
+| action |  provision | <ul><li>provision</li><li>deprovision</li></ul>| Action to perform on the role.|
+| infra_node_label | controller | | Node label on the host to allow MariaDB to utilize its hostpath. |
+| namespace | openstack | | A namespace where cinder and its dependencies will be deployed. | 
+| service_account | cinder | | A service account with at least anyuid capability for use in OpenShift. |
+| privileged_service_account | cinder_privileged | | A privileged service account for elevated privileges in OpenShift. |
 | mariadb_root_password | weakpassword | | |
 | mariadb_user | root | | |
 | cinder_user | cinder | | |
@@ -29,17 +26,17 @@ for storage.
 #### Ceph
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-| enabled | false  | <ul><li>true</li><li>false</li></ul>| Enables Ceph backend |
+| enabled | false  | <ul><li>true</li><li>false</li></ul>| The var to enable or disable this backend. |
 | cinder_rbd_pool_name | cinder_volumes  | | |
 | cinder_rbd_user_name | cinder  | | |
 | client_key | | | |
 | ceph_authentication_type | cephx  | | |
-| ceph_mon_host | | | IP address of Ceph Monitors. Comma-separated list of IPs |
+| ceph_mon_host | | | The IP address{es) of Ceph Monitors. Multiple IPs are specified as a comma-separated list |
 
 #### Xtremio
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-| enabled | false  | <ul><li>true</li><li>false</li></ul>| Enables Xtremio backend |
+| enabled | false  | <ul><li>true</li><li>false</li></ul>| The var to enable or disable this backend. |
 | max_over_subscription_ratio | 40  | | |
 | use_multipath_for_image_xfer | | | |
 | volume_backend_name | xtremio | | |
@@ -51,7 +48,7 @@ for storage.
 #### NetApp
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-| enabled | false  | <ul><li>true</li><li>false</li></ul>| Enables Netapp backend |
+| enabled | false  | <ul><li>true</li><li>false</li></ul>| The var to enable or disable this backend. |
 | netapp_storage_family | ontap_cluster  | | |
 | netapp_storage_protocol: | | | |
 | nfs_shares_config | | | |

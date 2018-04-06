@@ -39,14 +39,14 @@
   command: oc adm policy add-scc-to-user privileged system:serviceaccount:{{ namespace }}:{{privileged_service_account}}
   when: cluster=="openshift"
 
-- name: Select a host for Mariadb hostpath
+- name: Select a host for MariaDB hostpath
   command: kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="Hostname")].address}'
   register: node_hostname
 
-- name: Label node to host Mariadb
+- name: Label node to host MariaDB
   command: kubectl label node "{{ node_hostname.stdout }}" "{{infra_node_label}}"=true --overwrite=true
 
-- name: Render Mariadb
+- name: Render MariaDB
   template:
     src: "{{ storage_cinder_template_dir }}/mariadb.yml.j2"
     dest: /tmp/storage-cinder-mariadb.yml
@@ -54,7 +54,7 @@
 - name: Create storage-cinder-mariadb deployment
   command: kubectl apply -f /tmp/storage-cinder-mariadb.yml
 
-- name: Include Rabbitmq
+- name: Include RabbitMQ
   include_role:
     name: ansible-role-k8s-rabbitmq
 
