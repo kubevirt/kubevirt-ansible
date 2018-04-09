@@ -10,10 +10,9 @@ Deploy KubeVirt resources onto a cluster.
 |cluster|openshift |<ul><li>openshift</li><li>kubernetes</li></ul>|Cluster type.| 
 |namespace|kube-system | |Namespace to create resources.|
 |action|provision| <ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
-|manifest_version| release |<ul><li>release</li><li>dev</li></ul>| KubeVirt manifest version. |
-|kubevirt_manifest_url|https://raw.githubusercontent.com/kubevirt/kubevirt/master/manifests|||
+|release_manifest_url|https://github.com/kubevirt/kubevirt/releases/download|||
 |kubevirt_template_dir|./templates||Location of the deployment template file.|
 |docker_prefix| kubevirt | |Container image organization.|
-|dev_template_resources| |<ul><li>rbac.authorization.k8s</li><li>replicase-resource</li><li>virt-controller</li><li>virt-handler</li><li>vm-resource</li><li>offline-vm</li><li>vmpreset-resource</li></ul>| Individual resource templates.|
-| docker_tag|latest| | Container image tag.|
 |storage_role|storage-none|<ul><li>storage-none</li><li>storage-demo</li><li>storage-glusterfs</li></ul>| Storage role  to install with KubeVirt.|
+| version |0.4.1-alpha.1|<ul><li>0.4.1-alpha.1</li><li>0.4.0</li><li>0.3.0</li><li>0.2.0</li><li>0.1.0</li></ul>|KubeVirt release version.|
+|default_vm_templates|<ul><li>vm-template-fedora</li><li>vm-template-windows2012r2</li><li>vm-template-rhel7></ul>|| Default vm templates to deploy with KubeVirt.|
