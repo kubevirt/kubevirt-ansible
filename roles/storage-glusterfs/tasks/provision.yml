@@ -24,6 +24,13 @@
     heketi_url: "{{ route_cmd.stdout }}"
   when: route_cmd is defined
 
+- name: Get heketi admin key
+  command: "oc get secret {{ heketi_secret_name }} -n {{ namespace }} -o jsonpath='{.data.key}'"
+  register: key_cmd
+
+- set_fact:
+    heketi_admin_key: "{{ key_cmd.stdout }}"
+
 - name: Render storage-glusterfs deployment yaml
   template:
     src: storage-glusterfs.yml.j2
