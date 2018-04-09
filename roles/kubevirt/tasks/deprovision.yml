@@ -10,23 +10,32 @@
     path: "{{ kubevirt_template_dir }}/kubevirt.yml"
   register: byo_template
 
-- name: Use kubevirt.yml template from {{ kubevirt_template_dir }}
-  set_fact:
-    manifest_version: "release"
+- name: Render BYO template
+  template:
+    src: "{{ kubevirt_template_dir }}/kubevirt.yml"
+    dest: /tmp/kubevirt.yml
   when: byo_template.stat.exists == True
 
-- include_tasks: "{{ manifest_version }}.yml"
+- name: Check that kubevirt.yml still exists in /tmp
+  stat:
+    path: "/tmp/kubevirt.yml"
+  register: kubevirt_template
 
-- name: Delete KubeVirt Resources
-  command: "kubectl delete -f /tmp/{{ item }}.yml --ignore-not-found=true"
-  with_items:
-    - "{{ dev_template_resources }}"
-  when: manifest_version=="dev"
+- name: Download KubeVirt Template
+  get_url:
+    url: "{{ release_manifest_url }}/{{ version }}/kubevirt.yaml"
+    dest: "/tmp/kubevirt.yml"
+  when: kubevirt_template.stat.exists == False
+
+- name: Render KubeVirt Yml
+  replace:
+    path: "/tmp/kubevirt.yml"
+    regexp: "namespace: kube-system"
+    replace: "namespace: {{ namespace }}"
+  when: kubevirt_template.stat.exists == False
 
 - name: Delete KubeVirt Resources
   command: kubectl delete -f /tmp/kubevirt.yml --ignore-not-found=true
-  when: manifest_version=="release"
-
 
 - name: Delete Privileged Policy
   command: "oc adm policy remove-scc-from-user privileged -z kubevirt-infra -n {{ namespace }}"

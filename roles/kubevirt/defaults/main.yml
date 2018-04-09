@@ -1,17 +1,7 @@
 namespace: "kube-system"
 docker_prefix: "kubevirt"
-docker_tag: "latest"
 cluster: "openshift"
 action: "provision"
-manifest_version: "release"
-kubevirt_manifest_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/master/manifests"
+release_manifest_url: "https://github.com/kubevirt/kubevirt/releases/download"
 kubevirt_template_dir: "{{ role_path }}/templates"
-
-dev_template_resources:
-  - "offline-vm"
-  - "rbac.authorization.k8s"
-  - "replicase-resource"
-  - "virt-controller"
-  - "virt-handler"
-  - "vm-resource"
-  - "vmpreset-resource"
+version: v0.4.0

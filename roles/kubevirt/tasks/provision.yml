@@ -30,19 +30,24 @@
     path: "{{ kubevirt_template_dir }}/kubevirt.yml"
   register: byo_template
 
-- name: Use kubevirt.yml template from {{ kubevirt_template_dir }}
-  set_fact:
-    manifest_version: "release"
+- name: Download KubeVirt Template
+  get_url:
+    url: "{{ release_manifest_url }}/{{ version }}/kubevirt.yaml"
+    dest: "/tmp/kubevirt.yml"
+  when: byo_template.stat.exists == False
+
+- name: Render KubeVirt Yml
+  replace:
+    path: "/tmp/kubevirt.yml"
+    regexp: "namespace: kube-system"
+    replace: "namespace: {{ namespace }}"
+  when: byo_template.stat.exists == False
+
+- name: Render BYO template
+  template:
+    src: "{{ kubevirt_template_dir }}/kubevirt.yml"
+    dest: /tmp/kubevirt.yml
   when: byo_template.stat.exists == True
-
-- include_tasks: "{{ manifest_version }}.yml"
-
-- name: Create KubeVirt Resources
-  command: "kubectl apply -f /tmp/{{ item }}.yml"
-  with_items:
-    - "{{ dev_template_resources }}"
-  when: manifest_version=="dev"
 
 - name: Create KubeVirt Resources
   command: kubectl apply -f /tmp/kubevirt.yml
-  when: manifest_version=="release"
