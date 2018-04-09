@@ -32,7 +32,7 @@
 
 - name: Download KubeVirt Template
   get_url:
-    url: "{{ release_manifest_url }}/{{ version }}/kubevirt.yaml"
+    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml"
     dest: "/tmp/kubevirt.yml"
   when: byo_template.stat.exists == False
 
@@ -51,3 +51,21 @@
 
 - name: Create KubeVirt Resources
   command: kubectl apply -f /tmp/kubevirt.yml
+
+- name: Download KubeVirt source
+  get_url:
+    url: "https://github.com/kubevirt/kubevirt/archive/v{{ version }}.tar.gz"
+    dest: "/tmp/kubevirt.tar.gz"
+  when: cluster == "openshift"
+
+- name: Extract /tmp/kubevirt.tar.gz into /tmp/kubevirt
+  unarchive:
+    src: "/tmp/kubevirt.tar.gz"
+    dest: "/tmp/"
+  when: cluster == "openshift"
+
+- name: Create default VM templates in OpenShift Namespace
+  shell: "oc create -f /tmp/kubevirt-{{ version }}/cluster/{{ item }}.yaml -n openshift"
+  with_items:
+    - "{{ default_vm_templates }}"
+  when: cluster == "openshift"

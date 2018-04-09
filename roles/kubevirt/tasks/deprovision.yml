@@ -23,7 +23,7 @@
 
 - name: Download KubeVirt Template
   get_url:
-    url: "{{ release_manifest_url }}/{{ version }}/kubevirt.yaml"
+    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml"
     dest: "/tmp/kubevirt.yml"
   when: kubevirt_template.stat.exists == False
 
