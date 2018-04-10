@@ -11,8 +11,17 @@
       src: glusterfile-provisioner.yml
       dest: /tmp/glusterfile-provisioner.yml
 
+  - name: Determine the gluster namespace
+    command: "oc get route --all-namespaces -l heketi={{ heketi_label }} -o jsonpath='{range .items[*]}{.metadata.namespace}'"
+    register: namespace_cmd
+    when: cluster == "openshift"
+
+  - set_fact:
+      gluster_namespace: "{{ namespace_cmd.stdout }}"
+    when: namespace_cmd is defined
+
   - name: Delete glusterfile provisioner pod
-    command: "kubectl delete -n {{ namespace }} -f /tmp/glusterfile-provisioner.yml --ignore-not-found"
+    command: "kubectl delete -n {{ gluster_namespace }} -f /tmp/glusterfile-provisioner.yml --ignore-not-found"
   when: external_provisioner
 
 - name: Render storage-glusterfs deployment yaml
