@@ -16,7 +16,7 @@
         prefix: "{{ prefix | default('.lago') }}"
     - name: Init Lago env
       command:
-        lago init "{{ prefix }}" "{{ playbook_dir }}/LagoInitFile.yml"
+        lago init "{{ prefix }}" "{{ playbook_dir }}/LagoInitFile{{ '-glusterfs' if storage_role == 'storage-glusterfs' else '' }}.yml"
       args:
         creates: "{{ prefix }}/default/uuid"
     - name: Remove user defined settings from inventory
@@ -65,6 +65,9 @@
     - name: Set gluster disk path
       set_fact:
         glusterfs_devices: [/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_4]
+      when:
+        - storage_role is defined
+        - storage_role == 'storage-glusterfs'
 
 - hosts: nfs
   any_errors_fatal: True
