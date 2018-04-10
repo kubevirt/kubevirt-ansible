@@ -1,5 +1,7 @@
 ---
-- hosts: masters[0]
+- hosts: localhost
+  connection: local
+  gather_facts: False
   vars:
     storage_role: storage-demo
   # unset http_proxy. required for running in the CI
