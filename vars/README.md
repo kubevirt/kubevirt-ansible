@@ -8,4 +8,4 @@ List of top level variables.
 | namespace|kube-system | |Namespace to create resources.|
 | kubevirt_openshift_version | 3.7| <ul><li>3.7</li><li>3.9</li></ul>|OpenShift cluster version.|
 | version |0.4.1-alpha.1|<ul><li>0.4.1-alpha.1</li><li>0.4.0</li><li>0.3.0</li><li>0.2.0</li><li>0.1.0</li></ul>|KubeVirt release version.|
-| storage_role|storage-none|<ul><li>storage-none</li><li>storage-demo</li><li>storage-glusterfs</li></ul>| Storage role  to install with KubeVirt.|
+| storage_role | storage-none | <ul><li>storage-none</li><li>storage-demo</li><li>storage-glusterfs</li></ul> | Storage role to install with KubeVirt.|
