@@ -3,7 +3,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: kubevirt-heketi-secret
-  namespace: {{ namespace }}
+  namespace: {{ gluster_namespace }}
 data:
   key: {{ heketi_admin_key }}
 {% if external_provisioner %}
@@ -26,5 +26,5 @@ parameters:
   resturl: "http://{{ heketi_url | default(omit) }}"
   restuser: admin
   secretName: "kubevirt-heketi-secret"
-  secretNamespace: "{{ namespace }}"
+  secretNamespace: "{{ gluster_namespace }}"
   volumeoptions: "group virt"

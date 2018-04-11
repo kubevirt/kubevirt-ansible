@@ -11,12 +11,21 @@
       src: glusterfile-provisioner.yml
       dest: /tmp/glusterfile-provisioner.yml
 
+  - name: Determine the gluster namespace
+    command: "oc get route --all-namespaces -l heketi={{ heketi_label }} -o jsonpath='{range .items[*]}{.metadata.namespace}'"
+    register: namespace_cmd
+    when: cluster == "openshift"
+
+  - set_fact:
+      gluster_namespace: "{{ namespace_cmd.stdout }}"
+    when: namespace_cmd is defined
+
   - name: Deploy glusterfile provisioner pod
-    command: "kubectl apply -n {{ namespace }} -f /tmp/glusterfile-provisioner.yml"
+    command: "kubectl apply -n {{ gluster_namespace }} -f /tmp/glusterfile-provisioner.yml"
   when: external_provisioner
 
 - name: Determine the heketi route
-  command: "oc get route {{ heketi_route_name }} -n {{ namespace }} -o jsonpath='{.spec.host}'"
+  command: "oc get route {{ heketi_route_name }} -n {{ gluster_namespace }} -o jsonpath='{.spec.host}'"
   register: route_cmd
   when: cluster == "openshift"
 
@@ -25,7 +34,7 @@
   when: route_cmd is defined
 
 - name: Get heketi admin key
-  command: "oc get secret {{ heketi_secret_name }} -n {{ namespace }} -o jsonpath='{.data.key}'"
+  command: "oc get secret {{ heketi_secret_name }} -n {{ gluster_namespace }} -o jsonpath='{.data.key}'"
   register: key_cmd
 
 - set_fact:
