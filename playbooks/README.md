@@ -54,7 +54,7 @@ Beside these three key components you might want to specify [persistent storage]
 There are two supported cluster configurations:
 
 * All-in-one, where all cluster components are deployed on a single machine
-* Single master and multiple nodes, where master, etcd and persistant storage are assiged to a single machine, and nodes are on separated machines.
+* Single master and multiple nodes, where master, etcd and persistent storage are assigned to a single machine, and nodes are on separated machines.
 
 For more information on cluster configuration please see [Planning](https://docs.openshift.org/latest/install_config/install/planning.html) and [Requirements](https://docs.openshift.org/latest/install_config/install/prerequisites.html) documentation.
 
