@@ -27,7 +27,7 @@ For OpenShift deployment clone [**OpenShift Ansible**](openshift-ansible-project
 $ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
 ```
 
-> **NOTE:** For OpenShift 3.9 use `release-3.9` branch.
+> **NOTE:** For OpenShift 3.9 use `openshift-ansible-3.9.14-1` branch.
 
 ## Cluster configuration
 This section describes how to set up a new cluster on given machines. [Skip](#install-kubevirt-on-an-existing-cluster) this part if you already have a cluster.
