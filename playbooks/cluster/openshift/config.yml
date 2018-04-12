@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: nodes
   remote_user: root
   strategy: free
   vars:
