@@ -1,5 +1,5 @@
 - name: Configure std-ci repos
-  hosts: all
+  hosts: OSEv3
   tasks:
   - name: Configure std-ci repos
     copy:
