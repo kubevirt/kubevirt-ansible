@@ -9,7 +9,7 @@
     - role: "{{ storage_role }}"
     - role: "cdi"
 
-- hosts: masters nodes
+- hosts: nodes
   vars:
     storage_role: storage-demo
   gather_facts: False
