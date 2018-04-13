@@ -65,7 +65,7 @@
   when: cluster == "openshift"
 
 - name: Create default VM templates in OpenShift Namespace
-  shell: "oc create -f /tmp/kubevirt-{{ version }}/cluster/{{ item }}.yaml -n openshift"
+  shell: "oc apply -f /tmp/kubevirt-{{ version }}/cluster/{{ item }}.yaml -n openshift"
   with_items:
     - "{{ default_vm_templates }}"
   when: cluster == "openshift"
