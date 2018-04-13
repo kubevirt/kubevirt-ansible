@@ -108,9 +108,12 @@ installed and a config file in ```$HOME/.kube/config```.  Also make sure you
 indentified with the cluster using ```oc login```.
 
 Before installing KubeVirt on an existing OpenShift cluster, ensure that SELinux is disabled on all hosts:
+
 ```bash
 $ ansible-playbook -i inventory playbooks/selinux.yml
 ```
+
+Be sure to update the [inventory file](../inventory) according to your OpenSift cluster configuration or use the file you used to deploy the cluster.
 
 Install KubeVirt on your OpenShift cluster:
 
@@ -118,7 +121,7 @@ Install KubeVirt on your OpenShift cluster:
 $ ansible-playbook -i localhost playbooks/kubevirt.yml -e@vars/all.yml
 ```
 
-See [KubeVirt parameters documentation](./roles/kubevirt/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
+See [KubeVirt parameters documentation](../roles/kubevirt/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
 
 ## Deploy a new Kubernetes or OpenShift cluster and KubeVirt with Lago
 
