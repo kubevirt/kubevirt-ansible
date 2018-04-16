@@ -21,11 +21,11 @@
 
 - set_fact:
     heketi_admin_key: "{{ key_cmd.stdout }}"
-
+    
 - name: Render storage-glusterfs deployment yaml
   template:
     src: storage-glusterfs.yml.j2
     dest: /tmp/storage-glusterfs.yml
 
 - name: Delete storage-glusterfs Resources
-  command: kubectl delete -f /tmp/storage-glusterfs.yml --ignore-not-found
+  command: "kubectl delete -n {{ glusterfs_namespace }} -f /tmp/storage-glusterfs.yml --ignore-not-found"
