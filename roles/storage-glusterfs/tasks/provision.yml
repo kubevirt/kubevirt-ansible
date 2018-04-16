@@ -9,7 +9,7 @@
     glusterfs_name_label: "{{ glusterfs_name }}{% if glusterfs_name %}-{% endif %}"
 
 - name: Determine the heketi route
-  command: "oc get route -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}route -o jsonpath='{.spec.host}'"
+  command: "oc get route -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}route -o jsonpath='{.items[0].spec.host}'"
   register: route_cmd
   when:
     - cluster == 'openshift'
