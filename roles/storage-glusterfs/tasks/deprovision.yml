@@ -5,6 +5,23 @@
         and admin_user is defined
         and admin_password is defined
 
+- block:
+  - name: Copy glusterfile provisioner YAML
+    copy:
+      src: glusterfile-provisioner.yml
+      dest: /tmp/glusterfile-provisioner.yml
+
+  - name: Delete glusterfile provisioner pod
+    command: "kubectl delete -n {{ namespace }} -f /tmp/glusterfile-provisioner.yml --ignore-not-found"
+  when: external_provisioner
+
+- name: Get heketi admin key
+  command: "oc get secret {{ heketi_secret_name }} -n {{ namespace }} -o jsonpath='{.data.key}'"
+  register: key_cmd
+
+- set_fact:
+    heketi_admin_key: "{{ key_cmd.stdout }}"
+    
 - name: Render storage-glusterfs deployment yaml
   template:
     src: storage-glusterfs.yml.j2
