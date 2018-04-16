@@ -1,6 +1,5 @@
 cluster: "openshift"
 action: "provision"
-namespace: "app-storage"
-heketi_route_name: "heketi-storage"
-heketi_secret_name: "heketi-storage-admin-secret"
+glusterfs_namespace: "app-storage"
+glusterfs_name: "storage"
 external_provisioner: false
