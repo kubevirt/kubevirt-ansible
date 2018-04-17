@@ -5,31 +5,28 @@
         and admin_user is defined
         and admin_password is defined
 
-- block:
-  - name: Copy glusterfile provisioner YAML
-    copy:
-      src: glusterfile-provisioner.yml
-      dest: /tmp/glusterfile-provisioner.yml
-
-  - name: Deploy glusterfile provisioner pod
-    command: "kubectl apply -n {{ namespace }} -f /tmp/glusterfile-provisioner.yml"
-  when: external_provisioner
+- set_fact:
+    glusterfs_name_label: "{{ glusterfs_name }}{% if glusterfs_name %}-{% endif %}"
 
 - name: Determine the heketi route
-  command: "oc get route {{ heketi_route_name }} -n {{ namespace }} -o jsonpath='{.spec.host}'"
+  command: "oc get route -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}route -o jsonpath='{.items[0].spec.host}'"
   register: route_cmd
-  when: cluster == "openshift"
+  when:
+    - cluster == 'openshift'
+    - heketi_url is not defined
 
 - set_fact:
     heketi_url: "{{ route_cmd.stdout }}"
   when: route_cmd is defined
 
 - name: Get heketi admin key
-  command: "oc get secret {{ heketi_secret_name }} -n {{ namespace }} -o jsonpath='{.data.key}'"
+  shell: "kubectl get pod -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}pod -o jsonpath='{.items[0].spec.containers[0].env[?(@.name==\"HEKETI_ADMIN_KEY\")].value}' | base64 -"
   register: key_cmd
+  when: heketi_admin_key is not defined
 
 - set_fact:
     heketi_admin_key: "{{ key_cmd.stdout }}"
+  when: heketi_admin_key is not defined
 
 - name: Render storage-glusterfs deployment yaml
   template:
@@ -37,4 +34,4 @@
     dest: /tmp/storage-glusterfs.yml
 
 - name: Create storage-glusterfs Resources
-  command: kubectl apply -f /tmp/storage-glusterfs.yml
+  command: "kubectl apply -n {{ glusterfs_namespace }} -f /tmp/storage-glusterfs.yml"
