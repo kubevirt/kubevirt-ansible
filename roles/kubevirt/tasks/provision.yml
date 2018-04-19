@@ -52,20 +52,30 @@
 - name: Create KubeVirt Resources
   command: kubectl apply -f /tmp/kubevirt.yml
 
-- name: Download KubeVirt source
-  get_url:
-    url: "https://github.com/kubevirt/kubevirt/archive/v{{ version }}.tar.gz"
-    dest: "/tmp/kubevirt.tar.gz"
-  when: cluster == "openshift"
+- name: Check for vm templates in {{ kubevirt_template_dir }}
+  stat:
+    path: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
+  with_items:
+    - "{{ default_vm_templates }}"
+  register: byo_vm_templates
 
-- name: Extract /tmp/kubevirt.tar.gz into /tmp/kubevirt
-  unarchive:
-    src: "/tmp/kubevirt.tar.gz"
-    dest: "/tmp/"
-  when: cluster == "openshift"
+- name: Copy VM templates to /tmp
+  copy:
+    src: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
+    dest: "/tmp/{{ item }}.yaml"
+  with_items: "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+  when: "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length > 0 }}"
+
+- name: Download KubeVirt default VM templates
+  get_url:
+    url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster/{{ item }}.yaml"
+    dest: "/tmp/{{ item }}.yaml"
+  with_items:
+    - "{{ default_vm_templates }}"
+  when: cluster == "openshift" and "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}"
 
 - name: Create default VM templates in OpenShift Namespace
-  shell: "oc apply -f /tmp/kubevirt-{{ version }}/cluster/{{ item }}.yaml -n openshift"
+  shell: "oc apply -f /tmp/{{ item }}.yaml -n openshift"
   with_items:
     - "{{ default_vm_templates }}"
   when: cluster == "openshift"
