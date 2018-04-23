@@ -79,7 +79,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: glusterfile-provisioner
-  namespace: "{{ namespace }}"
+  namespace: "{{ glusterfs_namespace }}"
 ---
 kind: Deployment
 apiVersion: v1
