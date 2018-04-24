@@ -27,7 +27,7 @@
 
 - name: Check for kubevirt.yml template in {{ kubevirt_template_dir }}
   stat:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yml"
+    path: "{{ kubevirt_template_dir }}/kubevirt.yml.j2"
   register: byo_template
 
 - name: Download KubeVirt Template
@@ -45,7 +45,7 @@
 
 - name: Render BYO template
   template:
-    src: "{{ kubevirt_template_dir }}/kubevirt.yml"
+    src: "{{ kubevirt_template_dir }}/kubevirt.yml.j2"
     dest: /tmp/kubevirt.yml
   when: byo_template.stat.exists == True
 

@@ -10,3 +10,6 @@ default_vm_templates:
   - "vm-template-fedora"
   - "vm-template-windows2012r2"
   - "vm-template-rhel7"
+virt_api_image_version: "{{ version }}"
+virt_controller_version: "{{ version }}"
+virt_handler_version: "{{ version }}"
