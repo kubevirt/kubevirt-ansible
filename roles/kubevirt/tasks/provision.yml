@@ -34,6 +34,7 @@
   get_url:
     url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml"
     dest: "/tmp/kubevirt.yml"
+    force: yes
   when: byo_template.stat.exists == False
 
 - name: Render KubeVirt Yml
@@ -70,6 +71,7 @@
   get_url:
     url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster/{{ item }}.yaml"
     dest: "/tmp/{{ item }}.yaml"
+    force: yes
   with_items:
     - "{{ default_vm_templates }}"
   when: cluster == "openshift" and "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}"
