@@ -1,0 +1,8 @@
+package: kubevirt.io/kubevirt-ansible
+import:
+- package: github.com/onsi/ginkgo
+  version: v1.4.0
+- package: github.com/onsi/gomega
+  version: v1.3.0
+- package: github.com/kubevirt/kubevirt
+  version: v0.4.1

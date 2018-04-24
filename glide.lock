@@ -1,0 +1,72 @@
+hash: 8d8e3c7df6edc19196e23e1dd535e5646240baa70f42c6c1c4d0592f41978674
+updated: 2018-04-24T17:10:57.611261077+03:00
+imports:
+- name: github.com/kubevirt/kubevirt
+  version: 2e8a9d6676355d94ef5ee2195ac53f40e8654195
+- name: github.com/onsi/ginkgo
+  version: 9eda700730cba42af70d53180f9dcce9266bc2bc
+  subpackages:
+  - config
+  - internal/codelocation
+  - internal/containernode
+  - internal/failer
+  - internal/leafnodes
+  - internal/remote
+  - internal/spec
+  - internal/spec_iterator
+  - internal/specrunner
+  - internal/suite
+  - internal/testingtproxy
+  - internal/writer
+  - reporters
+  - reporters/stenographer
+  - reporters/stenographer/support/go-colorable
+  - reporters/stenographer/support/go-isatty
+  - types
+- name: github.com/onsi/gomega
+  version: 003f63b7f4cff3fc95357005358af2de0f5fe152
+  subpackages:
+  - format
+  - internal/assertion
+  - internal/asyncassertion
+  - internal/oraclematcher
+  - internal/testingtsupport
+  - matchers
+  - matchers/support/goraph/bipartitegraph
+  - matchers/support/goraph/edge
+  - matchers/support/goraph/node
+  - matchers/support/goraph/util
+  - types
+testImports:
+- name: golang.org/x/net
+  version: 5f9ae10d9af5b1c89ae6904293b14b064d4ada23
+  subpackages:
+  - html
+  - html/atom
+  - html/charset
+- name: golang.org/x/sys
+  version: 79b0c6888797020a994db17c8510466c72fe75d9
+  subpackages:
+  - unix
+- name: golang.org/x/text
+  version: 7922cc490dd5a7dbaa7fd5d6196b49db59ac042f
+  subpackages:
+  - encoding
+  - encoding/charmap
+  - encoding/htmlindex
+  - encoding/internal
+  - encoding/internal/identifier
+  - encoding/japanese
+  - encoding/korean
+  - encoding/simplifiedchinese
+  - encoding/traditionalchinese
+  - encoding/unicode
+  - internal/language
+  - internal/language/compact
+  - internal/tag
+  - internal/utf8internal
+  - language
+  - runes
+  - transform
+- name: gopkg.in/yaml.v2
+  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
