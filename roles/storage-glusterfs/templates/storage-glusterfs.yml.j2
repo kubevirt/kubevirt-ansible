@@ -30,7 +30,7 @@ parameters:
 {% if external_provisioner %}
 ---
 kind: ClusterRole
-apiVersion: v1
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: glusterfile-provisioner-runner
   labels:
@@ -70,7 +70,7 @@ metadata:
     glusterfs: file-provisioner-sa
     glusterfile: provisioner-sa
 ---
-apiVersion: v1
+apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: glusterfile-provisioner
@@ -79,7 +79,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: glusterfile-provisioner
-  namespace: "{{ namespace }}"
+  namespace: "{{ glusterfs_namespace }}"
 ---
 kind: Deployment
 apiVersion: v1
