@@ -75,7 +75,9 @@ kind: ClusterRoleBinding
 metadata:
   name: glusterfile-provisioner
 roleRef:
+  kind: ClusterRole
   name: glusterfile-provisioner-runner
+  apiGroup: rbac.authorization.k8s.io
 subjects:
 - kind: ServiceAccount
   name: glusterfile-provisioner
