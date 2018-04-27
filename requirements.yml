@@ -12,7 +12,6 @@
   name: openstack-ansible-plugins
 
 - src: https://github.com/tripleo-apb/ansible-role-k8s-tripleo
-<<<<<<< HEAD
   version: v0.1
   name: ansible-role-k8s-tripleo
 
@@ -22,15 +21,4 @@
 
 - src: https://github.com/tripleo-apb/ansible-role-k8s-cinder
   version: v0.1
-=======
-  version: v0.1 
-  name: ansible-role-k8s-tripleo
-
-- src: https://github.com/tripleo-apb/ansible-role-k8s-rabbitmq
-  version: v0.1 
-  name: ansible-role-k8s-rabbitmq
-
-- src: https://github.com/tripleo-apb/ansible-role-k8s-cinder
-  version: v0.1 
->>>>>>> cace9f8... Remove ansible-role-k8s-mariadb in requirements.yml.
   name: ansible-role-k8s-cinder
