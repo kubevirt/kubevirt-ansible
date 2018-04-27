@@ -29,30 +29,25 @@ for storage.
 | enabled | false  | <ul><li>true</li><li>false</li></ul>| The var to enable or disable this backend. |
 | cinder_rbd_pool_name | cinder_volumes  | | |
 | cinder_rbd_user_name | cinder  | | |
-| client_key | | | |
-| ceph_authentication_type | cephx  | | |
+| client_key | | | The client key is a string found in |
 | ceph_mon_host | | | The IP address{es) of Ceph Monitors. Multiple IPs are specified as a comma-separated list |
+
+Refer to [ceph](./docs/ceph.md) document to create the cinder pool and user.
 
 #### Xtremio
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
 | enabled | false  | <ul><li>true</li><li>false</li></ul>| The var to enable or disable this backend. |
-| max_over_subscription_ratio | 40  | | |
-| use_multipath_for_image_xfer | | | |
-| volume_backend_name | xtremio | | |
 | san_ip | | | |
 | san_login | | | |
 | san_password | | | |
-| image_volume_cache_enabled | | | |
 
 #### NetApp
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
 | enabled | false  | <ul><li>true</li><li>false</li></ul>| The var to enable or disable this backend. |
-| netapp_storage_family | ontap_cluster  | | |
-| netapp_storage_protocol: | | | |
-| nfs_shares_config | | | |
-| nfs_shares | | | |
+| netapp_storage_family | ontap_cluster  | <ul><li>ontap_7mode</li><li>ontap_cluster</li></ul> | |
+| netapp_storage_protocol: | nfs | <ul><li>iscsi</li><li>fc</li><li>nfs</li></ul>  | |
 | netapp_server_hostname | | | |
 | netapp_server_port | | | |
 | netapp_login | | | |

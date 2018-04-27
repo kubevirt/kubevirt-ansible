@@ -4,8 +4,6 @@ namespace: openstack
 service_account: cinder
 privileged_service_account: cinder-privileged
 
-storage_cinder_template_dir: "{{ role_path }}/templates"
-
 mariadb_root_user: root
 mariadb_root_password: weakpassword
 
@@ -23,14 +21,11 @@ cinder_config:
 
 role_name: cinder
 
-infra_node_label: mariadb
+infra_node_label: kubevirt.io/storage-cinder-mariadb-host
 
 # Backends
 # Array to remember enabled backends. 
 enabled_backends: []
-
-iscsi:
-    enabled: false
 
 #
 # Xtremio
@@ -40,19 +35,19 @@ xtremio:
     use_multipath_for_image_xfer: true
     volume_backend_name: xtremio
     volume_driver: cinder.volume.drivers.emc.xtremio.XtremIOISCSIDriver
+    image_volume_cache_enabled: false
     san_ip: 
     xtremio_cluster_name:
     san_login: 
     san_password:
-    image_volume_cache_enabled:
 #
 # Ceph
 ceph:
     enabled: false
     cinder_rbd_pool_name: cinder_volumes
     cinder_rbd_user_name: cinder
-    client_key: 
     ceph_authentication_type: cephx
+    client_key: 
     ceph_mon_host: 
 
 # Netapp
@@ -61,8 +56,6 @@ netapp:
     volume_driver: cinder.volume.drivers.netapp.common.NetAppDriver
     netapp_storage_family: ontap_cluster
     netapp_storage_protocol: 
-    nfs_shares_config: /etc/cinder/shares.conf 
-    nfs_shares: 
     netapp_server_hostname:
     netapp_server_port: 
     netapp_login: 
