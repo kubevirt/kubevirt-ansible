@@ -1,0 +1,56 @@
+---
+- name: Login As Super User
+  command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+  when: cluster=="openshift"
+        and admin_user is defined
+        and admin_password is defined
+
+- name: Check if namespace {{ namespace }} exists
+  shell: kubectl get ns | grep -w {{ namespace }} | awk '{ print $1 }'
+  register: ns
+
+- name: Create {{ namespace }} namespace
+  shell: kubectl create namespace {{ namespace }}
+  when: ns.stdout != namespace
+
+- name: Check if cinder Service Account exists
+  command: kubectl get serviceaccount {{service_account}} -n {{namespace}}
+  register: sa
+  failed_when: sa.rc > 1
+
+- name: Create Service Account
+  command: kubectl create serviceaccount {{service_account}} -n {{namespace}}
+  when: sa.stdout == ""
+
+- name: Grant anyuid access to {{service_account}} SA if using OCP
+  command: oc adm policy add-scc-to-user anyuid -z {{service_account}} -n {{namespace}}
+  when: cluster == "openshift"
+
+- name: Check for {{privileged_service_account}} serviceaccount
+  command: kubectl get serviceaccount {{service_account}} -n {{ namespace }}
+  register: psa
+  failed_when: psa.rc > 1
+
+- name: Create {{privileged_service_account}} serviceaccount
+  command: kubectl create serviceaccount {{privileged_service_account}} -n {{ namespace }}
+  when: psa.stdout == ""
+
+- name: Grant privileged access to {{privileged_service_account}} serviceaccount
+  command: oc adm policy add-scc-to-user privileged system:serviceaccount:{{ namespace }}:{{privileged_service_account}}
+  when: cluster=="openshift"
+
+- name: Select a host for Mariadb hostpath
+  command: kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="Hostname")].address}'
+  register: node_hostname
+
+- name: Label node to host Mariadb
+  command: kubectl label node "{{ node_hostname.stdout }}" "{{infra_node_label}}"=true --overwrite=true
+
+- name: Include  Rabbitmq
+  include_role:
+    name: ansible-role-k8s-rabbitmq
+
+- name: Include Cinder
+  include_role:
+    name: ansible-role-k8s-cinder
+
