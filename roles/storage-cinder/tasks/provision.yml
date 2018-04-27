@@ -46,9 +46,13 @@
 - name: Label node to host Mariadb
   command: kubectl label node "{{ node_hostname.stdout }}" "{{infra_node_label}}"=true --overwrite=true
 
-- name: Include MariaDB
-  include_role:
-    name: ansible-role-k8s-mariadb
+- name: Render Mariadb
+  template:
+    src: "{{ storage_cinder_template_dir }}/mariadb.yml.j2"
+    dest: /tmp/storage-cinder-mariadb.yml
+
+- name: Create storage-cinder-mariadb deployment
+  command: kubectl apply -f /tmp/storage-cinder-mariadb.yml
 
 - name: Include Rabbitmq
   include_role:

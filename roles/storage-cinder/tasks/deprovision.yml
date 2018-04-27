@@ -3,24 +3,17 @@
   command: kubectl delete serviceaccount {{service_account}} -n {{namespace}}
   when: sa.stdout == ""
 
-- name: Revoke anyuid access to {{service_account}} SA if using OCP
-  command: oc adm policy remove-scc-to-user anyuid -z {{service_account}} -n {{namespace}}
-  when: cluster == "openshift"
-
 - name: Delete {{privileged_service_account}} serviceaccount
   command: kubectl create serviceaccount {{privileged_service_account}} -n {{ namespace }}
   when: psa.stdout == ""
 
-- name: Revoke privileged access to {{privileged_service_account}} serviceaccount
-  command: oc adm policy remove-scc-to-user privileged system:serviceaccount:{{ namespace }}:{{privileged_service_account}}
-  when: cluster=="openshift"
-
 - name: Select a host for Mariadb hostpath
-  command: kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="Hostname")].address}'
-  register: node_hostname
+  command: kubectl get nodes --selector="{{infra_node_label}}"=true
+  register: infra_node_hostnames
 
-- name: Label node to host Mariadb
-  command: kubectl label node "{{ node_hostname.stdout }}" "{{infra_node_label}}"-
+- name: Remove label on the nodes that host Mariadb
+  command: kubectl label node "{{ item }}" "{{infra_node_label}}"-
+  with_items: "{{ infra_node_hostnames.stdout.split() }}"
 
 - name: Include  Rabbitmq
   include_role:

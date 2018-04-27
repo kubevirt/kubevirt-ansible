@@ -4,6 +4,8 @@ namespace: openstack
 service_account: cinder
 privileged_service_account: cinder-privileged
 
+storage_cinder_template_dir: "{{ role_path }}/templates"
+
 mariadb_root_user: root
 mariadb_root_password: weakpassword
 
