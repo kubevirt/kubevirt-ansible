@@ -3,6 +3,6 @@ deps-update:
 	hack/dep-prune.sh
 
 test:
-	cd tests/ && go test -v ./...
+	cd tests/ && ../hack/functest.sh
 
 .PHONY: deps-update test
