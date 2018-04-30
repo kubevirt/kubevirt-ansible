@@ -1,0 +1,2 @@
+kubevirt_dir: "/root/go/src/kubevirt.io"
+kubeconfig_file: "/etc/origin/master/admin.kubeconfig"

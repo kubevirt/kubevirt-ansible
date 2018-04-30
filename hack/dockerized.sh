@@ -9,9 +9,6 @@ BUILDER=kubevirt-ansible
 
 TEMPFILE=".rsynctemp"
 
-# Start docker service
-systemctl start docker
-
 # Build the build container
 (cd ${DOCKER_DIR} && docker build . -q -t ${BUILDER})
 

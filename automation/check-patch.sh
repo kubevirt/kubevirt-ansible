@@ -151,9 +151,6 @@ main() {
         -e "${args[*]}" \
         playbooks/automation/check-patch.yml
 
-    # Get kubeconfig from OpenShift master
-    ansible -i "$inventory_file" -m fetch -a "flat=yes src=/etc/origin/master/admin.kubeconfig dest=${WORKSPACE}/" 'lago-master[0]'
-
     # Run integration tests
     make test
 
