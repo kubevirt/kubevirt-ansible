@@ -3,6 +3,7 @@ deps-update:
 	hack/dep-prune.sh
 
 test:
-	cd tests/ && ../hack/functest.sh
+	hack/dockerized.sh "hack/build-tests.sh"
+	hack/run-tests.sh
 
 .PHONY: deps-update test

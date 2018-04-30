@@ -1,5 +1,5 @@
-hash: 98fa86c943302643889eaa7a9f9e8be5ead7f916778e23db888ab7f320d5b48f
-updated: 2018-04-29T17:47:38.855667548+03:00
+hash: 563297636458e2f68f455063bbd7de89cb5455b842f91a84ae16c4d280bdee44
+updated: 2018-04-30T17:22:00.749333711+03:00
 imports:
 - name: github.com/onsi/ginkgo
   version: 11459a886d9cd66b319dac7ef1e917ee221372c9
@@ -37,7 +37,7 @@ imports:
   - types
 - name: kubevirt.io/kubevirt
   version: 04747283df41770829b41cc669c9b2c71b175892
-  repo: git@github.com:kubevirt/kubevirt
+  repo: https://github.com/kubevirt/kubevirt.git
   subpackages:
   - pkg/api/v1
   - pkg/controller
@@ -72,13 +72,13 @@ testImports:
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-openapi/jsonpointer
-  version: 46af16f9f7b149af66e5d1bd010e3574dc06de98
+  version: 3a0015ad55fa9873f41605d3e8f28cd279c32ab2
 - name: github.com/go-openapi/jsonreference
   version: 3fb327e6747da3043567ee86abd02bb6376b6be2
 - name: github.com/go-openapi/spec
-  version: 7abd5745472fff5eb3685386d5fb8bf38683154d
+  version: bcff419492eeeb01f76e77d2ebc714dc97b607f5
 - name: github.com/go-openapi/swag
-  version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
+  version: 811b1089cde9dad18d4d0c2d09fbdbf28dbd27a5
 - name: github.com/go-stack/stack
   version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
 - name: github.com/gogo/protobuf
@@ -356,6 +356,6 @@ testImports:
   - util/integer
   - util/workqueue
 - name: k8s.io/kube-openapi
-  version: 39a7bf85c140f972372c2a0d1ee40adbf0c8bfe1
+  version: 3a0c53868c9444e4224c3dd5dc2caa9b5107ff7b
   subpackages:
   - pkg/common

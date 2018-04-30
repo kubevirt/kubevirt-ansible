@@ -142,7 +142,7 @@ main() {
         "ansible_modules_version=$ansible_modules_version"
         "kubevirt_openshift_version=$kubevirt_openshift_version"
         "openshift_playbook_path=$openshift_playbook_path"
-	    "storage_role=$storage_role"
+	"storage_role=$storage_role"
     )
     ansible-playbook \
         -u root \
@@ -151,7 +151,10 @@ main() {
         -e "${args[*]}" \
         playbooks/automation/check-patch.yml
 
-    # Run functional tests
+    # Get kubeconfig from OpenShift master
+    ansible -i "$inventory_file" -m fetch -a "flat=yes src=/etc/origin/master/admin.kubeconfig dest=${WORKSPACE}/" 'lago-master[0]'
+
+    # Run integration tests
     make test
 
     # Deprovision resources
