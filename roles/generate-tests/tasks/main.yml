@@ -17,8 +17,3 @@
     src: "{{ kubevirt_dir }}/kubevirt-ansible/_out/tests/tests.test"
     dest: "{{ playbook_dir }}/../_out/tests/"
     flat: yes
-- name: copying kubeconfig from master to slave
-  fetch:
-    src: "{{ kubeconfig_file }}"
-    dest: "{{ playbook_dir }}/../admin.kubeconfig"
-    flat: yes

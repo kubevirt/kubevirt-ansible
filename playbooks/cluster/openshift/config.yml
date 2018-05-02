@@ -91,4 +91,6 @@
         kubeconfig="/etc/origin/master/admin.kubeconfig"
         oc login -u system:admin --config=$kubeconfig
         oc get user "$user_name" --config=$kubeconfig || oc create user "$user_name" --config=$kubeconfig
+        oc get identity allow_all_auth:$user_name || oc create identity allow_all_auth:$user_name
+        oc get useridentitymapping allow_all_auth:$user_name || oc create useridentitymapping allow_all_auth:$user_name $user_name
         oc adm policy add-cluster-role-to-user cluster-admin "$user_name" --config=$kubeconfig

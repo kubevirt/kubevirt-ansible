@@ -4,8 +4,8 @@ set -e
 
 source hack/common.sh
 
-prefix=docker.io/kubevirt
+prefix=kubevirt
 tag=v0.5.0-alpha.1
-kubeconfig=admin.kubeconfig
+kubeconfig=~/.kube/config
 
 ${TESTS_OUT_DIR}/tests.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -test.timeout 60m
