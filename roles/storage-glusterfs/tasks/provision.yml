@@ -17,8 +17,32 @@
 
 - set_fact:
     heketi_url: "{{ route_cmd.stdout }}"
-  when: route_cmd is defined
+  when:
+    - cluster == 'openshift'
+    - route_cmd is defined
 
+- name: Determine the heketi route for k8s, IP
+  command: "kubectl get pod -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}pod -o jsonpath='{.items[0].status.podIP}'"
+  register: heketi_pod_ip
+  when:
+    - cluster == 'k8s'
+    - heketi_url is not defined
+
+- name: Determine the heketi route for k8s, port
+  command: "kubectl get pod -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}pod -o jsonpath='{.items[0].spec.containers[0].ports[0].containerPort}'"
+  register: heketi_pod_port
+  when:
+    - cluster == 'k8s'
+    - heketi_url is not defined
+
+- set_fact:
+    heketi_url: "http://{{ heketi_pod_ip.stdout }}:{{ heketi_pod_port.stdout }}"
+  when:
+    - cluster == 'k8s'
+    - heketi_url is not defined
+    - heketi_pod_ip is defined
+    - heketi_pod_port is defined
+    
 - name: Get heketi admin key
   shell: "kubectl get pod -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}pod -o jsonpath='{.items[0].spec.containers[0].env[?(@.name==\"HEKETI_ADMIN_KEY\")].value}' | base64 -"
   register: key_cmd
