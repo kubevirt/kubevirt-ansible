@@ -27,28 +27,55 @@
 
 - name: Check for kubevirt.yml template in {{ kubevirt_template_dir }}
   stat:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yml.j2"
+    path: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
   register: byo_template
 
 - name: Download KubeVirt Template
   get_url:
-    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml"
-    dest: "/tmp/kubevirt.yml"
+    url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/manifests/release/kubevirt.yaml.in"
+    dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.in"
   when: byo_template.stat.exists == False
 
-- name: Render KubeVirt Yml
+- name: Jinja2ify KubeVirt Go Manifest
   replace:
-    path: "/tmp/kubevirt.yml"
-    regexp: "namespace: kube-system"
-    replace: "namespace: {{ namespace }}"
+    path: "{{ kubevirt_template_dir }}/kubevirt.yaml.in"
+    regexp: "{% raw %}{{\\.(\\w+)}}{% endraw %}"
+    replace: "{% raw %}{{ \\1 }}{% endraw %}"
   when: byo_template.stat.exists == False
 
-- name: Render BYO template
-  template:
-    src: "{{ kubevirt_template_dir }}/kubevirt.yml.j2"
-    dest: /tmp/kubevirt.yml
-  when: byo_template.stat.exists == True
+- name: Get List of Generated Manifests
+  shell: awk '/GeneratedManifests/ {print $3}' "{{ kubevirt_template_dir }}/kubevirt.yaml.in" | sed -e 's/\"\|}//g'
+  register: go_manifests
+  when: byo_template.stat.exists == False
 
+- name: Download Generated Manifests
+  get_url:
+    url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/manifests/generated/{{ item }}"
+    dest: "{{ kubevirt_template_dir }}/{{ item }}.in"
+  with_items:
+  - "{{ go_manifests.stdout_lines }}"
+  when: byo_template.stat.exists == False
+
+- name: Remove GenearatedManifests References in KubeVirt Go Manifest
+  lineinfile:
+    path: "{{ kubevirt_template_dir }}/kubevirt.yaml.in"
+    regexp: "{% raw %}{{index.*{% endraw %}"
+    state: absent
+  when: byo_template.stat.exists == False
+
+- name: Assemble Complete jinaj2 Manifest template
+  assemble:
+    src: "{{ kubevirt_template_dir }}"
+    dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+    regexp: ".in$"
+  when: byo_template.stat.exists == False
+
+- name: Render Manifest Template
+  template:
+    src: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+    dest: /tmp/kubevirt.yml
+
+- fail:
 - name: Create KubeVirt Resources
   command: kubectl apply -f /tmp/kubevirt.yml
 

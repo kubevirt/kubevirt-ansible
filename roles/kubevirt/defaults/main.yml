@@ -13,3 +13,6 @@ default_vm_templates:
 virt_api_image_version: "{{ version }}"
 virt_controller_version: "{{ version }}"
 virt_handler_version: "{{ version }}"
+DockerPrefix: "{{ docker_prefix }}"
+Namespace: "{{ namespace }}"
+DockerTag: "{{ version }}"
