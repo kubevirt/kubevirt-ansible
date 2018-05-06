@@ -152,7 +152,7 @@ main() {
         playbooks/automation/check-patch.yml
 
     # Run integration tests
-    make test
+    http_proxy="" make test
 
     # Deprovision resources
     ansible-playbook \
