@@ -3,4 +3,5 @@
   when: std_ci_yum_repos is defined
 - import_playbook: "{{ playbook_dir }}/../cluster/{{ cluster | default('openshift') }}/config.yml"
 - import_playbook: "{{ playbook_dir }}/../cluster-login.yml"
+- import_playbook: "{{ playbook_dir }}/../configure-dns-with-router-ip.yml"
 - import_playbook: "{{ playbook_dir }}/../kubevirt.yml"
