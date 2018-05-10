@@ -25,20 +25,20 @@
   command: "kubectl get pod -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}pod -o jsonpath='{.items[0].status.podIP}'"
   register: heketi_pod_ip
   when:
-    - cluster == 'k8s'
+    - cluster == 'kubernetes'
     - heketi_url is not defined
 
 - name: Determine the heketi route for k8s, port
   command: "kubectl get pod -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}pod -o jsonpath='{.items[0].spec.containers[0].ports[0].containerPort}'"
   register: heketi_pod_port
   when:
-    - cluster == 'k8s'
+    - cluster == 'kubernetes'
     - heketi_url is not defined
 
 - set_fact:
     heketi_url: "http://{{ heketi_pod_ip.stdout }}:{{ heketi_pod_port.stdout }}"
   when:
-    - cluster == 'k8s'
+    - cluster == 'kubernetes'
     - heketi_url is not defined
     - heketi_pod_ip is defined
     - heketi_pod_port is defined
