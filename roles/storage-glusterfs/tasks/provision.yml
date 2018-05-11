@@ -36,7 +36,7 @@
     - heketi_url is not defined
 
 - set_fact:
-    heketi_url: "http://{{ heketi_pod_ip.stdout }}:{{ heketi_pod_port.stdout }}"
+    heketi_url: "{{ heketi_pod_ip.stdout }}:{{ heketi_pod_port.stdout }}"
   when:
     - cluster == 'kubernetes'
     - heketi_url is not defined
