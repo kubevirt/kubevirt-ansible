@@ -24,6 +24,9 @@ openshift_master_admission_plugin_config={"ValidatingAdmissionWebhook":{"configu
 # Docker
 container_runtime_docker_storage_type=overlay2
 
+# OC 3.10 node and master labeling
+openshift_node_groups=[{'name': 'node-config-infra-compute', 'labels': ['node-role.kubernetes.io/infra=true', 'node-role.kubernetes.io/compute=true']}, {'name': 'node-config-master', 'labels': ['node-role.kubernetes.io/master=true']}]
+
 # BEGIN ANSIBLE BROKER CONFIG
 openshift_hosted_etcd_storage_kind=nfs
 openshift_hosted_etcd_storage_nfs_options="*(rw,root_squash,sync,no_wdelay)"
