@@ -16,6 +16,9 @@ template_service_broker_install=false
 openshift_use_manageiq=false
 openshift_install_examples=false
 
+# Docker
+container_runtime_docker_storage_type=overlay2
+
 # BEGIN ANSIBLE BROKER CONFIG
 openshift_hosted_etcd_storage_kind=nfs
 openshift_hosted_etcd_storage_nfs_options="*(rw,root_squash,sync,no_wdelay)"

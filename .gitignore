@@ -2,3 +2,4 @@
 openshift-ansible
 *.retry
 *.pyc
+**/LagoInitFile.yml
