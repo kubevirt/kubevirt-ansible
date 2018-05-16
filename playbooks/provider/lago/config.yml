@@ -63,7 +63,7 @@
 
     - name: Set docker storage disk path
       set_fact:
-        docker_dev: "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_2"
+        container_runtime_docker_storage_setup_device: "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_2"
         gluster_disk_idx: "{{ '4' if inventory_hostname == groups['masters'][0] else '3' }}"
 
     - name: Set gluster disk path
