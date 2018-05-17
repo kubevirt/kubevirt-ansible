@@ -2,6 +2,6 @@ namespace: "kube-system"
 cluster: "openshift"
 cinder_provisioner_repo: "quay.io/aglitke"
 cinder_provisioner_release: "sprint4"
-action: "provision"
+apb_action: "provision"
 
 storage_demo_template_dir: "{{ role_path }}/templates"
