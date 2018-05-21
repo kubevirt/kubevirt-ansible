@@ -6,7 +6,7 @@ etcd
 [OSEv3:vars]
 openshift_deployment_type=origin
 containerized=true
-openshift_image_tag=v3.7.0
+openshift_image_tag=v3.9.0
 openshift_clock_enabled=true
 ansible_ssh_user=root
 openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true', 'challenge': 'true', 'kind': 'AllowAllPasswordIdentityProvider'}]
@@ -15,6 +15,9 @@ openshift_enable_excluders=false
 template_service_broker_install=false
 openshift_use_manageiq=false
 openshift_install_examples=false
+
+# Docker
+container_runtime_docker_storage_type=overlay2
 
 # BEGIN ANSIBLE BROKER CONFIG
 openshift_hosted_etcd_storage_kind=nfs

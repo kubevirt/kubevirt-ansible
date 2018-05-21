@@ -14,25 +14,37 @@
     - name: Set prefix
       set_fact:
         prefix: "{{ prefix | default('.lago') }}"
+        lago_init_file: "{{ playbook_dir }}/LagoInitFile.yml"
+
+    - name: Render LagoInitFile
+      template:
+        src: "{{ lago_init_file }}.j2"
+        dest: "{{ lago_init_file }}"
+
     - name: Init Lago env
       command:
-        lago init "{{ prefix }}" "{{ playbook_dir }}/LagoInitFile{{ '-glusterfs' if storage_role == 'storage-glusterfs' else '' }}.yml"
+        lago init "{{ prefix }}" "{{ lago_init_file }}"
       args:
         creates: "{{ prefix }}/default/uuid"
+
     - name: Remove user defined settings from inventory
       blockinfile:
         path: "{{ inventory_file }}"
         marker: "# {mark} CUSTOM SETTINGS"
         state: absent
+
     - name: Create Ansible Hosts file from Lago env
       shell: lago --workdir "{{ prefix }}" ansible_hosts >> "{{ inventory_file }}"
+
     - name: Normalize inventory file
       replace:
         path: "{{ inventory_file }}"
         regexp: 'groups=(.*)'
         replace: '\1'
+
     - name: Refresh inventory
       meta: refresh_inventory
+
     - name: Start Lago env
       command: lago --workdir "{{ prefix }}" start
 
@@ -49,22 +61,14 @@
       delegate_to: localhost
       connection: local
 
-    - name: Mount docker_lib
-      shell: |
-        disk="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_3"
-        mount_path="/var/lib/docker"
-        mkdir -p "$mount_path"
-        mkfs.ext4 -F "$disk"
-        echo -e "${disk}\t${mount_path}\text4\tdefaults\t0 0" >> /etc/fstab
-        mount "$disk" "$mount_path"
-
     - name: Set docker storage disk path
       set_fact:
-        docker_dev: "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_2"
+        container_runtime_docker_storage_setup_device: "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_2"
+        gluster_disk_idx: "{{ '4' if inventory_hostname == groups['masters'][0] else '3' }}"
 
     - name: Set gluster disk path
       set_fact:
-        glusterfs_devices: [/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_4]
+        glusterfs_devices: ["/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_{{ gluster_disk_idx }}"]
       when:
         - storage_role is defined
         - storage_role == 'storage-glusterfs'
@@ -74,7 +78,7 @@
   tasks:
     - name: Mount nfs storage
       shell: |
-        disk="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_5"
+        disk="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_3"
         mount_path="/opt"
         mkdir -p "$mount_path"
         mkfs.ext4 -F "$disk"
