@@ -13,12 +13,16 @@ vm-common-settings: &vm-common-settings
 
 host-settings: &nodes-settings
     <<: *vm-common-settings
+{% if storage_role|default('') == 'storage-glusterfs' %}
+    groups: [nodes, glusterfs]
+{% else %}
     groups: [nodes]
+{% endif %}
     memory: 2047
     nics:
       - net: lago-management-network
     disks:
-      - template_name: el7.4-base
+      - template_name: el7.5-base
         type: template
         name: root
         dev: sda
@@ -29,49 +33,52 @@ host-settings: &nodes-settings
         name: docker_storage
         dev: sdb
         format: raw
-      - comment: /var/lib/docker
-        size: 10G
-        type: empty
-        name: docker_lib
-        dev: sdc
-        format: raw
-domains:
-  lago-master:
-    <<: *vm-common-settings
-    groups: [masters, nodes, etcd, nfs]
-    memory: 4096
-    nics:
-      - net: lago-management-network
-    disks:
-      - template_name: el7.4-base
-        type: template
-        name: root
-        dev: sda
-        format: qcow2
-      - comment: Docker Storage
-        size: 10G
-        type: empty
-        name: docker_storage
-        dev: sdb
-        format: raw
-      - comment: /var/lib/docker
-        size: 10G
-        type: empty
-        name: docker_lib
-        dev: sdc
-        format: raw
+      {% if storage_role|default('') == 'storage-glusterfs' -%}
       - comment: Gluster Storage
         size: 50G
         type: empty
         name: gluster_storage
-        dev: sdd
+        dev: sdc
         format: qcow2
+      {%- endif %}
+
+domains:
+  lago-master:
+    <<: *vm-common-settings
+{% if storage_role|default('') == 'storage-glusterfs' %}
+    groups: [masters, nodes, etcd, nfs, glusterfs]
+{% else %}
+    groups: [masters, nodes, etcd, nfs]
+{% endif %}
+    memory: 4096
+    nics:
+      - net: lago-management-network
+    disks:
+      - template_name: el7.5-base
+        type: template
+        name: root
+        dev: sda
+        format: qcow2
+      - comment: Docker Storage
+        size: 10G
+        type: empty
+        name: docker_storage
+        dev: sdb
+        format: raw
       - comment: Main NFS device
         size: 101G
         type: empty
         name: nfs
         dev: sde
         format: raw
+      {% if storage_role|default('') == 'storage-glusterfs' -%}
+      - comment: Gluster Storage
+        size: 50G
+        type: empty
+        name: gluster_storage
+        dev: sdd
+        format: qcow2
+      {%- endif %}
 
   lago-node0:
     <<: *nodes-settings

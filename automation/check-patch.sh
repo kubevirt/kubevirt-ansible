@@ -156,7 +156,7 @@ main() {
         -u root \
         -i "$inventory_file" \
         -v \
-        -e "action=deprovision" \
+        -e "apb_action=deprovision" \
         playbooks/automation/deprovision.yml
 }
 

@@ -10,4 +10,4 @@ iptables.
 ### Role Variables
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-|action|provision|<ul><li>provision</li><li>deprovision</li></ul> |Action to perform.|
+|apb_action|provision|<ul><li>provision</li><li>deprovision</li></ul> |Action to perform.|
