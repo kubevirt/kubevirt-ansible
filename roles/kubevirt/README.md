@@ -9,7 +9,7 @@ Deploy KubeVirt resources onto a cluster.
 |admin_password| |_optional_|Password for **admin_user**.|
 |cluster|openshift |<ul><li>openshift</li><li>kubernetes</li></ul>|Cluster type.|
 |namespace|kube-system | |Namespace to create resources.|
-|action|provision| <ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
+|apb_action|provision| <ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
 |release_manifest_url|https://github.com/kubevirt/kubevirt/releases/download|||
 |kubevirt_template_dir|./templates||Location of the deployment template file.|
 |docker_prefix| kubevirt | |Container image organization.|
