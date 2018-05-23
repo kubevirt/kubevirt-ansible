@@ -1,3 +1,34 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: cdi-sa
+  namespace: {{ cdi_namespace }}
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cdi
+rules:
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: cdi-sa
+roleRef:
+  kind: ClusterRole
+  name: cdi
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: cdi-sa
+    namespace: {{ cdi_namespace }}
+---
 apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
@@ -12,6 +43,7 @@ spec:
       labels:
         app: cdi-controller
     spec:
+      serviceAccountName: cdi-sa
       containers:
       - name: cdi-controller
         image: {{ repo_tag }}/import-controller:{{ release_tag }}
