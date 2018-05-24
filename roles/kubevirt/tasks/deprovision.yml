@@ -5,6 +5,24 @@
         and admin_user is defined
         and admin_password is defined
 
+- name: Download KubeVirt source
+  get_url:
+    url: "https://github.com/kubevirt/kubevirt/archive/v{{ version }}.tar.gz"
+    dest: "/tmp/kubevirt.tar.gz"
+  when: cluster == "openshift"
+
+- name: Extract /tmp/kubevirt.tar.gz into /tmp/kubevirt
+  unarchive:
+    src: "/tmp/kubevirt.tar.gz"
+    dest: "/tmp/"
+  when: cluster == "openshift"
+
+- name: Delete default VM templates in OpenShift Namespace
+  shell: "oc delete -f /tmp/kubevirt-{{ version }}/cluster/{{ item }}.yaml -n openshift"
+  with_items:
+    - "{{ default_vm_templates }}"
+  when: cluster == "openshift"
+
 - name: Check for kubevirt.yml template in {{ kubevirt_template_dir }}
   stat:
     path: "{{ kubevirt_template_dir }}/kubevirt.yml"
@@ -25,13 +43,6 @@
   get_url:
     url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml"
     dest: "/tmp/kubevirt.yml"
-  when: kubevirt_template.stat.exists == False
-
-- name: Render KubeVirt Yml
-  replace:
-    path: "/tmp/kubevirt.yml"
-    regexp: "namespace: kube-system"
-    replace: "namespace: {{ namespace }}"
   when: kubevirt_template.stat.exists == False
 
 - name: Delete KubeVirt Resources
