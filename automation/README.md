@@ -27,7 +27,7 @@ following steps (partial playbooks)
 * [deploy OpenShift](../README.md#cluster-configuration)
 * [install KubeVirt](../README.md#install-kubevirt-on-an-existing-cluster)
 
-This playbook is executed inside of CentOS 7.4 mock.
+This playbook is executed inside of CentOS 7.5 mock.
 There is additional software installed, please read
 [automation/check-patch.packages](./check-patch.packages) for complete list.
 
@@ -51,7 +51,7 @@ This configuration file is located in `playbooks/provider/lago` directory
 named [`LagoInitFile.yml`](../playbooks/provider/lago/LagoInitFile.yml),
 and it contains all details about testing environment.
 
-It will provision three virtual machines with CentOS 7.4
+It will provision three virtual machines with CentOS 7.5
 * 1x master node
 * 2x compute node
 

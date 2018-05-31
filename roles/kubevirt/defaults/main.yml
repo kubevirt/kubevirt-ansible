@@ -1,10 +1,11 @@
 namespace: "kube-system"
 docker_prefix: "kubevirt"
 cluster: "openshift"
-action: "provision"
+apb_action: "provision"
 release_manifest_url: "https://github.com/kubevirt/kubevirt/releases/download"
 kubevirt_template_dir: "{{ role_path }}/templates"
 version: 0.4.1
+offline_template_dir: "/opt/apb/kubevirt-templates"
 
 default_vm_templates:
   - "vm-template-fedora"

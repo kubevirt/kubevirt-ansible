@@ -7,7 +7,7 @@ This repository provides a collection of playbooks to
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
 
-**Tested on CentOS Linux release 7.4 (Core), OpenShift 3.9 and Ansible 2.4.2**
+**Tested on CentOS Linux release 7.5 (Core), OpenShift 3.9 and Ansible 2.4.2**
 
 ## Requirements
 
@@ -84,8 +84,9 @@ $ ansible-playbook -i inventory playbooks/cluster/kubernetes/config.yml
 ### OpenShift cluster
 
 Be sure that you have an **extra disk** attached to your machines
-for **docker storage** and modify [defaults values][docker-storage-setup-defaults]
-accordingly. In most of cases you need to set `docker_dev` variable
+for **docker storage** and modify [defaults values][container_runtime-defaults]
+accordingly. The docker storage is installed using [container_runtime] role from openshift-ansible.
+In most of cases you need to set `container_runtime_docker_storage_setup_device` variable
 to match the name of your extra disk for docker storage.
 Please follow [docker-storage-setup] documentation for more details.
 
@@ -146,7 +147,7 @@ create the StorageClass.
 
 **Cinder**
 
-
+[container_runtime]: https://github.com/openshift/openshift-ansible/tree/master/roles/container_runtime
 [docker-storage-setup]: https://docs.openshift.org/latest/install_config/install/host_preparation.html#configuring-docker-storage
-[docker-storage-setup-defaults]: https://github.com/openshift/openshift-ansible-contrib/blob/master/roles/docker-storage-setup/defaults/main.yaml
+[container_runtime-defaults]: https://github.com/openshift/openshift-ansible/blob/master/roles/container_runtime/defaults/main.yml
 [openshift-ansible-project]: https://github.com/openshift/openshift-ansible

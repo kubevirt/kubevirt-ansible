@@ -1,0 +1,4 @@
+---
+- hosts: masters[0]
+  roles:
+    - role: generate-tests
