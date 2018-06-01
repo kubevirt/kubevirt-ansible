@@ -11,3 +11,4 @@ default_vm_templates:
   - "vm-template-fedora"
   - "vm-template-windows2012r2"
   - "vm-template-rhel7"
+registry_url: "docker.io"
