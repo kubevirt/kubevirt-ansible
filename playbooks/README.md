@@ -134,7 +134,7 @@ Following example is executing top level playbook `playbooks/automation/check-pa
 $ ansible-playbook -i inventory -e@vars/all.yml playbooks/automation/check-patch.yml
 ```
 
-See [Lago parameters documentation](./playbooks/provider/lago/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
+See [Lago parameters documentation](../playbooks/provider/lago/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
 
 ### Storage
 
