@@ -19,6 +19,7 @@
     - kubevirt-privileged
     - kubevirt-controller
     - kubevirt-infra  # For KubeVirt v0.2.0
+    - kubevirt-apiserver
   when: cluster=="openshift"
 
 - name: Add Hostmount-anyuid Policy
