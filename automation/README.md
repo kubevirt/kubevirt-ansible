@@ -32,7 +32,7 @@ There is additional software installed, please read
 [automation/check-patch.packages](./check-patch.packages) for complete list.
 
 Parameters and usage of this playbook is described at
-[Deploy new Kubernetes or OpenShift cluster and KubeVirt with Lago](../README.md#deploy-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago).
+[Deploy new Kubernetes or OpenShift cluster and KubeVirt with Lago](../playbooks/README.md#deploy-a-new-kubernetes-or-openshift-cluster-and-kubevirt-with-lago).
 
 This is list of playbooks which are executed.
 * [playbooks/automation/check-patch.yml](../playbooks/automation/check-patch.yml)

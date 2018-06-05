@@ -28,23 +28,27 @@
         creates: "{{ prefix }}/default/uuid"
 
     - name: Remove user defined settings from inventory
+      register: remove_user_settings
       blockinfile:
         path: "{{ inventory_file }}"
         marker: "# {mark} CUSTOM SETTINGS"
         state: absent
 
-    - name: Create Ansible Hosts file from Lago env
-      shell: lago --workdir "{{ prefix }}" ansible_hosts >> "{{ inventory_file }}"
-
-    - name: Normalize inventory file
-      replace:
-        path: "{{ inventory_file }}"
-        regexp: 'groups=(.*)'
-        replace: '\1'
-
-    - name: Refresh inventory
-      meta: refresh_inventory
-
+    - name: Render inventory
+      when: remove_user_settings.changed
+      block:
+        - name: Create Ansible Hosts file from Lago env
+          shell: lago --workdir "{{ prefix }}" ansible_hosts >> "{{ inventory_file }}"
+ 
+        - name: Normalize inventory file
+          replace:
+            path: "{{ inventory_file }}"
+            regexp: 'groups=(.*)'
+            replace: '\1'
+ 
+        - name: Refresh inventory
+          meta: refresh_inventory
+ 
     - name: Start Lago env
       command: lago --workdir "{{ prefix }}" start
 
@@ -80,6 +84,7 @@
       shell: |
         disk="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_3"
         mount_path="/opt"
+        findmnt --source "$disk" --target "$mount_path" && exit 0
         mkdir -p "$mount_path"
         mkfs.ext4 -F "$disk"
         echo -e "${disk}\t${mount_path}\text4\tdefaults\t0 0" >> /etc/fstab

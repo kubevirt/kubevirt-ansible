@@ -151,6 +151,9 @@ main() {
         -e "${args[*]}" \
         playbooks/automation/check-patch.yml
 
+    # Run integration tests
+    http_proxy="" make test
+
     # Deprovision resources
     ansible-playbook \
         -u root \
