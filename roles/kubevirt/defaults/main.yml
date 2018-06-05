@@ -11,3 +11,8 @@ default_vm_templates:
   - "vm-template-fedora"
   - "vm-template-windows2012r2"
   - "vm-template-rhel7"
+kubevirt_privileged_policies:
+  - kubevirt-privileged
+  - kubevirt-controller
+  - kubevirt-infra  # For KubeVirt v0.2.0
+  - kubevirt-apiserver
