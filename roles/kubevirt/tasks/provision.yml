@@ -38,21 +38,23 @@
 
 - name: Download KubeVirt Template
   get_url:
-    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
+    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml"
     dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
   when: byo_template.stat.exists == False and offline_templates.stat.exists == False
+
+- debug: var=offline_templates
 
 - name: Copy offline templates to /tmp
   copy:
     src: "{{ offline_template_dir }}/v{{ version }}/kubevirt.yaml"
     dest: "/tmp/kubevirt.yaml"
-  when: offline_templates.stat.exists == True
+  when: offline_templates.changed and offline_templates.stat.exists == True
 
 - name: Render KubeVirt Yaml
   template:
     src: "kubevirt.yaml.j2"
     dest: "/tmp/kubevirt.yaml"
-  when: offline_templates.stat.exists == False
+  when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
 
 - name: Create KubeVirt Resources
   command: kubectl apply -f /tmp/kubevirt.yaml
