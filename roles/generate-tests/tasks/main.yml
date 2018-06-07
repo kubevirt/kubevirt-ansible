@@ -1,19 +1,5 @@
 ---
-- name: create remote kubevirt-ansible directory
-  file:
-    path: "{{ kubevirt_dir }}"
-    state: directory
-    mode: 0755
-- name: copy repository to master
-  synchronize:
-    src: "{{ playbook_dir }}/../../kubevirt-ansible"
-    dest: "{{ kubevirt_dir }}"
 - name: generate tests
   make:
-    chdir: "{{ kubevirt_dir }}/kubevirt-ansible"
+    chdir: "{{ playbook_dir }}/.."
     target: generate-tests
-- name: copying tests from master to slave
-  fetch:
-    src: "{{ kubevirt_dir }}/kubevirt-ansible/_out/tests/tests.test"
-    dest: "{{ playbook_dir }}/../_out/tests/"
-    flat: yes
