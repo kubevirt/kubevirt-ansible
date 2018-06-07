@@ -48,7 +48,7 @@
       when:
         - ansible_distribution in ["CentOS","RedHat"]
 
-    - name: Install openshift_facts requirements
+    - name: Install openshift requirements
       package:
         name: "{{ item }}"
       with_items:
@@ -66,28 +66,6 @@
         - psacct
         - docker
         - NetworkManager
-
-    - name: Include openshift_facts module
-      import_role:
-        name: "{{ openshift_ansible_dir }}/roles/openshift_facts"
-
-    - name: Load openshift facts
-      openshift_facts:
-        role: common
-
-    - name: Set facts for docker-storage-setup
-      block:
-        - name: Detect Operating System from ostree_booted
-          stat:
-            path: /run/ostree-booted
-          register: ostree_booted
-        - name: initialize_facts set fact openshift_is_atomic
-          set_fact:
-            openshift: "{{ openshift | combine({'common':{'is_atomic': ostree_booted.stat.exists}}, recursive=True) }}"
-      when: "'is_atomic' not in openshift.common"
-
-  roles:
-    - "openshift-contrib/roles/docker-storage-setup"
 
   post_tasks:
     - name: Enable and start docker service

@@ -1,5 +1,5 @@
 cdi_namespace: "{{ cdi_image_namespace | default('golden-images') }}"
 cdi_storageclass: "{{ cdi_kubevirt_storageclass | default('kubevirt') }}"
-action: "provision"
-repo_tag: "{{ cdi_repo_tag | default('jcoperh') }}"
-release_tag: "{{ cdi_release_tag | default('latest') }}"
+apb_action: "provision"
+repo_tag: "{{ cdi_repo_tag | default('kubevirt') }}"
+release_tag: "{{ cdi_release_tag | default('v0.5.0-alpha.0') }}"

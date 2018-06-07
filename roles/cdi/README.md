@@ -7,12 +7,12 @@ This role deploys the CDI controller.
 |:-------------|:-------------|:----------|:----------|
 | cdi_image_namespace | golden-images | |Namespace into which the CDI components should be installed. |
 | cdi_kubevirt_storageclass | kubevirt | |Storageclass that CDI will use to create PersistentVolumes. |
-| action | provision |<ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
-| cdi_repo_tag | jcoperh | |CDI docker hub repo tag.|
-| cdi_release_tag | latest | |CDI docker hub release tag.|
+| apb_action | provision |<ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
+| cdi_repo_tag | kubevirt | |CDI docker hub repo tag.|
+| cdi_release_tag | v0.5.0-alpha.0 | |CDI docker hub release tag.|
 
 ### Usage
 
 ```
-ansible-playbook -i inventory -e action=provision -e cdi_image_namespace=golden playbooks/cdi.yml
+ansible-playbook -i inventory -e apb_action=provision -e cdi_image_namespace=golden playbooks/cdi.yml
 ```
