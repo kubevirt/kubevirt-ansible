@@ -16,6 +16,9 @@ template_service_broker_install=false
 openshift_use_manageiq=false
 openshift_install_examples=false
 
+# Enabling KubeVirt Admission Controller (https://www.kubevirt.io/user-guide/#/installation/api-validation?id=kubevirt-api-validation)
+openshift_master_admission_plugin_config={"ValidatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}},"MutatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}}}
+
 # Docker
 container_runtime_docker_storage_type=overlay2
 
