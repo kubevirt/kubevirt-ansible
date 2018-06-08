@@ -1,8 +1,0 @@
-- hosts: all
-  gather_facts: no
-  vars:
-    selinux: "permissive"
-  tasks:
-    - name: "setenforce {{ selinux }}"
-      shell: "setenforce {{ selinux }}"
-      become: true
