@@ -1,4 +1,4 @@
-openshift_image_tag: v3.9.0-alpha.4
+openshift_image_tag: v3.9.0
 openshift_service_catalog_image_version: "{{ openshift_image_tag }}"
 container_images:
   - "openshift/origin:{{ openshift_image_tag }}"
