@@ -5,6 +5,7 @@ container_images:
   - "openshift/node:{{ openshift_image_tag }}"
   - "openshift/openvswitch:{{ openshift_image_tag }}"
   - "openshift/origin-service-catalog:{{ openshift_image_tag }}"
+  - "openshift/origin-web-console:{{ openshift_image_tag }}"
   - "ansibleplaybookbundle/origin-ansible-service-broker:latest"
   - "quay.io/coreos/etcd:latest"
   - "registry.fedoraproject.org/latest/etcd"
