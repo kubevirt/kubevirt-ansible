@@ -1,5 +1,5 @@
 # Namespace to create for the GlusterFS and Heketi resources
-openshift_storage_glusterfs_namespace: app-storage
+openshift_storage_glusterfs_namespace: glusterfs
 # Do not create a StorageClass; a custom StorageClass will be created via APB
 # for use by kubevirt
 openshift_storage_glusterfs_storageclass: false

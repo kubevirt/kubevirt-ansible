@@ -13,7 +13,7 @@ or [gk-deploy](https://github.com/gluster/gluster-kubernetes/).
 |admin_password| |_optional_|Password for **admin_user**.|
 |cluster |openshift |<ul><li>openshift</li><li>kubernetes</li></ul>|Cluster type.| 
 |apb_action |provision| <ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
-| glusterfs_namespace | app-storage | | The namespace where GlusterFS and Heketi resources are deployed. |
+| glusterfs_namespace | glusterfs | | The namespace where GlusterFS and Heketi resources are deployed. |
 | glusterfs_name | storage | | The name of the GlusterFS installation. |
 | heketi_url | | | (Optional) The URL to the Heketi service. Auto-detected if unspecified. |
 | heketi_admin_key | | | (Optional) The key for calling Heketi as the user 'admin'. |

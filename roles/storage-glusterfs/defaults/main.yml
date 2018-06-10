@@ -1,5 +1,5 @@
 cluster: "openshift"
 apb_action: "provision"
-glusterfs_namespace: "app-storage"
+glusterfs_namespace: "glusterfs"
 glusterfs_name: "storage"
 external_provisioner: false
