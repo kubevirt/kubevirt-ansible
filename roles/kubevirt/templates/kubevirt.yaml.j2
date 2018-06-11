@@ -1,9 +1,100 @@
 # RBAC
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: kubevirt.io:admin
+  labels:
+    kubevirt.io: ""
+rules:
+  - apiGroups:
+      - subresources.kubevirt.io
+    resources:
+      - virtualmachines/console
+      - virtualmachines/vnc
+    verbs:
+      - get
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachines
+      - offlinevirtualmachines
+      - virtualmachinepresets
+      - virtualmachinereplicasets
+    verbs:
+      - get
+      - delete
+      - create
+      - update
+      - patch
+      - list
+      - watch
+      - deletecollection
+  - apiGroups: [""]
+    resources:
+      - configmaps
+    resourceNames:
+      - kubevirt-config
+    verbs:
+      - update
+      - get
+      - patch
+      - create
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: kubevirt.io:edit
+  labels:
+    kubevirt.io: ""
+rules:
+  - apiGroups:
+      - subresources.kubevirt.io
+    resources:
+      - virtualmachines/console
+      - virtualmachines/vnc
+    verbs:
+      - get
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachines
+      - offlinevirtualmachines
+      - virtualmachinepresets
+      - virtualmachinereplicasets
+    verbs:
+      - get
+      - delete
+      - create
+      - update
+      - patch
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: kubevirt.io:view
+  labels:
+    kubevirt.io: ""
+rules:
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachines
+      - offlinevirtualmachines
+      - virtualmachinepresets
+      - virtualmachinereplicasets
+    verbs:
+      - get
+      - list
+      - watch
+---
 kind: ServiceAccount
 apiVersion: v1
 metadata:
   name: kubevirt-apiserver
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 ---
@@ -11,7 +102,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: kubevirt-apiserver
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 roleRef:
@@ -21,13 +112,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kubevirt-apiserver
-    namespace: "{{ namespace }}"
+    namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: kubevirt-apiserver-auth-delegator
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 roleRef:
@@ -37,13 +128,13 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: kubevirt-apiserver
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: RoleBinding
 metadata:
   name: kubevirt-apiserver
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 roleRef:
@@ -53,13 +144,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kubevirt-apiserver
-    namespace: "{{ namespace }}"
+    namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: Role
 metadata:
   name: kubevirt-apiserver
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 rules:
@@ -71,20 +162,22 @@ rules:
       - get
       - list
       - delete
-      - update  
-      - create  
+      - update
+      - create
   - apiGroups:
       - ''
     resources:
       - configmaps
     verbs:
       - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: kubevirt-apiserver
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 rules:
@@ -121,7 +214,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
   name: kubevirt-controller
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 rules:
@@ -165,7 +258,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kubevirt-controller
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 ---
@@ -173,7 +266,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: kubevirt-privileged
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 ---
@@ -181,7 +274,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: kubevirt-controller
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 roleRef:
@@ -191,13 +284,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kubevirt-controller
-    namespace: "{{ namespace }}"
+    namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: kubevirt-controller-cluster-admin
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 roleRef:
@@ -207,13 +300,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kubevirt-controller
-    namespace: "{{ namespace }}"
+    namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: kubevirt-privileged-cluster-admin
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: ""
 roleRef:
@@ -223,13 +316,51 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kubevirt-privileged
-    namespace: "{{ namespace }}"
+    namespace: {{ namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  labels:
+    kubevirt.io: ""
+    kubernetes.io/bootstrapping: rbac-defaults
+  name: kubevirt.io:default
+rules:
+- apiGroups:
+    - subresources.kubevirt.io
+  resources:
+    - version
+  verbs:
+    - get
+    - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    kubevirt.io: ""
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  name: kubevirt.io:default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubevirt.io:default
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:authenticated
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:unauthenticated
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: virt-api
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: "virt-api"
 spec:
@@ -244,7 +375,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: virt-api
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: "virt-api"
 spec:
@@ -257,7 +388,7 @@ spec:
       serviceAccountName: kubevirt-controller
       containers:
         - name: virt-api
-          image: "{{ registry_url }}/{{ docker_prefix }}/virt-api:v{{ version }}"
+          image: {{ docker_prefix }}/virt-api:{{docker_tag}}
           imagePullPolicy: IfNotPresent
           command:
               - "/virt-api"
@@ -281,7 +412,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: virt-controller
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: "virt-controller"
 spec:
@@ -294,12 +425,12 @@ spec:
       serviceAccountName: kubevirt-controller
       containers:
         - name: virt-controller
-          image: "{{ registry_url }}/{{ docker_prefix }}/virt-controller:v{{ version }}"
+          image: {{ docker_prefix }}/virt-controller:{{docker_tag}}
           imagePullPolicy: IfNotPresent
           command:
               - "/virt-controller"
               - "--launcher-image"
-              - "{{ docker_prefix }}/virt-launcher:{{ version }}"
+              - "{{ docker_prefix }}/virt-launcher:{{docker_tag}}"
               - "--port"
               - "8182"
           ports:
@@ -327,10 +458,12 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: virt-handler
-  namespace: "{{ namespace }}"
+  namespace: {{ namespace }}
   labels:
     kubevirt.io: "virt-handler"
 spec:
+  updateStrategy:
+    type: RollingUpdate
   template:
     metadata:
       name: virt-handler
@@ -344,7 +477,7 @@ spec:
           ports:
             - containerPort: 8185
               hostPort: 8185
-          image: "{{ registry_url}}/{{ docker_prefix }}/virt-handler:v{{ version }}"
+          image: {{ docker_prefix }}/virt-handler:{{docker_tag}}
           imagePullPolicy: IfNotPresent
           command:
             - "/virt-handler"
@@ -451,6 +584,13 @@ spec:
                         which are connected to the vm
                       items:
                         properties:
+                          bootOrder:
+                            description: BootOrder is an integer value > 0, used to
+                              determine ordering of boot devices. Lower values take
+                              precedence. Disks without a boot order are not tried
+                              if a disk with a boot order exists.
+                            format: int32
+                            type: integer
                           cdrom:
                             properties:
                               bus:
@@ -641,11 +781,22 @@ spec:
                       type: object
               required:
               - devices
+            hostname:
+              description: Specifies the hostname of the vm If not specified, the
+                hostname will be set to the name of the vm, if dhcp or cloud-init
+                is configured properly.
+              type: string
             nodeSelector:
               description: 'NodeSelector is a selector which must be true for the
                 vm to fit on a node. Selector which must match a node''s labels for
                 the vm to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/'
               type: object
+            subdomain:
+              description: If specified, the fully qualified vm hostname will be "<hostname>.<subdomain>.<pod
+                namespace>.svc.<cluster domain>". If not specified, the vm will not
+                have a domainname at all. The DNS entry will resolve to the vm, no
+                matter if the vm itself can pick up a hostname.
+              type: string
             terminationGracePeriodSeconds:
               description: Grace period observed after signalling a VM to stop after
                 which the VM is force terminated.
@@ -842,6 +993,14 @@ spec:
                                 luns which are connected to the vm
                               items:
                                 properties:
+                                  bootOrder:
+                                    description: BootOrder is an integer value > 0,
+                                      used to determine ordering of boot devices.
+                                      Lower values take precedence. Disks without
+                                      a boot order are not tried if a disk with a
+                                      boot order exists.
+                                    format: int32
+                                    type: integer
                                   cdrom:
                                     properties:
                                       bus:
@@ -1054,12 +1213,24 @@ spec:
                               type: object
                       required:
                       - devices
+                    hostname:
+                      description: Specifies the hostname of the vm If not specified,
+                        the hostname will be set to the name of the vm, if dhcp or
+                        cloud-init is configured properly.
+                      type: string
                     nodeSelector:
                       description: 'NodeSelector is a selector which must be true
                         for the vm to fit on a node. Selector which must match a node''s
                         labels for the vm to be scheduled on that node. More info:
                         https://kubernetes.io/docs/concepts/configuration/assign-pod-node/'
                       type: object
+                    subdomain:
+                      description: If specified, the fully qualified vm hostname will
+                        be "<hostname>.<subdomain>.<pod namespace>.svc.<cluster domain>".
+                        If not specified, the vm will not have a domainname at all.
+                        The DNS entry will resolve to the vm, no matter if the vm
+                        itself can pick up a hostname.
+                      type: string
                     terminationGracePeriodSeconds:
                       description: Grace period observed after signalling a VM to
                         stop after which the VM is force terminated.
@@ -1120,6 +1291,7 @@ spec:
                   required:
                   - domain
           required:
+          - selector
           - template
         status:
           properties:
@@ -1224,6 +1396,13 @@ spec:
                         which are connected to the vm
                       items:
                         properties:
+                          bootOrder:
+                            description: BootOrder is an integer value > 0, used to
+                              determine ordering of boot devices. Lower values take
+                              precedence. Disks without a boot order are not tried
+                              if a disk with a boot order exists.
+                            format: int32
+                            type: integer
                           cdrom:
                             properties:
                               bus:
@@ -1465,7 +1644,7 @@ spec:
             should look like
           properties:
             running:
-              description: Running controlls whether the associatied VirtualMachine
+              description: Running controls whether the associatied VirtualMachine
                 is created or not
               type: boolean
             template:
@@ -1515,6 +1694,14 @@ spec:
                                 luns which are connected to the vm
                               items:
                                 properties:
+                                  bootOrder:
+                                    description: BootOrder is an integer value > 0,
+                                      used to determine ordering of boot devices.
+                                      Lower values take precedence. Disks without
+                                      a boot order are not tried if a disk with a
+                                      boot order exists.
+                                    format: int32
+                                    type: integer
                                   cdrom:
                                     properties:
                                       bus:
@@ -1727,12 +1914,24 @@ spec:
                               type: object
                       required:
                       - devices
+                    hostname:
+                      description: Specifies the hostname of the vm If not specified,
+                        the hostname will be set to the name of the vm, if dhcp or
+                        cloud-init is configured properly.
+                      type: string
                     nodeSelector:
                       description: 'NodeSelector is a selector which must be true
                         for the vm to fit on a node. Selector which must match a node''s
                         labels for the vm to be scheduled on that node. More info:
                         https://kubernetes.io/docs/concepts/configuration/assign-pod-node/'
                       type: object
+                    subdomain:
+                      description: If specified, the fully qualified vm hostname will
+                        be "<hostname>.<subdomain>.<pod namespace>.svc.<cluster domain>".
+                        If not specified, the vm will not have a domainname at all.
+                        The DNS entry will resolve to the vm, no matter if the vm
+                        itself can pick up a hostname.
+                      type: string
                     terminationGracePeriodSeconds:
                       description: Grace period observed after signalling a VM to
                         stop after which the VM is force terminated.
@@ -1820,6 +2019,13 @@ spec:
                 - type
                 - status
               type: array
+            created:
+              description: Created indicates if the virtual machine is created in
+                the cluster
+              type: boolean
+            ready:
+              description: Ready indicates if the virtual machine is running and ready
+              type: boolean
   version: v1alpha1
 status:
   acceptedNames:

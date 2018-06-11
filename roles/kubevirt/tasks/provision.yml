@@ -42,8 +42,6 @@
     dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
   when: byo_template.stat.exists == False and offline_templates.stat.exists == False
 
-- debug: var=offline_templates
-
 - name: Copy offline templates to /tmp
   copy:
     src: "{{ offline_template_dir }}/v{{ version }}/kubevirt.yaml"
