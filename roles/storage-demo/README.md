@@ -16,3 +16,9 @@ kubernetes resources are created to interface with the cluster.
 |cinder_provisioner_release|sprint4| |Docker image tag to use for the Cinder provisioner.|
 |apb_action|provision| |Action to perform.  Currently only **provision** is supported.|
 |storage_demo_template_dir| ./templates| |Location of the deployment template file.|
+
+### Usage
+
+```
+ansible-playbook -i inventory -e apb_action=provision -e storage_role=storage-demo playbooks/storage.yml
+```
