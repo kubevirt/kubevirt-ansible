@@ -119,6 +119,7 @@ run() {
 
     set_params
     install_requirements
+    ansible --version
 
     if [[ "$cluster" == "openshift" ]]; then
         [[ -e openshift-ansible ]] \
