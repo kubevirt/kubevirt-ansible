@@ -122,6 +122,7 @@ parameters:
 apiVersion: v1
 kind: Secret
 metadata:
+  namespace: {{ cdi_namespace }}
   name: kubevirt-cephx-secret
 type: "kubernetes.io/rbd"
 data:
