@@ -17,3 +17,9 @@ Deploy KubeVirt resources onto a cluster.
 | version |0.5.0|<ul><li>0.5.0</li><li>0.4.1</li><li>0.4.0</li><li>0.3.0</li><li>0.2.0</li><li>0.1.0</li></ul>|KubeVirt release version.|
 |default_vm_templates|<ul><li>vm-template-fedora</li><li>vm-template-windows2012r2</li><li>vm-template-rhel7></ul>|| Default vm templates to deploy with KubeVirt.|
 |offline_template_dir| /opt/apb/kubevirt-templates || Offline VM template location specifed in the APB Dockerfile.|
+
+### Usage
+
+```
+ansible-playbook -i inventory  -e version=0.5.0 -e apb_action=provision playbooks/kubevirt.yml
+```
