@@ -1,0 +1,66 @@
+# Configure the dns of the masters and nodes 
+# with the ip and and subdomain of the cluster's router.
+# After runnin this playbook on a master/node, openshift routes
+# can be resolved to IPs.
+
+- hosts: masters[0]
+  force_handlers: True
+  tasks:
+    - name: Switch do the default project
+      register: old_project
+      notify: return_to_previous_project
+      shell: |
+        old_project="$(oc project -q)"
+        oc project default > /dev/null
+        echo "$old_project"
+
+    - name: Verify that the router exists
+      shell: oc adm router --dry-run
+
+    - name: Get router node ip
+      register: _router_node_ip
+      shell: |
+        router_pod="$( \
+            oc get pods | grep router | awk '{print $1}' \
+        )"
+
+        router_node_ip="$( \
+            oc get pod "$router_pod" \
+            --template=\{\{.status.hostIP\}\} \
+        )"
+
+        echo "$router_node_ip"
+
+    - set_fact:
+        router_node_ip: "{{ _router_node_ip.stdout }}"
+
+  handlers:
+    - name: return_to_previous_project
+      shell: oc project "{{ old_project.stdout }}"
+
+- hosts: OSEv3
+  force_handlers: True
+  tasks:
+    - set_fact:
+        subdomain: "cloudapps.example.com"
+        conf: "/etc/dnsmasq.conf"
+        _router_node_ip: "{{ hostvars[groups['masters'][0]]['router_node_ip'] }}"
+
+    - name: Update dnsmasq.conf - address
+      notify: restart_dnsmasq
+      lineinfile:
+        path: "{{ conf }}"
+        line: "address=/{{ subdomain }}/{{ _router_node_ip }}"
+
+    - name: Update dnsmasq.conf - server
+      notify: restart_dnsmasq
+      lineinfile:
+        path: "{{ conf }}"
+        line: "server=/{{ subdomain }}/127.0.0.1"
+
+  handlers:
+    - name: restart_dnsmasq
+      service:
+        name: dnsmasq
+        state: restarted
+
