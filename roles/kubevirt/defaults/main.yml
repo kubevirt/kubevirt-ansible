@@ -1,13 +1,15 @@
 namespace: "kube-system"
-docker_prefix: "kubevirt"
 cluster: "openshift"
 apb_action: "provision"
 release_manifest_url: "https://github.com/kubevirt/kubevirt/releases/download"
 kubevirt_template_dir: "{{ role_path }}/templates"
 version: 0.5.0
+docker_tag: "v{{ version }}"
 offline_template_dir: "/opt/apb/kubevirt-templates"
 
 default_vm_templates:
   - "vm-template-fedora"
   - "vm-template-windows2012r2"
   - "vm-template-rhel7"
+registry_url: "docker.io"
+docker_prefix: "{{ registry_url }}/kubevirt"
