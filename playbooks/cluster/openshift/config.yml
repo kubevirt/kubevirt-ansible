@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: nodes
   remote_user: root
   strategy: free
   vars:
@@ -82,7 +82,7 @@
 
 - import_playbook: "{{ openshift_ansible_dir }}/playbooks/prerequisites.yml"
 
-- hosts: all
+- hosts: nodes
   remote_user: root
   strategy: free
   tasks:
