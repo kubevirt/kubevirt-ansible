@@ -50,7 +50,9 @@ spec:
         args: ["demo"]
         env:
         - name: MON_IP
-          value: "{{ storage_demo_node_hostname }}"
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
         - name: CEPH_PUBLIC_NETWORK
           value: "0.0.0.0/0"
         - name: RGW_CIVETWEB_PORT
@@ -94,7 +96,9 @@ spec:
         command: ["/scripts/ceph-service.sh"]
         env:
         - name: MON_IP
-          value: "{{ storage_demo_node_hostname }}"
+          valueFrom:
+            fieldRef:
+              fieldPath: status.hostIP
         volumeMounts:
         - name: cephetc
           mountPath: "/etc/ceph"
