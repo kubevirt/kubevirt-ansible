@@ -52,7 +52,7 @@
     - name: Start Lago env
       command: lago --workdir "{{ prefix }}" start
 
-- hosts: nodes
+- hosts: all
   any_errors_fatal: True
   gather_facts: no
   tasks:
