@@ -7,7 +7,7 @@ This repository provides a collection of playbooks to
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
 
-**Tested on CentOS Linux release 7.5 (Core), OpenShift 3.9 and Ansible 2.4.2**
+**Tested on CentOS Linux release 7.5 (Core), OpenShift 3.9 and Ansible 2.5.3**
 
 ## Requirements
 
@@ -107,12 +107,6 @@ Currently we don't have a playbook which installs KubeVirt on a Kubernetes clust
 The playbook expects you have ```oc```, rpm package ```origin-clients```,
 installed and a config file in ```$HOME/.kube/config```.  Also make sure you
 indentified with the cluster using ```oc login```.
-
-Before installing KubeVirt on an existing OpenShift cluster, ensure that SELinux is disabled on all hosts:
-
-```bash
-$ ansible-playbook -i inventory playbooks/selinux.yml
-```
 
 Be sure to update the [inventory file](../inventory) according to your OpenSift cluster configuration or use the file you used to deploy the cluster.
 

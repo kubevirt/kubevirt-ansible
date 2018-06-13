@@ -38,7 +38,8 @@
   command: kubectl delete -f /tmp/kubevirt.yml --ignore-not-found=true
 
 - name: Delete Privileged Policy
-  command: "oc adm policy remove-scc-from-user privileged -z kubevirt-infra -n {{ namespace }}"
+  command: "oc adm policy remove-scc-from-user privileged -z {{ item }} -n {{ namespace }}"
+  with_items: "{{ kubevirt_privileged_policies | list }}"
   when: cluster=="openshift"
 
 - name: Delete Hostmount-anyuid Policy
