@@ -1,3 +1,4 @@
+---
 - hosts: masters[0]
   connection: local
   gather_facts: False
@@ -6,3 +7,9 @@
     http_proxy: ""
   roles:
     - role: kubevirt
+
+- hosts: masters[0]
+  environment:
+    http_proxy: ""
+  roles:
+    - role: "cdi"
