@@ -5,37 +5,31 @@
         and admin_user is defined
         and admin_password is defined
 
-- name: Check for kubevirt.yml template in {{ kubevirt_template_dir }}
+- name: Check that kubevirt.yaml still exists in /tmp
   stat:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yml"
-  register: byo_template
-
-- name: Render BYO template
-  template:
-    src: "{{ kubevirt_template_dir }}/kubevirt.yml"
-    dest: /tmp/kubevirt.yml
-  when: byo_template.stat.exists == True
-
-- name: Check that kubevirt.yml still exists in /tmp
-  stat:
-    path: "/tmp/kubevirt.yml"
+    path: "/tmp/kubevirt.yaml"
   register: kubevirt_template
+
+- name: Check for kubevirt.yml.j2 template in {{ kubevirt_template_dir }}
+  stat:
+    path: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+  register: byo_template
+  when: kubevirt_template.stat.exists == False
 
 - name: Download KubeVirt Template
   get_url:
-    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml"
-    dest: "/tmp/kubevirt.yml"
-  when: kubevirt_template.stat.exists == False
+    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
+    dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+  when: (kubevirt_template.stat.exists == False) and (byo_template.stat.exists == False)
 
-- name: Render KubeVirt Yml
-  replace:
-    path: "/tmp/kubevirt.yml"
-    regexp: "namespace: kube-system"
-    replace: "namespace: {{ namespace }}"
+- name: Render KubeVirt template
+  template:
+    src: "kubevirt.yaml.j2"
+    dest: "/tmp/kubevirt.yaml"
   when: kubevirt_template.stat.exists == False
 
 - name: Delete KubeVirt Resources
-  command: kubectl delete -f /tmp/kubevirt.yml --ignore-not-found=true
+  command: kubectl delete -f /tmp/kubevirt.yaml --ignore-not-found=true
 
 - name: Delete Privileged Policy
   command: "oc adm policy remove-scc-from-user privileged -z {{ item }} -n {{ namespace }}"
