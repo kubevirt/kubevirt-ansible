@@ -1,0 +1,278 @@
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    kubevirt.io: ""
+  name: virtualmachineinstances.kubevirt.io
+spec:
+  group: kubevirt.io
+  names:
+    kind: VirtualMachineInstance
+    plural: virtualmachineinstances
+    shortNames:
+    - vmi
+    - vmis
+    singular: virtualmachineinstance
+  scope: Namespaced
+  validation:
+    openAPIV3Schema:
+      properties:
+        apiVersion:
+          type: string
+        kind:
+          type: string
+        metadata: {}
+        spec:
+          properties:
+            affinity:
+              properties:
+                nodeAffinity: {}
+                podAffinity: {}
+                podAntiAffinity: {}
+            domain:
+              properties:
+                clock:
+                  properties:
+                    timezone:
+                      type: string
+                    utc:
+                      properties:
+                        offsetSeconds:
+                          format: int32
+                          type: integer
+                cpu:
+                  properties:
+                    cores:
+                      format: int64
+                      type: integer
+                devices:
+                  properties:
+                    disks:
+                      items:
+                        properties:
+                          bootOrder:
+                            format: int32
+                            type: integer
+                          cdrom:
+                            properties:
+                              bus:
+                                type: string
+                              readonly:
+                                type: boolean
+                              tray:
+                                type: string
+                          disk:
+                            properties:
+                              bus:
+                                type: string
+                              readonly:
+                                type: boolean
+                          floppy:
+                            properties:
+                              readonly:
+                                type: boolean
+                              tray:
+                                type: string
+                          lun:
+                            properties:
+                              bus:
+                                type: string
+                              readonly:
+                                type: boolean
+                          name:
+                            type: string
+                          volumeName:
+                            type: string
+                        required:
+                        - name
+                        - volumeName
+                      type: array
+                    interfaces:
+                      items:
+                        properties:
+                          bridge: {}
+                          name:
+                            type: string
+                        required:
+                        - name
+                      type: array
+                    watchdog:
+                      properties:
+                        i6300esb:
+                          properties:
+                            action:
+                              type: string
+                        name:
+                          type: string
+                      required:
+                      - name
+                features:
+                  properties:
+                    acpi:
+                      properties:
+                        enabled:
+                          type: boolean
+                    apic:
+                      properties:
+                        enabled:
+                          type: boolean
+                        endOfInterrupt:
+                          type: boolean
+                    hyperv:
+                      properties:
+                        relaxed:
+                          properties:
+                            enabled:
+                              type: boolean
+                        reset:
+                          properties:
+                            enabled:
+                              type: boolean
+                        runtime:
+                          properties:
+                            enabled:
+                              type: boolean
+                        spinlocks:
+                          properties:
+                            enabled:
+                              type: boolean
+                            spinlocks:
+                              format: int64
+                              type: integer
+                        synic:
+                          properties:
+                            enabled:
+                              type: boolean
+                        synictimer:
+                          properties:
+                            enabled:
+                              type: boolean
+                        vapic:
+                          properties:
+                            enabled:
+                              type: boolean
+                        vendorid:
+                          properties:
+                            enabled:
+                              type: boolean
+                            vendorid:
+                              type: string
+                        vpindex:
+                          properties:
+                            enabled:
+                              type: boolean
+                firmware:
+                  properties:
+                    uuid:
+                      type: string
+                machine:
+                  properties:
+                    type:
+                      type: string
+                  required:
+                  - type
+                memory:
+                  properties:
+                    hugepages:
+                      properties:
+                        pageSize:
+                          type: string
+                resources:
+                  properties:
+                    limits:
+                      type: object
+                    requests:
+                      type: object
+              required:
+              - devices
+            hostname:
+              type: string
+            networks:
+              items:
+                properties:
+                  name:
+                    type: string
+                  pod: {}
+                required:
+                - name
+              type: array
+            nodeSelector:
+              type: object
+            subdomain:
+              type: string
+            terminationGracePeriodSeconds:
+              format: int64
+              type: integer
+            volumes:
+              items:
+                properties:
+                  cloudInitNoCloud:
+                    properties:
+                      secretRef: {}
+                      userData:
+                        type: string
+                      userDataBase64:
+                        type: string
+                  emptyDisk:
+                    properties:
+                      capacity: {}
+                    required:
+                    - capacity
+                  ephemeral:
+                    properties:
+                      persistentVolumeClaim: {}
+                  name:
+                    type: string
+                  persistentVolumeClaim: {}
+                  registryDisk:
+                    properties:
+                      image:
+                        type: string
+                      imagePullSecret:
+                        type: string
+                    required:
+                    - image
+                required:
+                - name
+              type: array
+          required:
+          - domain
+        status:
+          properties:
+            conditions:
+              items:
+                properties:
+                  lastProbeTime: {}
+                  lastTransitionTime: {}
+                  message:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                required:
+                - type
+                - status
+              type: array
+            interfaces:
+              items:
+                properties:
+                  ipAddress:
+                    type: string
+                  mac:
+                    type: string
+              type: array
+            nodeName:
+              type: string
+            phase:
+              type: string
+  version: v1alpha2
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null

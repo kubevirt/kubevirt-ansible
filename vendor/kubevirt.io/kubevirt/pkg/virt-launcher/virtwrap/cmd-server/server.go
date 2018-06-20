@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Copyright 2017 Red Hat, Inc.
+ * Copyright 2017, 2018 Red Hat, Inc.
  *
  */
 
@@ -33,80 +33,89 @@ import (
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
 )
 
-type Launcher struct {
-	domainManager virtwrap.DomainManager
+type ServerOptions struct {
+	useEmulation bool
 }
 
-func getVmfromClientArgs(args *cmdclient.Args) (*v1.VirtualMachine, error) {
-	if args.VM == nil {
-		return nil, goerror.New(fmt.Sprintf("vm object not present in command server args"))
+func NewServerOptions(useEmulation bool) *ServerOptions {
+	return &ServerOptions{useEmulation: useEmulation}
+}
+
+type Launcher struct {
+	domainManager virtwrap.DomainManager
+	useEmulation  bool
+}
+
+func getVmfromClientArgs(args *cmdclient.Args) (*v1.VirtualMachineInstance, error) {
+	if args.VMI == nil {
+		return nil, goerror.New(fmt.Sprintf("vmi object not present in command server args"))
 	}
-	return args.VM, nil
+	return args.VMI, nil
 }
 
 func (s *Launcher) Sync(args *cmdclient.Args, reply *cmdclient.Reply) error {
 	reply.Success = true
 
-	vm, err := getVmfromClientArgs(args)
+	vmi, err := getVmfromClientArgs(args)
 	if err != nil {
 		reply.Success = false
 		reply.Message = err.Error()
 		return nil
 	}
 
-	_, err = s.domainManager.SyncVM(vm)
+	_, err = s.domainManager.SyncVMI(vmi, s.useEmulation)
 	if err != nil {
-		log.Log.Object(vm).Reason(err).Errorf("Failed to sync vm")
+		log.Log.Object(vmi).Reason(err).Errorf("Failed to sync vmi")
 		reply.Success = false
 		reply.Message = err.Error()
 		return nil
 	}
 
-	log.Log.Object(vm).Info("Synced vm")
+	log.Log.Object(vmi).Info("Synced vmi")
 	return nil
 }
 
 func (s *Launcher) Kill(args *cmdclient.Args, reply *cmdclient.Reply) error {
 	reply.Success = true
 
-	vm, err := getVmfromClientArgs(args)
+	vmi, err := getVmfromClientArgs(args)
 	if err != nil {
 		reply.Success = false
 		reply.Message = err.Error()
 		return nil
 	}
 
-	err = s.domainManager.KillVM(vm)
+	err = s.domainManager.KillVMI(vmi)
 	if err != nil {
-		log.Log.Object(vm).Reason(err).Errorf("Failed to kill vm")
+		log.Log.Object(vmi).Reason(err).Errorf("Failed to kill vmi")
 		reply.Success = false
 		reply.Message = err.Error()
 		return nil
 	}
 
-	log.Log.Object(vm).Info("Signaled vm kill")
+	log.Log.Object(vmi).Info("Signaled vmi kill")
 	return nil
 }
 
 func (s *Launcher) Shutdown(args *cmdclient.Args, reply *cmdclient.Reply) error {
 	reply.Success = true
 
-	vm, err := getVmfromClientArgs(args)
+	vmi, err := getVmfromClientArgs(args)
 	if err != nil {
 		reply.Success = false
 		reply.Message = err.Error()
 		return nil
 	}
 
-	err = s.domainManager.SignalShutdownVM(vm)
+	err = s.domainManager.SignalShutdownVMI(vmi)
 	if err != nil {
-		log.Log.Object(vm).Reason(err).Errorf("Failed to signal shutdown for vm")
+		log.Log.Object(vmi).Reason(err).Errorf("Failed to signal shutdown for vmi")
 		reply.Success = false
 		reply.Message = err.Error()
 		return nil
 	}
 
-	log.Log.Object(vm).Info("Signaled vm shutdown")
+	log.Log.Object(vmi).Info("Signaled vmi shutdown")
 	return nil
 }
 
@@ -150,11 +159,17 @@ func createSocket(socketPath string) (net.Listener, error) {
 
 func RunServer(socketPath string,
 	domainManager virtwrap.DomainManager,
-	stopChan chan struct{}) error {
+	stopChan chan struct{},
+	options *ServerOptions) error {
 
+	useEmulation := false
+	if options != nil {
+		useEmulation = options.useEmulation
+	}
 	rpcServer := rpc.NewServer()
 	server := &Launcher{
 		domainManager: domainManager,
+		useEmulation:  useEmulation,
 	}
 	rpcServer.Register(server)
 	sock, err := createSocket(socketPath)

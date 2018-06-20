@@ -84,7 +84,7 @@ func (a *authorizor) getUserName(header http.Header) (string, error) {
 
 func (a *authorizor) getUserExtras(header http.Header) map[string]authorization.ExtraValue {
 
-	var extras map[string]authorization.ExtraValue
+	extras := map[string]authorization.ExtraValue{}
 
 	for _, prefix := range a.userExtraHeaderPrefixes {
 		for k, v := range header {
@@ -137,7 +137,7 @@ func (a *authorizor) generateAccessReview(req *restful.Request) (*authorization.
 	}
 
 	// URL example
-	// /apis/subresources.kubevirt.io/v1alpha1/namespaces/default/virtualmachines/testvm/console
+	// /apis/subresources.kubevirt.io/v1alpha2/namespaces/default/virtualmachineinstances/testvmi/console
 	pathSplit := strings.Split(url.Path, "/")
 	if len(pathSplit) != 9 {
 		return nil, fmt.Errorf("unknown api endpoint %s", url.Path)
@@ -151,7 +151,7 @@ func (a *authorizor) generateAccessReview(req *restful.Request) (*authorization.
 	subresource := pathSplit[8]
 	userExtras := a.getUserExtras(headers)
 
-	if resource != "virtualmachines" {
+	if resource != "virtualmachineinstances" {
 		return nil, fmt.Errorf("unknown resource type %s", resource)
 	}
 
@@ -193,10 +193,10 @@ func isInfoEndpoint(req *restful.Request) bool {
 		return false
 	}
 	// URL example
-	// /apis/subresources.kubevirt.io/v1alpha1/namespaces/default/virtualmachines/testvm/console
+	// /apis/subresources.kubevirt.io/v1alpha2/namespaces/default/virtualmachineinstances/testvmi/console
 	// The /apis/<group>/<version> part of the urls should be accessible without needing authorization
 	pathSplit := strings.Split(httpRequest.URL.Path, "/")
-	if len(pathSplit) <= 4 {
+	if len(pathSplit) <= 4 || (len(pathSplit) > 4 && pathSplit[4] == "version") {
 		return true
 	}
 

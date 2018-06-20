@@ -5,31 +5,17 @@ resources: <http://kubernetes.io/docs/user-guide/thirdpartyresources/>.
 KubeVirt represents virtual machines as 3rd party resources and manages changes
 to libvirt domains based on the state of those resources.
 
-This project provides a Vagrant setup with the requisite components already
-installed. To boot a vanilla kubernetes environment as base for kubevirt,
-simply type `vagrant up` from the root directory of the git tree, which can be
-found here:
-
-<https://github.com/kubevirt/kubevirt>
-
-Once the Vagrant provisioning script has completed, run `./cluster/sync.sh` to
-build and deploy KubeVirt specific components to the Vagrant nodes.
-
-Note: KubeVirt is built in go. A properly configured go environment is
-therefore required. For best results, use this path:
-`$GOPATH/src/kubevirt.io/kubevirt/`
-
 ### Project Components
 
  * virt-api: This component provides a HTTP RESTful entrypoint to manage
    the virtual machines within the cluster.
- * virt-controller: This component manages the state of each VM within the
+ * virt-controller: This component manages the state of each VMI within the
    Kubernetes cluster.
  * virt-handler: This is a daemon that runs on each Kubernetes node. It is
-   responsible for monitoring the state of VMs according to Kubernetes and
+   responsible for monitoring the state of VMIs according to Kubernetes and
    ensuring the corresponding libvirt domain is booted or halted accordingly.
- * virt-launcher: This component is a place-holder, one per running VM. Its
-   job is to remain running as long as the VM is defined. This simply prevents a
+ * virt-launcher: This component is a place-holder, one per running VMI. Its
+   job is to remain running as long as the VMI is defined. This simply prevents a
    crash-loop state.
  * ha-proxy: This daemon proxies connections from 192.168.200.2 to the running
    master node--making it possible to establish connections in a consistent

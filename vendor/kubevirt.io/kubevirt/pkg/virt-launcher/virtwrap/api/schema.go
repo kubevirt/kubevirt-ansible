@@ -95,22 +95,23 @@ type DomainList struct {
 // tagged, and they must correspond to the libvirt domain as described in
 // https://libvirt.org/formatdomain.html.
 type DomainSpec struct {
-	XMLName  xml.Name     `xml:"domain"`
-	Type     string       `xml:"type,attr"`
-	XmlNS    string       `xml:"xmlns:qemu,attr,omitempty"`
-	Name     string       `xml:"name"`
-	UUID     string       `xml:"uuid,omitempty"`
-	Memory   Memory       `xml:"memory"`
-	OS       OS           `xml:"os"`
-	SysInfo  *SysInfo     `xml:"sysinfo,omitempty"`
-	Devices  Devices      `xml:"devices"`
-	Clock    *Clock       `xml:"clock,omitempty"`
-	Resource *Resource    `xml:"resource,omitempty"`
-	QEMUCmd  *Commandline `xml:"qemu:commandline,omitempty"`
-	Metadata Metadata     `xml:"metadata,omitempty"`
-	Features *Features    `xml:"features,omitempty"`
-	CPU      CPU          `xml:"cpu"`
-	VCPU     *VCPU        `xml:"vcpu"`
+	XMLName       xml.Name       `xml:"domain"`
+	Type          string         `xml:"type,attr"`
+	XmlNS         string         `xml:"xmlns:qemu,attr,omitempty"`
+	Name          string         `xml:"name"`
+	UUID          string         `xml:"uuid,omitempty"`
+	Memory        Memory         `xml:"memory"`
+	MemoryBacking *MemoryBacking `xml:"memoryBacking,omitempty"`
+	OS            OS             `xml:"os"`
+	SysInfo       *SysInfo       `xml:"sysinfo,omitempty"`
+	Devices       Devices        `xml:"devices"`
+	Clock         *Clock         `xml:"clock,omitempty"`
+	Resource      *Resource      `xml:"resource,omitempty"`
+	QEMUCmd       *Commandline   `xml:"qemu:commandline,omitempty"`
+	Metadata      Metadata       `xml:"metadata,omitempty"`
+	Features      *Features      `xml:"features,omitempty"`
+	CPU           CPU            `xml:"cpu"`
+	VCPU          *VCPU          `xml:"vcpu"`
 }
 
 type VCPU struct {
@@ -194,8 +195,24 @@ type Resource struct {
 }
 
 type Memory struct {
-	Value uint   `xml:",chardata"`
+	Value uint64 `xml:",chardata"`
 	Unit  string `xml:"unit,attr"`
+}
+
+// MemoryBacking mirroring libvirt XML under https://libvirt.org/formatdomain.html#elementsMemoryBacking
+type MemoryBacking struct {
+	HugePages *HugePages `xml:"hugepages,omitempty"`
+}
+
+// HugePages mirroring libvirt XML under memoryBacking
+type HugePages struct {
+	HugePage []HugePage `xml:"page,omitempty"`
+}
+
+// HugePage mirroring libvirt XML under hugepages
+type HugePage struct {
+	Size string `xml:"size,attr"`
+	Unit string `xml:"unit,attr"`
 }
 
 type Devices struct {
@@ -225,6 +242,7 @@ type Disk struct {
 	Auth         *DiskAuth     `xml:"auth,omitempty"`
 	Alias        *Alias        `xml:"alias,omitempty"`
 	BackingStore *BackingStore `xml:"backingStore,omitempty"`
+	BootOrder    *BootOrder    `xml:"boot,omitempty"`
 }
 
 type DiskAuth struct {
@@ -545,15 +563,12 @@ type SecretSpec struct {
 	Usage       SecretUsage `xml:"usage,omitempty"`
 }
 
-func NewMinimalDomainSpec(vmName string) *DomainSpec {
-	precond.MustNotBeEmpty(vmName)
+func NewMinimalDomainSpec(vmiName string) *DomainSpec {
+	precond.MustNotBeEmpty(vmiName)
 	domain := &DomainSpec{}
-	domain.Name = vmName
+	domain.Name = vmiName
 	domain.Memory = Memory{Unit: "MB", Value: 9}
 	domain.Devices = Devices{}
-	domain.Devices.Interfaces = []Interface{
-		{Type: "network", Source: InterfaceSource{Network: "default"}},
-	}
 	return domain
 }
 
@@ -607,9 +622,9 @@ func (dl *DomainList) GetListMeta() meta.List {
 	return &dl.ListMeta
 }
 
-// VMNamespaceKeyFunc constructs the domain name with a namespace prefix i.g.
+// VMINamespaceKeyFunc constructs the domain name with a namespace prefix i.g.
 // namespace_name.
-func VMNamespaceKeyFunc(vm *v1.VirtualMachine) string {
-	domName := fmt.Sprintf("%s_%s", vm.Namespace, vm.Name)
+func VMINamespaceKeyFunc(vmi *v1.VirtualMachineInstance) string {
+	domName := fmt.Sprintf("%s_%s", vmi.Namespace, vmi.Name)
 	return domName
 }

@@ -58,6 +58,9 @@ const (
 	hostOverride = ""
 
 	virtShareDir = "/var/run/kubevirt"
+
+	// This value is derived from default MaxPods in Kubelet Config
+	maxDevices = 110
 )
 
 type virtHandlerApp struct {
@@ -65,6 +68,7 @@ type virtHandlerApp struct {
 	HostOverride            string
 	VirtShareDir            string
 	WatchdogTimeoutDuration time.Duration
+	MaxDevices              int
 }
 
 var _ service.Service = &virtHandlerApp{}
@@ -89,7 +93,7 @@ func (app *virtHandlerApp) Run() {
 	}
 	broadcaster := record.NewBroadcaster()
 	broadcaster.StartRecordingToSink(&k8coresv1.EventSinkImpl{Interface: virtCli.CoreV1().Events(k8sv1.NamespaceAll)})
-	// Scheme is used to create an ObjectReference from an Object (e.g. VM) during Event creation
+	// Scheme is used to create an ObjectReference from an Object (e.g. VirtualMachineInstance) during Event creation
 	recorder := broadcaster.NewRecorder(scheme.Scheme, k8sv1.EventSource{Component: "virt-handler", Host: app.HostOverride})
 
 	if err != nil {
@@ -101,7 +105,7 @@ func (app *virtHandlerApp) Run() {
 		panic(err)
 	}
 
-	// Wire VM controller
+	// Wire VirtualMachineInstance controller
 
 	// Wire Domain controller
 	domainSharedInformer, err := virtcache.NewSharedInformer(app.VirtShareDir, int(app.WatchdogTimeoutDuration.Seconds()))
@@ -110,8 +114,8 @@ func (app *virtHandlerApp) Run() {
 	}
 
 	vmSharedInformer := cache.NewSharedIndexInformer(
-		controller.NewListWatchFromClient(virtCli.RestClient(), "virtualmachines", k8sv1.NamespaceAll, fields.Everything(), l),
-		&v1.VirtualMachine{},
+		controller.NewListWatchFromClient(virtCli.RestClient(), "virtualmachineinstances", k8sv1.NamespaceAll, fields.Everything(), l),
+		&v1.VirtualMachineInstance{},
 		0,
 		cache.Indexers{},
 	)
@@ -133,6 +137,8 @@ func (app *virtHandlerApp) Run() {
 		vmSharedInformer,
 		domainSharedInformer,
 		gracefulShutdownInformer,
+		int(app.WatchdogTimeoutDuration.Seconds()),
+		maxDevices,
 	)
 
 	// Bootstrapping. From here on the startup order matters
@@ -151,13 +157,19 @@ func (app *virtHandlerApp) AddFlags() {
 	app.AddCommonFlags()
 
 	flag.StringVar(&app.HostOverride, "hostname-override", hostOverride,
-		"Name under which the node is registered in kubernetes, where this virt-handler instance is running on")
+		"Name under which the node is registered in Kubernetes, where this virt-handler instance is running on")
 
 	flag.StringVar(&app.VirtShareDir, "kubevirt-share-dir", virtShareDir,
 		"Shared directory between virt-handler and virt-launcher")
 
 	flag.DurationVar(&app.WatchdogTimeoutDuration, "watchdog-timeout", defaultWatchdogTimeout,
 		"Watchdog file timeout")
+
+	// TODO: the Device Plugin API does not allow for infinitely available (shared) devices
+	// so the current approach is to register an arbitrary number.
+	// This should be deprecated if the API allows for shared resources in the future
+	flag.IntVar(&app.MaxDevices, "max-devices", maxDevices,
+		"Number of devices to register with Kubernetes device plugin framework")
 }
 
 func main() {
