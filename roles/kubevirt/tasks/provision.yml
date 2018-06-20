@@ -82,9 +82,19 @@
   with_items: "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list }}"
   when: "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length > 0 }}"
 
+- name: Set the default VM templates URL
+  set_fact:
+    templates_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster/examples"
+  when: version[2] | int > 6
+
+- name: Set the default VM templates URL
+  set_fact:
+    templates_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster"
+  when: version[2] | int < 7
+
 - name: Download KubeVirt default VM templates
   get_url:
-    url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster/{{ item }}.yaml"
+    url: "{{ templates_url }}/{{ item }}.yaml"
     dest: "/tmp/{{ item }}.yaml"
   with_items:
     - "{{ default_vm_templates }}"
