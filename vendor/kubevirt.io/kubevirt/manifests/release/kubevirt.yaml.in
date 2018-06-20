@@ -1,4 +1,84 @@
 # RBAC
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: kubevirt.io:admin
+  labels:
+    kubevirt.io: ""
+rules:
+  - apiGroups:
+      - subresources.kubevirt.io
+    resources:
+      - virtualmachineinstances/console
+      - virtualmachineinstances/vnc
+    verbs:
+      - get
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachineinstances
+      - virtualmachines
+      - virtualmachineinstancepresets
+      - virtualmachineinstancereplicasets
+    verbs:
+      - get
+      - delete
+      - create
+      - update
+      - patch
+      - list
+      - watch
+      - deletecollection
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: kubevirt.io:edit
+  labels:
+    kubevirt.io: ""
+rules:
+  - apiGroups:
+      - subresources.kubevirt.io
+    resources:
+      - virtualmachineinstances/console
+      - virtualmachineinstances/vnc
+    verbs:
+      - get
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachineinstances
+      - virtualmachines
+      - virtualmachineinstancepresets
+      - virtualmachineinstancereplicasets
+    verbs:
+      - get
+      - delete
+      - create
+      - update
+      - patch
+      - list
+      - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: kubevirt.io:view
+  labels:
+    kubevirt.io: ""
+rules:
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachineinstances
+      - virtualmachines
+      - virtualmachineinstancepresets
+      - virtualmachineinstancereplicasets
+    verbs:
+      - get
+      - list
+      - watch
+---
 kind: ServiceAccount
 apiVersion: v1
 metadata:
@@ -71,14 +151,16 @@ rules:
       - get
       - list
       - delete
-      - update  
-      - create  
+      - update
+      - create
   - apiGroups:
       - ''
     resources:
       - configmaps
     verbs:
       - get
+      - list
+      - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
@@ -112,7 +194,7 @@ rules:
   - apiGroups:
       - kubevirt.io
     resources:
-      - virtualmachines
+      - virtualmachineinstances
     verbs:
       - get
       - list
@@ -148,10 +230,10 @@ rules:
   - apiGroups:
       - kubevirt.io
     resources:
+      - virtualmachineinstances
+      - virtualmachineinstancereplicasets
+      - virtualmachineinstancepresets
       - virtualmachines
-      - virtualmachinereplicasets
-      - virtualmachinepresets
-      - offlinevirtualmachines
     verbs:
       - get
       - list
@@ -224,6 +306,44 @@ subjects:
   - kind: ServiceAccount
     name: kubevirt-privileged
     namespace: {{.Namespace}}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  labels:
+    kubevirt.io: ""
+    kubernetes.io/bootstrapping: rbac-defaults
+  name: kubevirt.io:default
+rules:
+- apiGroups:
+    - subresources.kubevirt.io
+  resources:
+    - version
+  verbs:
+    - get
+    - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    kubevirt.io: ""
+  annotations:
+    rbac.authorization.kubernetes.io/autoupdate: "true"
+  name: kubevirt.io:default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubevirt.io:default
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:authenticated
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: system:unauthenticated
 ---
 apiVersion: v1
 kind: Service
@@ -331,6 +451,8 @@ metadata:
   labels:
     kubevirt.io: "virt-handler"
 spec:
+  updateStrategy:
+    type: RollingUpdate
   template:
     metadata:
       name: virt-handler
@@ -361,6 +483,8 @@ spec:
               mountPath: /var/run/kubevirt
             - name: virt-private-dir
               mountPath: /var/run/kubevirt-private
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
           env:
             - name: NODE_NAME
               valueFrom:
@@ -376,7 +500,10 @@ spec:
         - name: virt-private-dir
           hostPath:
             path: /var/run/kubevirt-private
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+{{index .GeneratedManifests "vmi-resource.yaml"}}
+{{index .GeneratedManifests "vmirs-resource.yaml"}}
+{{index .GeneratedManifests "vmipreset-resource.yaml"}}
 {{index .GeneratedManifests "vm-resource.yaml"}}
-{{index .GeneratedManifests "vmrs-resource.yaml"}}
-{{index .GeneratedManifests "vmpreset-resource.yaml"}}
-{{index .GeneratedManifests "ovm-resource.yaml"}}

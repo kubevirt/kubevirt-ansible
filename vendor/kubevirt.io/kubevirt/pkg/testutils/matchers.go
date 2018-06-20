@@ -85,7 +85,7 @@ func (matcher *representMimeTypeMatcher) Match(actual interface{}) (success bool
 }
 
 func (matcher *representMimeTypeMatcher) FailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Expected\n\t%#v\nto to be of type\n\t%#v", string(matcher.body), matcher.expected)
+	return fmt.Sprintf("Expected\n\t%#v\not to be of type\n\t%#v", string(matcher.body), matcher.expected)
 }
 
 func (matcher *representMimeTypeMatcher) NegatedFailureMessage(actual interface{}) (message string) {
@@ -132,7 +132,7 @@ func (matcher *haveBodyEqualToMatcher) FailureMessage(actual interface{}) (messa
 	if matcher.err != nil {
 		return fmt.Sprintf("Deserializing the runtime object failed with %v", matcher.err)
 	} else {
-		return fmt.Sprintf("Expected\n\t%#v\nto to be equal to\n\t%#v", matcher.obj, matcher.expected)
+		return fmt.Sprintf("Expected\n\t%#v\not to be equal to\n\t%#v", matcher.obj, matcher.expected)
 	}
 }
 
@@ -176,11 +176,23 @@ func (matcher *haveStatusCodeMatcher) Match(actual interface{}) (success bool, e
 }
 
 func (matcher *haveStatusCodeMatcher) FailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Expected status code \n\t%#v\nto to be\n\t%#v", matcher.statusCode, matcher.expected)
+	return fmt.Sprintf("Expected status code \n\t%#v\not to be\n\t%#v", matcher.statusCode, matcher.expected)
 }
 
 func (matcher *haveStatusCodeMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return fmt.Sprintf("Expected status code \n\t%#v\nnot to be\n\t%#v", matcher.statusCode, matcher.expected)
+}
+
+// In case we don't care about emitted events, we simply consume all of them and return.
+func IgnoreEvents(recorder *record.FakeRecorder) {
+loop:
+	for {
+		select {
+		case <-recorder.Events:
+		default:
+			break loop
+		}
+	}
 }
 
 func ExpectEvent(recorder *record.FakeRecorder, reason string) {
