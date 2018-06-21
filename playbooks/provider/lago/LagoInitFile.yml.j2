@@ -19,8 +19,6 @@ host-settings: &nodes-settings
     groups: [nodes]
 {% endif %}
     memory: 2047
-    nics:
-      - net: lago-management-network
     disks:
       - template_name: el7.5-base
         type: template
@@ -52,7 +50,8 @@ domains:
 {% endif %}
     memory: 4096
     nics:
-      - net: lago-management-network
+      - ip: 192.168.200.2
+        net: lago-management-network
     disks:
       - template_name: el7.5-base
         type: template
@@ -82,12 +81,23 @@ domains:
 
   lago-node0:
     <<: *nodes-settings
+    nics:
+      - ip: 192.168.200.3
+        net: lago-management-network
 
   lago-node1:
     <<: *nodes-settings
+    nics:
+      - ip: 192.168.200.4
+        net: lago-management-network
 
 nets:
   lago-management-network:
     <<: *nat-settings
     management: true
     dns_domain_name: lago.local
+    gw: 192.168.200.1
+{% if storage_role|default('') == 'storage-glusterfs' %}
+    dns_records:
+      heketi-storage-app-storage.cloudapps.example.com: 192.168.200.3
+{% endif %}
