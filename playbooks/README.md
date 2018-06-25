@@ -141,6 +141,17 @@ create the StorageClass.
 
 **Cinder**
 
+### SELinux
+
+In case you are experiencing permission or SELinux issues,
+you can disable SELinux by running following playbook.
+
+```bash
+$ ansible-playbook -i inventory -e "selinux=permissive" playbooks/selinux.yml
+```
+
+Be sure to update the [inventory file](../inventory) according to your OpenSift cluster configuration or use the file you used to deploy the cluster.
+
 [container_runtime]: https://github.com/openshift/openshift-ansible/tree/master/roles/container_runtime
 [docker-storage-setup]: https://docs.openshift.org/latest/install_config/install/host_preparation.html#configuring-docker-storage
 [container_runtime-defaults]: https://github.com/openshift/openshift-ansible/blob/master/roles/container_runtime/defaults/main.yml

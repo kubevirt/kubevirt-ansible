@@ -26,13 +26,13 @@
       import_role:
         name: lib_utils
 
-    - name: set SELinux to permissive mode
-      command: setenforce 0
+    - name: set SELinux to enforcing mode
+      command: setenforce 1
 
     - name: set SELinux to permissive mode under configuration file
       selinux:
         policy: targeted
-        state: permissive
+        state: enforcing
 
     - name: stop and disable firewalld
       register: result
