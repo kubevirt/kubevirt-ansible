@@ -1,4 +1,5 @@
-- hosts: localhost
+---
+- hosts: masters[0]
   connection: local
   gather_facts: False
   # unset http_proxy. required for running in the CI
@@ -7,4 +8,8 @@
   roles:
     - role: kubevirt
 
-- import_playbook: "{{ playbook_dir }}/storage.yml"
+- hosts: masters[0]
+  environment:
+    http_proxy: ""
+  roles:
+    - role: "cdi"

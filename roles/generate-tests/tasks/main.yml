@@ -1,0 +1,5 @@
+---
+- name: generate tests
+  make:
+    chdir: "{{ playbook_dir }}/.."
+    target: generate-tests

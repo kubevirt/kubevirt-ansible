@@ -7,7 +7,7 @@ This repository provides a collection of playbooks to
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
 
-**Tested on CentOS Linux release 7.5 (Core), OpenShift 3.9 and Ansible 2.4.2**
+**Tested on CentOS Linux release 7.5 (Core), OpenShift 3.9 and Ansible 2.5.3**
 
 ## Requirements
 
@@ -108,12 +108,6 @@ The playbook expects you have ```oc```, rpm package ```origin-clients```,
 installed and a config file in ```$HOME/.kube/config```.  Also make sure you
 indentified with the cluster using ```oc login```.
 
-Before installing KubeVirt on an existing OpenShift cluster, ensure that SELinux is disabled on all hosts:
-
-```bash
-$ ansible-playbook -i inventory playbooks/selinux.yml
-```
-
 Be sure to update the [inventory file](../inventory) according to your OpenSift cluster configuration or use the file you used to deploy the cluster.
 
 Install KubeVirt on your OpenShift cluster:
@@ -134,7 +128,7 @@ Following example is executing top level playbook `playbooks/automation/check-pa
 $ ansible-playbook -i inventory -e@vars/all.yml playbooks/automation/check-patch.yml
 ```
 
-See [Lago parameters documentation](./playbooks/provider/lago/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
+See [Lago parameters documentation](../playbooks/provider/lago/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
 
 ### Storage
 

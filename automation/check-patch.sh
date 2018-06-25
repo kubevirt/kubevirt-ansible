@@ -15,8 +15,22 @@ get_run_path() {
         echo "$PWD/deployment-$suffix"
 }
 
+on_exit() {
+    local run_path="${1:?}"
+    local skip_cleanup="${2:-false}"
+
+    collect_logs "$run_path"
+
+    if "$skip_cleanup"; then
+        echo "Skipping cleanup"
+    else
+        cleanup "$run_path"
+    fi
+}
+
 collect_logs() {
-    local run_path="$1"
+    set +e
+    local run_path="${1:?}"
     local artifacts_dir="exported-artifacts"
     local vms_logs="${artifacts_dir}/vms_logs"
 
@@ -37,10 +51,9 @@ collect_logs() {
 
 cleanup() {
     set +e
-    local run_path="$1"
-    collect_logs "$run_path"
-    lago --workdir "$run_path" destroy --yes \
-    || force_cleanup
+    local run_path="${1:?}"
+
+    lago --workdir "$run_path" destroy --yes || force_cleanup
 }
 
 force_cleanup() {
@@ -92,23 +105,21 @@ is_code_changed() {
     return $?
 }
 
-main() {
-    # cluster: Openshift or Kubernetes
+run() {
+    local run_path="${1:?}"
+    local cluster="${2:?}"
 
-    local cluster="${CLUSTER:-openshift}"
     local ansible_modules_version="${ANSIBLE_MODULES_VERSION:-openshift-ansible-3.7.29-1}"
     local kubevirt_openshift_version="${OPENSHIFT_VERSION:-3.7}"
     local openshift_playbook_path="${OPENSHIFT_PLAYBOOK_PATH:-playbooks/byo/config.yml}"
     local provider="${PROVIDER:-lago}"
-    local run_path="$(get_run_path "$cluster")"
     local args=("prefix=$run_path")
     local inventory_file="$(realpath inventory)"
-    local storage_role="${STORAGE_ROLE:-storage-none}"
-
-    trap "cleanup $run_path" EXIT
+    local storage_role="${STORAGE_ROLE:-storage-glusterfs}"
 
     set_params
     install_requirements
+    ansible --version
 
     if [[ "$cluster" == "openshift" ]]; then
         [[ -e openshift-ansible ]] \
@@ -151,6 +162,9 @@ main() {
         -e "${args[*]}" \
         playbooks/automation/check-patch.yml
 
+    # Run integration tests
+    http_proxy="" make test
+
     # Deprovision resources
     ansible-playbook \
         -u root \
@@ -160,10 +174,86 @@ main() {
         playbooks/automation/deprovision.yml
 }
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+usage() {
+    echo "
+
+Deploy a cluster, deploy Kubevirt, and run tests
+
+Optional arguments:
+    -h,--help
+        Show this message and quite
+
+    --only-cleanup
+        Destroy the environment and quite
+
+    --skip-cleanup
+        Don't destroy the environment on exit
+"
+}
+
+main() {
+    echo "$@"
+    local options
+    local only_cleanup=false
+    local skip_cleanup=false
+    local cluster="${CLUSTER:-openshift}" # Openshift or Kubernetes
+    local run_path="${PWD}/deployment-${cluster}"
+
+    options=$( \
+        getopt \
+            -o h \
+            --long help,only-cleanup,skip-cleanup \
+            -n 'check-patch.sh' \
+            -- "$@" \
+    )
+
+    if [[ "$?" != "0" ]]; then
+        echo "Failed to parse cmd line arguments" && exit 1
+    fi
+
+    eval set -- "$options"
+
+    while true; do
+        case $1 in
+            -h|--help)
+                usage
+                exit 0
+                ;;
+            --only-cleanup)
+                only_cleanup=true
+                shift
+                ;;
+            --skip-cleanup)
+                skip_cleanup=true
+                shift
+                ;;
+            --)
+                shift
+                break
+            ;;
+            *)
+                echo "Unknown flag $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    "$only_cleanup" && {
+        echo "Only running cleanup"
+        cleanup "$run_path"
+        exit $?
+    }
+
     is_code_changed || {
         echo 'Code did not changed, skipping tests...'
         exit 0
     }
-    main "$@"
-fi
+
+    # When cleanup is skipped, the run path should be deterministic
+    "$skip_cleanup" || run_path="$(get_run_path "$cluster")"
+    trap "on_exit $run_path $skip_cleanup" EXIT
+
+    run "$run_path" "$cluster"
+}
+
+[[ "${BASH_SOURCE[0]}" == "$0" ]] && main "$@"

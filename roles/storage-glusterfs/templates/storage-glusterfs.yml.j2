@@ -26,6 +26,9 @@ parameters:
   restuser: admin
   secretName: "kubevirt-heketi-secret"
   secretNamespace: "{{ glusterfs_namespace }}"
+{% if external_provisioner %}
+  snapfactor: "3.0"
+{% endif %}
   volumeoptions: "group virt"
 {% if external_provisioner %}
 ---

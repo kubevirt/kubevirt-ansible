@@ -7,9 +7,6 @@
 - name: Delete {{ cdi_namespace }} ResourceQuota
   command: kubectl delete -f /tmp/cdi-deprovision-resourcequota.yml -n {{ cdi_namespace }} --ignore-not-found
 
-- name: Delete clusterrolebinding for c-{{ cdi_namespace }}-default if found
-  command: kubectl delete clusterrolebinding c-{{ cdi_namespace }}-default --ignore-not-found
-
 - name: Render CDI deprovision yaml
   template:
     src:  cdi-controller-deployment.yml

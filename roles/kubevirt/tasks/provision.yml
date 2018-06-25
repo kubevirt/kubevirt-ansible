@@ -15,42 +15,44 @@
 
 - name: Add Privileged Policy
   command: "oc adm policy add-scc-to-user privileged -z {{ item }} -n {{ namespace }}"
-  with_items:
-    - kubevirt-privileged
-    - kubevirt-controller
-    - kubevirt-infra  # For KubeVirt v0.2.0
+  with_items: "{{ kubevirt_privileged_policies | list }}"
   when: cluster=="openshift"
 
 - name: Add Hostmount-anyuid Policy
   command: "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
   when: cluster=="openshift"
 
-- name: Check for kubevirt.yml template in {{ kubevirt_template_dir }}
+- name: Check for kubevirt.yaml.j2 template in {{ kubevirt_template_dir }}
   stat:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yml"
+    path: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
   register: byo_template
+
+- name: Check for offline v{{ version }} templates in {{ offline_template_dir }}
+  stat:
+    path: "{{ offline_template_dir }}/v{{ version }}/kubevirt.yaml"
+  register: offline_templates
+  when: byo_template.stat.exists == False
 
 - name: Download KubeVirt Template
   get_url:
-    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml"
-    dest: "/tmp/kubevirt.yml"
-  when: byo_template.stat.exists == False
+    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
+    dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+  when: byo_template.stat.exists == False and offline_templates.stat.exists == False
 
-- name: Render KubeVirt Yml
-  replace:
-    path: "/tmp/kubevirt.yml"
-    regexp: "namespace: kube-system"
-    replace: "namespace: {{ namespace }}"
-  when: byo_template.stat.exists == False
+- name: Copy offline templates to /tmp
+  copy:
+    src: "{{ offline_template_dir }}/v{{ version }}/kubevirt.yaml"
+    dest: "/tmp/kubevirt.yaml"
+  when: offline_templates.changed and offline_templates.stat.exists == True
 
-- name: Render BYO template
+- name: Render KubeVirt Yaml
   template:
-    src: "{{ kubevirt_template_dir }}/kubevirt.yml"
-    dest: /tmp/kubevirt.yml
-  when: byo_template.stat.exists == True
+    src: "kubevirt.yaml.j2"
+    dest: "/tmp/kubevirt.yaml"
+  when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
 
 - name: Create KubeVirt Resources
-  command: kubectl apply -f /tmp/kubevirt.yml
+  command: kubectl apply -f /tmp/kubevirt.yaml
 
 - name: Check for vm templates in {{ kubevirt_template_dir }}
   stat:
@@ -66,13 +68,37 @@
   with_items: "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list }}"
   when: "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length > 0 }}"
 
+- name: Check for vm templates in {{ offline_template_dir }}
+  stat:
+    path: "{{ offline_template_dir }}/v{{ version }}/{{ item }}.yaml"
+  with_items:
+    - "{{ default_vm_templates }}"
+  register: offline_vm_templates
+
+- name: Copy VM templates to /tmp
+  copy:
+    src: "{{ offline_template_dir }}/v{{ version }}/{{ item }}.yaml"
+    dest: "/tmp/{{ item }}.yaml"
+  with_items: "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+  when: "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length > 0 }}"
+
+- name: Set the default VM templates URL
+  set_fact:
+    templates_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster/examples"
+  when: version[2] | int > 6
+
+- name: Set the default VM templates URL
+  set_fact:
+    templates_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster"
+  when: version[2] | int < 7
+
 - name: Download KubeVirt default VM templates
   get_url:
-    url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster/{{ item }}.yaml"
+    url: "{{ templates_url }}/{{ item }}.yaml"
     dest: "/tmp/{{ item }}.yaml"
   with_items:
     - "{{ default_vm_templates }}"
-  when: cluster == "openshift" and "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}"
+  when: cluster == "openshift" and "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}" and "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}"
 
 - name: Create default VM templates in OpenShift Namespace
   shell: "oc apply -f /tmp/{{ item }}.yaml -n openshift"
