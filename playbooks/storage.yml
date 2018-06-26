@@ -7,7 +7,6 @@
     http_proxy: ""
   roles:
     - role: "{{ storage_role }}"
-    - role: "cdi"
 
 - hosts: masters nodes
   vars:
