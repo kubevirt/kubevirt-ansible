@@ -1,3 +1,5 @@
+// +build !linux !go1.9 appengine
+
 /*
  *
  * Copyright 2018 gRPC authors.
@@ -16,12 +18,9 @@
  *
  */
 
-//go:generate protoc --go_out=plugins=:$GOPATH/src grpc_lb_v1/messages/messages.proto
-//go:generate protoc --go_out=plugins=grpc:$GOPATH/src grpc_lb_v1/service/service.proto
+package channelz
 
-// Package grpclb is a dummy package for generating code.  Look at balancer/grpclb instead.
-package grpclb
-
-func init() {
-	panic("Don't import this package. For grpclb, see package google.golang.org/grpc/balancer/grpclb")
+// GetSocketOption gets the socket option info of the conn.
+func GetSocketOption(c interface{}) *SocketOptionData {
+	return nil
 }
