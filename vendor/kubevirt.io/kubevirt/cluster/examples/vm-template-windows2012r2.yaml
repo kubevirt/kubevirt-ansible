@@ -22,8 +22,6 @@ objects:
     running: false
     template:
       metadata:
-        annotations:
-          alpha.kubevirt.io/interface-model: e1000
         creationTimestamp: null
         labels:
           kubevirt-vm: vm-${NAME}
@@ -39,7 +37,8 @@ objects:
               rtc:
                 tickPolicy: catchup
             utc: {}
-          cpu: ${{CPU_CORES}}
+          cpu:
+            cores: ${{CPU_CORES}}
           devices:
             disks:
             - disk:
@@ -50,6 +49,10 @@ objects:
                 bus: virtio
               name: disk0
               volumeName: disk0-pvc
+            interfaces:
+            - bridge: {}
+              model: e1000
+              name: default
           features:
             acpi: {}
             apic: {}
@@ -65,6 +68,9 @@ objects:
           resources:
             requests:
               memory: ${MEMORY}
+        networks:
+        - name: default
+          pod: {}
         terminationGracePeriodSeconds: 0
         volumes:
         - name: pvcvolume
