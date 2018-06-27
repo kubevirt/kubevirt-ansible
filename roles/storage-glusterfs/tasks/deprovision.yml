@@ -9,7 +9,10 @@
     glusterfs_name_label: "{{ glusterfs_name }}{% if glusterfs_name %}-{% endif %}"
 
 - name: Determine the heketi route
-  command: "oc get route -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}route -o jsonpath='{.items[0].spec.host}'"
+  command: > 
+    oc get route -n {{ glusterfs_namespace }} 
+    -l heketi={{ glusterfs_name_label }}route 
+    -o jsonpath='{.items[0].spec.host}'
   register: route_cmd
   when:
     - cluster == 'openshift'
@@ -22,14 +25,20 @@
     - route_cmd is defined
 
 - name: Determine the heketi route for k8s, IP
-  command: "kubectl get pod -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}pod -o jsonpath='{.items[0].status.podIP}'"
+  command: >
+    kubectl get pod -n {{ glusterfs_namespace }} 
+    -l heketi={{ glusterfs_name_label }}pod 
+    -o jsonpath='{.items[0].status.podIP}'
   register: heketi_pod_ip
   when:
     - cluster == 'kubernetes'
     - heketi_url is not defined
 
 - name: Determine the heketi route for k8s, port
-  command: "kubectl get pod -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}pod -o jsonpath='{.items[0].spec.containers[0].ports[0].containerPort}'"
+  command: > 
+    kubectl get pod -n {{ glusterfs_namespace }} 
+    -l heketi={{ glusterfs_name_label }}pod 
+    -o jsonpath='{.items[0].spec.containers[0].ports[0].containerPort}'
   register: heketi_pod_port
   when:
     - cluster == 'kubernetes'
@@ -44,7 +53,11 @@
     - heketi_pod_port is defined
 
 - name: Get heketi admin key
-  shell: "kubectl get pod -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}pod -o jsonpath='{.items[0].spec.containers[0].env[?(@.name==\"HEKETI_ADMIN_KEY\")].value}' | base64 -"
+  shell: > 
+    kubectl get pod -n {{ glusterfs_namespace }} 
+    -l heketi={{ glusterfs_name_label }}pod 
+    -o jsonpath='{.items[0].spec.containers[0].env[?(@.name==\"HEKETI_ADMIN_KEY\")].value}' 
+    | base64 -
   register: key_cmd
   when: heketi_admin_key is not defined
 
