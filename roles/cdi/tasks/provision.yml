@@ -18,6 +18,8 @@
   when: ns.stdout != cdi_namespace
         and cli.stdout == "oc"
 
+- include_tasks: version.yml
+
 - name: Render {{ cdi_namespace }} ResourceQuota deployment yaml
   template:
     src:  cdi-resourcequota.yml
@@ -33,4 +35,3 @@
 
 - name: Create CDI deployment
   command: "kubectl apply -f /tmp/cdi-provision.yml -n {{ cdi_namespace }}"
-

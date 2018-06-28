@@ -1,1 +1,3 @@
 - import_playbook: "{{ playbook_dir }}/../kubevirt.yml"
+  vars:
+     kubevirt_version: "{{ kubevirt_version }}"

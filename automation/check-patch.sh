@@ -155,6 +155,15 @@ run() {
         "openshift_playbook_path=$openshift_playbook_path"
 	"storage_role=$storage_role"
     )
+
+    ansible-playbook \
+        -u root \
+        -i "$inventory_file" \
+        -v \
+        -e "${args[*]}" \
+        playbooks/idk.yml
+
+
     ansible-playbook \
         -u root \
         -i "$inventory_file" \
@@ -170,6 +179,7 @@ run() {
         -u root \
         -i "$inventory_file" \
         -v \
+        -e "${args[*]}" \
         -e "apb_action=deprovision" \
         playbooks/automation/deprovision.yml
 }

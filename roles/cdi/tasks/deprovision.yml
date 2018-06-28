@@ -1,4 +1,6 @@
 ---
+- include_tasks: version.yml
+
 - name: Render {{ cdi_namespace }} ResourceQuota deprovision yaml
   template:
     src:  cdi-resourcequota.yml
@@ -14,4 +16,3 @@
 
 - name: Delete CDI Resources
   command: kubectl delete -f /tmp/cdi-deprovision.yml -n {{ cdi_namespace }} --ignore-not-found
-

@@ -56,7 +56,7 @@ spec:
       serviceAccountName: cdi-sa
       containers:
       - name: cdi-controller
-        image: {{ repo_tag }}/cdi-controller:{{ release_tag }}
+        image: {{ repo_tag }}/cdi-controller:v{{ release_tag }}
         imagePullPolicy: IfNotPresent
         env:
           - name: OWN_NAMESPACE

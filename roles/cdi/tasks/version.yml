@@ -1,0 +1,15 @@
+---
+# 'version_compare' changes to 'version' in ansible-2.5
+- name: "Setting the cdi release_tag to 0.5 if release_tag: {{ release_tag }} is >= 1.0.0 and kubevirt_version: {{ kubevirt_version }} < 0.7.0"
+  set_fact: release_tag="0.5"
+  when: "{{ '1.0.0' is version(release_tag, '<=') }}
+  	and {{ '0.7.0' is version(kubevirt_version, '>') }}"
+
+# 'version_compare' changes to 'version' in ansible-2.5
+- name: "Setting the cdi release_tag to 1.0.0 if release_tag: {{ release_tag }} is < 1.0.0 and kubevirt_version: {{ kubevirt_version }} >= 0.7.0"
+  set_fact: release_tag="1.0.0"
+  when: "{{ '1.0.0' is version(release_tag, '>') }}
+  	and {{ '0.7.0' is version(kubevirt_version, '<=') }}"
+
+- debug:
+    msg: "Using release_tag: {{ release_tag }}"

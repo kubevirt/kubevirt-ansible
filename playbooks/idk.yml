@@ -1,0 +1,12 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: False
+  # unset http_proxy. required for running in the CI
+  environment:
+    http_proxy: ""
+  vars:
+    kubevirt_version: "0.7.0"
+    release_tag: "0.5.0"
+  roles:
+    - role: idk
