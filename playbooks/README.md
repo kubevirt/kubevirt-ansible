@@ -143,7 +143,7 @@ create the StorageClass.
 
 ### SELinux
 
-In case you are experiencing permission or SELinux issues please consider
+In case you are experiencing permission or SELinux issues, please consider
 creating an issue for [kubevirt](https://github.com/kubevirt/kubevirt/issues/) 
 and report what is not working for you.
 
