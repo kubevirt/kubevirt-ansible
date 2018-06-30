@@ -147,7 +147,7 @@ In case you are experiencing permission or SELinux issues, please consider
 creating an issue for [kubevirt](https://github.com/kubevirt/kubevirt/issues/) 
 and report what is not working for you.
 
-As and temporary workaroung, you can disable SELinux by running following playbook.
+As a temporary workaroung, you can disable SELinux by running following playbook.
 
 ```bash
 $ ansible-playbook -i inventory -e "selinux=permissive" playbooks/selinux.yml
