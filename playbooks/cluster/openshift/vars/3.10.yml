@@ -1,0 +1,7 @@
+openshift_image_tag: v3.10.0
+openshift_service_catalog_image_version: "{{ openshift_image_tag }}"
+openshift_additional_repos:
+  - name: openshift-3.10.0-rc.0
+    baseurl: https://plain.resources.ovirt.org/repos/origin/3.10/v3.10.0-rc.0/
+    enabled: yes
+    gpgcheck: no

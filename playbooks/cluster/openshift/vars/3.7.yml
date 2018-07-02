@@ -1,2 +1,0 @@
-openshift_image_tag: v3.7.0
-openshift_service_catalog_image_version: "{{ openshift_image_tag }}"
