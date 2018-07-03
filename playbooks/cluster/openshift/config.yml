@@ -43,9 +43,11 @@
       failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
 
     - name: install epel repository
-      package:
-        name: "{{ epel_release_rpm_url }}"
-        state: present
+      block:
+        - package:
+            name: "{{ epel_release_rpm_url }}"
+            state: present
+        - shell: rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
       when:
         - ansible_distribution in ["CentOS","RedHat"]
 
@@ -88,7 +90,7 @@
   tasks:
     - name: Pre-pull container images
       shell: docker pull "{{ item }}"
-      with_items: "{{ container_images }}"
+      with_items: "{{ container_images | default([]) }}"
 
 - import_playbook: "{{ openshift_ansible_dir | join_paths(openshift_playbook_path | default('playbooks/byo/config.yml')) }}"
 
