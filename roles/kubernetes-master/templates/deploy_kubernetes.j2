@@ -18,7 +18,7 @@ kubectl --namespace=kube-system patch ds weave-net -p '{"spec": {"template": {"s
 {% endraw %}
 
 # add to masters possibility to schedule pods
-kubectl taint nodes {{ groups['masters'][0] }} node-role.kubernetes.io/master:NoSchedule- || :
+kubectl taint nodes {{ ansible_fqdn }} node-role.kubernetes.io/master:NoSchedule- || :
 
 # add additional service accounts
 kubectl create clusterrolebinding add-on-cluster-admin --clusterrole=cluster-admin --serviceaccount=kube-system:default

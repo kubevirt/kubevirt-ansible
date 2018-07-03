@@ -1,5 +1,5 @@
 ---
-- hosts: all
+- hosts: masters nodes
   remote_user: root
   strategy: free
   vars:
@@ -26,13 +26,13 @@
       import_role:
         name: lib_utils
 
-    - name: set SELinux to permissive mode
-      command: setenforce 0
+    - name: set SELinux to enforcing mode
+      command: setenforce 1
 
     - name: set SELinux to permissive mode under configuration file
       selinux:
         policy: targeted
-        state: permissive
+        state: enforcing
 
     - name: stop and disable firewalld
       register: result
@@ -43,9 +43,11 @@
       failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
 
     - name: install epel repository
-      package:
-        name: "{{ epel_release_rpm_url }}"
-        state: present
+      block:
+        - package:
+            name: "{{ epel_release_rpm_url }}"
+            state: present
+        - shell: rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
       when:
         - ansible_distribution in ["CentOS","RedHat"]
 
@@ -82,13 +84,13 @@
 
 - import_playbook: "{{ openshift_ansible_dir }}/playbooks/prerequisites.yml"
 
-- hosts: all
+- hosts: masters nodes
   remote_user: root
   strategy: free
   tasks:
     - name: Pre-pull container images
       shell: docker pull "{{ item }}"
-      with_items: "{{ container_images }}"
+      with_items: "{{ container_images | default([]) }}"
 
 - import_playbook: "{{ openshift_ansible_dir | join_paths(openshift_playbook_path | default('playbooks/byo/config.yml')) }}"
 

@@ -43,8 +43,8 @@
         - name: Normalize inventory file
           replace:
             path: "{{ inventory_file }}"
-            regexp: 'groups=(.*)'
-            replace: '\1'
+            regexp: '\[groups=(.*)\]'
+            replace: '[\1]'
  
         - name: Refresh inventory
           meta: refresh_inventory
@@ -97,3 +97,16 @@
         openshift_node_labels:
           region: infra
           zone: default
+
+# For Openshift 3.10
+- hosts: nodes
+  tasks:
+    - name: Set openshift_node_group_name for nodes
+      set_fact:
+        openshift_node_group_name: node-config-infra-compute
+
+- hosts: masters
+  tasks:
+    - name: Set openshift_node_group_name for master
+      set_fact:
+        openshift_node_group_name: node-config-master

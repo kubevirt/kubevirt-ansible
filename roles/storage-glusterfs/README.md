@@ -18,3 +18,9 @@ or [gk-deploy](https://github.com/gluster/gluster-kubernetes/).
 | heketi_url | | | (Optional) The URL to the Heketi service. Auto-detected if unspecified. |
 | heketi_admin_key | | | (Optional) The key for calling Heketi as the user 'admin'. |
 | external_provisioner | false | <ul><li>true</li><li>false</li></ul> | Whether to use the external GlusterFS provisioner. Enables additional features. |
+
+### Usage
+
+```
+ansible-playbook -i inventory -e action=provision -e glusterfs_namespace=glusterfs -e storage_role=storage-glusterfs playbooks/storage.yml
+```

@@ -1,0 +1,8 @@
+- hosts: all
+  gather_facts: no
+  vars:
+    selinux: "enforcing"
+  tasks:
+    - name: "setenforce {{ selinux }}"
+      shell: "setenforce {{ selinux }}"
+      become: true

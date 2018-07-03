@@ -7,7 +7,7 @@ This repository provides a collection of playbooks to
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
 
-**Tested on CentOS Linux release 7.5 (Core), OpenShift 3.9 and Ansible 2.4.2**
+**Tested on CentOS Linux release 7.5 (Core), OpenShift 3.9 and Ansible 2.5.3**
 
 ## Requirements
 
@@ -140,6 +140,20 @@ All-in-one ephemeral storage.
 create the StorageClass.
 
 **Cinder**
+
+### SELinux
+
+In case you are experiencing permission or SELinux issues, please consider
+creating an issue for [kubevirt](https://github.com/kubevirt/kubevirt/issues/) 
+and report what is not working for you.
+
+As a temporary workaround, you can disable SELinux by running following playbook.
+
+```bash
+$ ansible-playbook -i inventory -e "selinux=permissive" playbooks/selinux.yml
+```
+
+Be sure to update the [inventory file](../inventory) according to your OpenSift cluster configuration or use the file you used to deploy the cluster.
 
 [container_runtime]: https://github.com/openshift/openshift-ansible/tree/master/roles/container_runtime
 [docker-storage-setup]: https://docs.openshift.org/latest/install_config/install/host_preparation.html#configuring-docker-storage

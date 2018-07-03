@@ -115,10 +115,11 @@ run() {
     local provider="${PROVIDER:-lago}"
     local args=("prefix=$run_path")
     local inventory_file="$(realpath inventory)"
-    local storage_role="${STORAGE_ROLE:-storage-none}"
+    local storage_role="${STORAGE_ROLE:-storage-glusterfs}"
 
     set_params
     install_requirements
+    ansible --version
 
     if [[ "$cluster" == "openshift" ]]; then
         [[ -e openshift-ansible ]] \
