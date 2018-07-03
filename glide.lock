@@ -1,5 +1,5 @@
-hash: eb872310fbf04f10f0e6eff1d2c8b5e30fc5d7dbb3d50f380f6bd2756310ecb1
-updated: 2018-06-26T14:55:30.577225576+03:00
+hash: 36cc5c7257cc2b689e1393fa9a3961ab06417a2248b6a6089e5eb13b42adb620
+updated: 2018-07-03T11:34:06.746601176+03:00
 imports:
 - name: github.com/onsi/ginkgo
   version: 11459a886d9cd66b319dac7ef1e917ee221372c9
@@ -36,7 +36,7 @@ imports:
   - matchers/support/goraph/util
   - types
 - name: kubevirt.io/kubevirt
-  version: 6e81cafc77bc7d2a4ac34f624ebef6e6b80c2e3f
+  version: 4cb8770ae9aadb41199d34a8d18f7d6aad98a3a0
   repo: https://github.com/kubevirt/kubevirt.git
   subpackages:
   - pkg/api/v1
@@ -46,6 +46,7 @@ imports:
   - pkg/log
   - pkg/precond
   - pkg/registry-disk
+  - pkg/util/net/dns
   - pkg/version
   - pkg/virt-controller/services
   - pkg/virtctl
@@ -218,7 +219,7 @@ testImports:
   - unicode/norm
   - width
 - name: google.golang.org/grpc
-  version: 4f70de23e6d83e800fe1b15bdd6e3e11b9a1f27a
+  version: d35d006431ef290500616acf0c1a5640a07f53a7
   subpackages:
   - codes
 - name: gopkg.in/inf.v0
@@ -362,6 +363,6 @@ testImports:
   - util/integer
   - util/workqueue
 - name: k8s.io/kube-openapi
-  version: 4cac20de16b951c103aa40c4bafbc8cefdd18a12
+  version: d83b052f768a50a309c692a9c271da3f3276ff88
   subpackages:
   - pkg/common

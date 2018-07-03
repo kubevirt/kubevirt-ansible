@@ -5,6 +5,7 @@ metadata:
   name: kubevirt.io:admin
   labels:
     kubevirt.io: ""
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
 rules:
   - apiGroups:
       - subresources.kubevirt.io
@@ -36,6 +37,7 @@ metadata:
   name: kubevirt.io:edit
   labels:
     kubevirt.io: ""
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
 rules:
   - apiGroups:
       - subresources.kubevirt.io
@@ -66,6 +68,7 @@ metadata:
   name: kubevirt.io:view
   labels:
     kubevirt.io: ""
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
 rules:
   - apiGroups:
       - kubevirt.io
@@ -371,6 +374,15 @@ spec:
   replicas: 2
   template:
     metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+        scheduler.alpha.kubernetes.io/tolerations: |
+                  [
+                    {
+                      "key": "CriticalAddonsOnly",
+                      "operator": "Exists"
+                    }
+                  ]
       labels:
         kubevirt.io: virt-api
     spec:
@@ -380,7 +392,7 @@ spec:
           image: {{ docker_prefix }}/virt-api:{{ docker_tag }}
           imagePullPolicy: IfNotPresent
           command:
-              - "/virt-api"
+              - "virt-api"
               - "--port"
               - "8443"
               - "--subresources-only"
@@ -408,6 +420,15 @@ spec:
   replicas: 2
   template:
     metadata:
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+        scheduler.alpha.kubernetes.io/tolerations: |
+                  [
+                    {
+                      "key": "CriticalAddonsOnly",
+                      "operator": "Exists"
+                    }
+                  ]
       labels:
         kubevirt.io: virt-controller
     spec:
@@ -417,7 +438,7 @@ spec:
           image: {{ docker_prefix }}/virt-controller:{{ docker_tag }}
           imagePullPolicy: IfNotPresent
           command:
-              - "/virt-controller"
+              - "virt-controller"
               - "--launcher-image"
               - "{{ docker_prefix }}/virt-launcher:{{ docker_tag }}"
               - "--port"
@@ -456,6 +477,15 @@ spec:
   template:
     metadata:
       name: virt-handler
+      annotations:
+        scheduler.alpha.kubernetes.io/critical-pod: ""
+        scheduler.alpha.kubernetes.io/tolerations: |
+                  [
+                    {
+                      "key": "CriticalAddonsOnly",
+                      "operator": "Exists"
+                    }
+                  ]
       labels:
         kubevirt.io: virt-handler
     spec:
@@ -469,7 +499,7 @@ spec:
           image: {{ docker_prefix }}/virt-handler:{{ docker_tag }}
           imagePullPolicy: IfNotPresent
           command:
-            - "/virt-handler"
+            - "virt-handler"
             - "-v"
             - "3"
             - "--hostname-override"
@@ -588,6 +618,8 @@ spec:
                                 type: boolean
                           name:
                             type: string
+                          serial:
+                            type: string
                           volumeName:
                             type: string
                         required:
@@ -598,8 +630,28 @@ spec:
                       items:
                         properties:
                           bridge: {}
+                          model:
+                            type: string
                           name:
                             type: string
+                          slirp:
+                            properties:
+                              ports:
+                                items:
+                                  properties:
+                                    name:
+                                      type: string
+                                    podPort:
+                                      format: int32
+                                      type: integer
+                                    port:
+                                      format: int32
+                                      type: integer
+                                    protocol:
+                                      type: string
+                                  required:
+                                  - port
+                                type: array
                         required:
                         - name
                       type: array
@@ -699,7 +751,10 @@ spec:
                 properties:
                   name:
                     type: string
-                  pod: {}
+                  pod:
+                    properties:
+                      vmNetworkCIDR:
+                        type: string
                 required:
                 - name
               type: array
@@ -781,6 +836,7 @@ status:
     kind: ""
     plural: ""
   conditions: null
+
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -877,6 +933,8 @@ spec:
                                         type: boolean
                                   name:
                                     type: string
+                                  serial:
+                                    type: string
                                   volumeName:
                                     type: string
                                 required:
@@ -887,8 +945,28 @@ spec:
                               items:
                                 properties:
                                   bridge: {}
+                                  model:
+                                    type: string
                                   name:
                                     type: string
+                                  slirp:
+                                    properties:
+                                      ports:
+                                        items:
+                                          properties:
+                                            name:
+                                              type: string
+                                            podPort:
+                                              format: int32
+                                              type: integer
+                                            port:
+                                              format: int32
+                                              type: integer
+                                            protocol:
+                                              type: string
+                                          required:
+                                          - port
+                                        type: array
                                 required:
                                 - name
                               type: array
@@ -988,7 +1066,10 @@ spec:
                         properties:
                           name:
                             type: string
-                          pod: {}
+                          pod:
+                            properties:
+                              vmNetworkCIDR:
+                                type: string
                         required:
                         - name
                       type: array
@@ -1067,6 +1148,7 @@ status:
     kind: ""
     plural: ""
   conditions: null
+
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -1147,6 +1229,8 @@ spec:
                                 type: boolean
                           name:
                             type: string
+                          serial:
+                            type: string
                           volumeName:
                             type: string
                         required:
@@ -1157,8 +1241,28 @@ spec:
                       items:
                         properties:
                           bridge: {}
+                          model:
+                            type: string
                           name:
                             type: string
+                          slirp:
+                            properties:
+                              ports:
+                                items:
+                                  properties:
+                                    name:
+                                      type: string
+                                    podPort:
+                                      format: int32
+                                      type: integer
+                                    port:
+                                      format: int32
+                                      type: integer
+                                    protocol:
+                                      type: string
+                                  required:
+                                  - port
+                                type: array
                         required:
                         - name
                       type: array
@@ -1237,6 +1341,12 @@ spec:
                       type: string
                   required:
                   - type
+                memory:
+                  properties:
+                    hugepages:
+                      properties:
+                        pageSize:
+                          type: string
                 resources:
                   properties:
                     limits:
@@ -1252,6 +1362,7 @@ status:
     kind: ""
     plural: ""
   conditions: null
+
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -1344,6 +1455,8 @@ spec:
                                         type: boolean
                                   name:
                                     type: string
+                                  serial:
+                                    type: string
                                   volumeName:
                                     type: string
                                 required:
@@ -1354,8 +1467,28 @@ spec:
                               items:
                                 properties:
                                   bridge: {}
+                                  model:
+                                    type: string
                                   name:
                                     type: string
+                                  slirp:
+                                    properties:
+                                      ports:
+                                        items:
+                                          properties:
+                                            name:
+                                              type: string
+                                            podPort:
+                                              format: int32
+                                              type: integer
+                                            port:
+                                              format: int32
+                                              type: integer
+                                            protocol:
+                                              type: string
+                                          required:
+                                          - port
+                                        type: array
                                 required:
                                 - name
                               type: array
@@ -1455,7 +1588,10 @@ spec:
                         properties:
                           name:
                             type: string
-                          pod: {}
+                          pod:
+                            properties:
+                              vmNetworkCIDR:
+                                type: string
                         required:
                         - name
                       type: array

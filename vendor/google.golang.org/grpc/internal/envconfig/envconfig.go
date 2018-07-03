@@ -1,5 +1,3 @@
-// +build !go1.9
-
 /*
  *
  * Copyright 2018 gRPC authors.
@@ -18,14 +16,20 @@
  *
  */
 
-package credentials
+// Package envconfig contains grpc settings configured by environment variables.
+package envconfig
 
 import (
-	"crypto/tls"
-	"net"
+	"os"
+	"strings"
 )
 
-type tlsConn struct {
-	*tls.Conn
-	rawConn net.Conn
-}
+const (
+	prefix   = "GRPC_GO_"
+	retryStr = prefix + "RETRY"
+)
+
+var (
+	// Retry is set if retry is explicitly enabled via "GRPC_GO_RETRY=on".
+	Retry = strings.EqualFold(os.Getenv(retryStr), "on")
+)

@@ -5,5 +5,5 @@ import:
 - package: github.com/onsi/gomega
   version: dcabb60a477c2b6f456df65037cb6708210fbb02
 - package: kubevirt.io/kubevirt
-  version: v0.7.0-alpha.4
+  version: v0.7.0-alpha.5
   repo:    https://github.com/kubevirt/kubevirt.git

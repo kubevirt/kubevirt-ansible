@@ -1,4 +1,4 @@
-// +build go1.9
+// +build go1.9,!appengine
 
 /*
  *
@@ -21,16 +21,9 @@
 package credentials
 
 import (
-	"crypto/tls"
 	"errors"
-	"net"
 	"syscall"
 )
-
-type tlsConn struct {
-	*tls.Conn
-	rawConn net.Conn
-}
 
 // implements the syscall.Conn interface
 func (c tlsConn) SyscallConn() (syscall.RawConn, error) {

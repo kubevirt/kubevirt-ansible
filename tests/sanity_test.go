@@ -1,9 +1,13 @@
 package tests_test
 
 import (
+	"fmt"
 	"flag"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
@@ -26,16 +30,31 @@ var _ = Describe("Sanity", func() {
 
 	Describe("Creating a VM", func() {
 		It("should success", func() {
-			err := virtClient.RestClient().Post().Resource(tests.VMIResource).Namespace(tests.NamespaceTestDefault).Body(vmi).Do().Error()
+			_, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(vmi)
 			Expect(err).To(BeNil())
 		})
 
-		It("should start it", func(done Done) {
-			obj, err := virtClient.RestClient().Post().Resource(tests.VMIResource).Namespace(tests.NamespaceTestDefault).Body(vmi).Do().Get()
+		It("should start it", func() {
+			vmi, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(vmi)
 			Expect(err).To(BeNil())
-			tests.WaitForSuccessfulVMIStart(obj)
+			
+			Eventually(func () bool {
+				vmis, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).List(&metav1.ListOptions{})
+				if err != nil {
+					return false
+				}
+				return len(vmis.Items) > 0
+			})
+			
+			vmi, err = virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Get(vmi.Name, &metav1.GetOptions{})
+			Expect(err).To(BeNil())
 
-			close(done)
-		}, 45)
+			for _, c := range vmi.Status.Conditions {
+				fmt.Println(c.Reason)
+				fmt.Println(c.Message)
+			}
+			
+			tests.WaitForSuccessfulVMIStart(vmi)
+		})
 	})
 })

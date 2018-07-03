@@ -32,6 +32,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/goexpect"
@@ -48,6 +49,7 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
+	k8sversion "k8s.io/apimachinery/pkg/version"
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
@@ -60,6 +62,7 @@ import (
 	"kubevirt.io/kubevirt/pkg/controller"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
+	"kubevirt.io/kubevirt/pkg/util/net/dns"
 	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 	"kubevirt.io/kubevirt/pkg/virtctl"
 )
@@ -1182,10 +1185,7 @@ func LoggedInCirrosExpecter(vmi *v1.VirtualMachineInstance) (expect.Expecter, er
 	if err != nil {
 		return nil, err
 	}
-	vmiName := vmi.Name
-	if vmi.Spec.Hostname != "" {
-		vmiName = vmi.Spec.Hostname
-	}
+	hostName := dns.SanitizeHostname(vmi)
 
 	// Do not login, if we already logged in
 	err = expecter.Send("\n")
@@ -1203,7 +1203,7 @@ func LoggedInCirrosExpecter(vmi *v1.VirtualMachineInstance) (expect.Expecter, er
 		&expect.BSnd{S: "\n"},
 		&expect.BExp{R: "login as 'cirros' user. default password: 'gocubsgo'. use 'sudo' for root."},
 		&expect.BSnd{S: "\n"},
-		&expect.BExp{R: vmiName + " login:"},
+		&expect.BExp{R: hostName + " login:"},
 		&expect.BSnd{S: "cirros\n"},
 		&expect.BExp{R: "Password:"},
 		&expect.BSnd{S: "gocubsgo\n"},
@@ -1434,4 +1434,25 @@ func GetNodeWithHugepages(virtClient kubecli.KubevirtClient, hugepages k8sv1.Res
 		}
 	}
 	return nil
+}
+
+// SkipIfVersionBelow will skip tests if it runs on an environment with k8s version below specified
+func SkipIfVersionBelow(message string, expectedVersion string) {
+	virtClient, err := kubecli.GetKubevirtClient()
+	PanicOnError(err)
+
+	response, err := virtClient.RestClient().Get().AbsPath("/version").DoRaw()
+	Expect(err).ToNot(HaveOccurred())
+
+	var info k8sversion.Info
+
+	err = json.Unmarshal(response, &info)
+	Expect(err).ToNot(HaveOccurred())
+
+	curVersion := strings.Split(info.GitVersion, "+")[0]
+	curVersion = strings.Trim(curVersion, "v")
+
+	if curVersion < expectedVersion {
+		Skip(message)
+	}
 }
