@@ -1,5 +1,5 @@
-hash: 36cc5c7257cc2b689e1393fa9a3961ab06417a2248b6a6089e5eb13b42adb620
-updated: 2018-07-03T11:34:06.746601176+03:00
+hash: 0ece4ec8bf754e47c987bba0f7173f29a08aadc2b476a653e56bb57ebcdd80b5
+updated: 2018-07-04T19:17:18.386872596+03:00
 imports:
 - name: github.com/onsi/ginkgo
   version: 11459a886d9cd66b319dac7ef1e917ee221372c9
@@ -36,7 +36,7 @@ imports:
   - matchers/support/goraph/util
   - types
 - name: kubevirt.io/kubevirt
-  version: 4cb8770ae9aadb41199d34a8d18f7d6aad98a3a0
+  version: b5b91243f540739eb5db61af89b2f1e5ba449dfa
   repo: https://github.com/kubevirt/kubevirt.git
   subpackages:
   - pkg/api/v1
@@ -83,9 +83,9 @@ testImports:
 - name: github.com/go-openapi/jsonreference
   version: 3fb327e6747da3043567ee86abd02bb6376b6be2
 - name: github.com/go-openapi/spec
-  version: bcff419492eeeb01f76e77d2ebc714dc97b607f5
+  version: 16284f9da51d5a5b5dc67c8109a99b014c4b7f0a
 - name: github.com/go-openapi/swag
-  version: 811b1089cde9dad18d4d0c2d09fbdbf28dbd27a5
+  version: 2b0bd4f193d011c203529df626a65d63cb8a79e8
 - name: github.com/go-stack/stack
   version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
 - name: github.com/gogo/protobuf
@@ -110,7 +110,7 @@ testImports:
 - name: github.com/google/btree
   version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/goexpect
-  version: 756071476d4175eed2d146a607574a92063d1f58
+  version: ab4b830a1d94b505ac5025eaa09ed950b329efa4
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/google/goterm
@@ -219,7 +219,7 @@ testImports:
   - unicode/norm
   - width
 - name: google.golang.org/grpc
-  version: d35d006431ef290500616acf0c1a5640a07f53a7
+  version: 40cd6b15e2880b88deb091b0fcb091694285fcb0
   subpackages:
   - codes
 - name: gopkg.in/inf.v0
