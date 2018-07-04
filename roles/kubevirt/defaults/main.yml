@@ -6,7 +6,7 @@ cluster: "openshift"
 apb_action: "provision"
 release_manifest_url: "https://github.com/kubevirt/kubevirt/releases/download"
 kubevirt_template_dir: "{{ role_path }}/templates"
-version: 0.6.0
+version: 0.7.0-alpha.4
 docker_tag: "v{{ version }}"
 
 offline_template_dir: "/opt/apb/kubevirt-templates"

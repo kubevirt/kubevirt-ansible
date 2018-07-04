@@ -1,15 +1,39 @@
+/*
+ * This file is part of the KubeVirt project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * Copyright 2017, 2018 Red Hat, Inc.
+ *
+ */
+
 package api
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net"
+	"os"
 	"path/filepath"
+	"regexp"
 
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
 	"strconv"
-
-	"os"
+	"strings"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/cloud-init"
@@ -21,8 +45,9 @@ import (
 )
 
 type ConverterContext struct {
+	UseEmulation   bool
 	Secrets        map[string]*k8sv1.Secret
-	VirtualMachine *v1.VirtualMachine
+	VirtualMachine *v1.VirtualMachineInstance
 }
 
 func Convert_v1_Disk_To_api_Disk(diskDevice *v1.Disk, disk *Disk, devicePerBus map[string]int) error {
@@ -48,12 +73,20 @@ func Convert_v1_Disk_To_api_Disk(diskDevice *v1.Disk, disk *Disk, devicePerBus m
 		disk.Target.Tray = string(diskDevice.CDRom.Tray)
 		disk.Target.Bus = diskDevice.CDRom.Bus
 		disk.Target.Device = makeDeviceName(diskDevice.CDRom.Bus, devicePerBus)
-		disk.ReadOnly = toApiReadOnly(*diskDevice.CDRom.ReadOnly)
+		if diskDevice.CDRom.ReadOnly != nil {
+			disk.ReadOnly = toApiReadOnly(*diskDevice.CDRom.ReadOnly)
+		} else {
+			disk.ReadOnly = toApiReadOnly(true)
+		}
 	}
 	disk.Driver = &DiskDriver{
 		Name: "qemu",
 	}
 	disk.Alias = &Alias{Name: diskDevice.Name}
+	if diskDevice.BootOrder != nil {
+		disk.BootOrder = &BootOrder{Order: *diskDevice.BootOrder}
+	}
+
 	return nil
 }
 
@@ -127,7 +160,7 @@ func Covert_v1_FilesystemVolumeSource_To_api_Disk(volumeName string, disk *Disk,
 	disk.Driver.Type = "raw"
 	disk.Source.File = filepath.Join(
 		"/var/run/kubevirt-private",
-		"vm-disks",
+		"vmi-disks",
 		volumeName,
 		"disk.img")
 	return nil
@@ -306,50 +339,62 @@ func Convert_v1_FeatureHyperv_To_api_FeatureHyperv(source *v1.FeatureHyperv, hyp
 	return nil
 }
 
-func Convert_v1_VirtualMachine_To_api_Domain(vm *v1.VirtualMachine, domain *Domain, c *ConverterContext) (err error) {
-	precond.MustNotBeNil(vm)
+func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, domain *Domain, c *ConverterContext) (err error) {
+	precond.MustNotBeNil(vmi)
 	precond.MustNotBeNil(domain)
 	precond.MustNotBeNil(c)
 
-	domain.Spec.Name = VMNamespaceKeyFunc(vm)
-	domain.ObjectMeta.Name = vm.ObjectMeta.Name
-	domain.ObjectMeta.Namespace = vm.ObjectMeta.Namespace
+	domain.Spec.Name = VMINamespaceKeyFunc(vmi)
+	domain.ObjectMeta.Name = vmi.ObjectMeta.Name
+	domain.ObjectMeta.Namespace = vmi.ObjectMeta.Namespace
 
-	// XXX Fix me properly we don't want automatic fallback to qemu
-	// We will solve this properly in https://github.com/kubevirt/kubevirt/pull/804
 	if _, err := os.Stat("/dev/kvm"); os.IsNotExist(err) {
-		domain.Spec.Type = "qemu"
+		if c.UseEmulation {
+			logger := log.DefaultLogger()
+			logger.Infof("Hardware emulation device '/dev/kvm' not present. Using software emulation.")
+			domain.Spec.Type = "qemu"
+		} else {
+			return fmt.Errorf("hardware emulation device '/dev/kvm' not present")
+		}
 	} else if err != nil {
 		return err
 	}
 
 	// Spec metadata
-	domain.Spec.Metadata.KubeVirt.UID = vm.UID
-	if vm.Spec.TerminationGracePeriodSeconds != nil {
-		domain.Spec.Metadata.KubeVirt.GracePeriod.DeletionGracePeriodSeconds = *vm.Spec.TerminationGracePeriodSeconds
+	domain.Spec.Metadata.KubeVirt.UID = vmi.UID
+	if vmi.Spec.TerminationGracePeriodSeconds != nil {
+		domain.Spec.Metadata.KubeVirt.GracePeriod.DeletionGracePeriodSeconds = *vmi.Spec.TerminationGracePeriodSeconds
 	}
 
 	domain.Spec.SysInfo = &SysInfo{}
-	if vm.Spec.Domain.Firmware != nil {
+	if vmi.Spec.Domain.Firmware != nil {
 		domain.Spec.SysInfo.System = []Entry{
 			{
 				Name:  "uuid",
-				Value: string(vm.Spec.Domain.Firmware.UUID),
+				Value: string(vmi.Spec.Domain.Firmware.UUID),
 			},
 		}
 	}
 
-	if v, ok := vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory]; ok {
-		domain.Spec.Memory = QuantityToMegaByte(v)
+	if v, ok := vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory]; ok {
+		if domain.Spec.Memory, err = QuantityToByte(v); err != nil {
+			return err
+		}
+	}
+
+	if vmi.Spec.Domain.Memory != nil && vmi.Spec.Domain.Memory.Hugepages != nil {
+		domain.Spec.MemoryBacking = &MemoryBacking{
+			HugePages: &HugePages{},
+		}
 	}
 
 	volumes := map[string]*v1.Volume{}
-	for _, volume := range vm.Spec.Volumes {
+	for _, volume := range vmi.Spec.Volumes {
 		volumes[volume.Name] = volume.DeepCopy()
 	}
 
 	devicePerBus := make(map[string]int)
-	for _, disk := range vm.Spec.Domain.Devices.Disks {
+	for _, disk := range vmi.Spec.Domain.Devices.Disks {
 		newDisk := Disk{}
 
 		err := Convert_v1_Disk_To_api_Disk(&disk, &newDisk, devicePerBus)
@@ -367,17 +412,17 @@ func Convert_v1_VirtualMachine_To_api_Domain(vm *v1.VirtualMachine, domain *Doma
 		domain.Spec.Devices.Disks = append(domain.Spec.Devices.Disks, newDisk)
 	}
 
-	if vm.Spec.Domain.Devices.Watchdog != nil {
+	if vmi.Spec.Domain.Devices.Watchdog != nil {
 		newWatchdog := &Watchdog{}
-		err := Convert_v1_Watchdog_To_api_Watchdog(vm.Spec.Domain.Devices.Watchdog, newWatchdog, c)
+		err := Convert_v1_Watchdog_To_api_Watchdog(vmi.Spec.Domain.Devices.Watchdog, newWatchdog, c)
 		if err != nil {
 			return err
 		}
 		domain.Spec.Devices.Watchdog = newWatchdog
 	}
 
-	if vm.Spec.Domain.Clock != nil {
-		clock := vm.Spec.Domain.Clock
+	if vmi.Spec.Domain.Clock != nil {
+		clock := vmi.Spec.Domain.Clock
 		newClock := &Clock{}
 		err := Convert_v1_Clock_To_api_Clock(clock, newClock, c)
 		if err != nil {
@@ -386,28 +431,28 @@ func Convert_v1_VirtualMachine_To_api_Domain(vm *v1.VirtualMachine, domain *Doma
 		domain.Spec.Clock = newClock
 	}
 
-	if vm.Spec.Domain.Features != nil {
+	if vmi.Spec.Domain.Features != nil {
 		domain.Spec.Features = &Features{}
-		err := Convert_v1_Features_To_api_Features(vm.Spec.Domain.Features, domain.Spec.Features, c)
+		err := Convert_v1_Features_To_api_Features(vmi.Spec.Domain.Features, domain.Spec.Features, c)
 		if err != nil {
 			return err
 		}
 	}
-	apiOst := &vm.Spec.Domain.Machine
+	apiOst := &vmi.Spec.Domain.Machine
 	err = Convert_v1_Machine_To_api_OSType(apiOst, &domain.Spec.OS.Type, c)
 	if err != nil {
 		return err
 	}
 
-	if vm.Spec.Domain.CPU != nil {
+	if vmi.Spec.Domain.CPU != nil {
 		domain.Spec.CPU.Topology = &CPUTopology{
 			Sockets: 1,
-			Cores:   vm.Spec.Domain.CPU.Cores,
+			Cores:   vmi.Spec.Domain.CPU.Cores,
 			Threads: 1,
 		}
 		domain.Spec.VCPU = &VCPU{
 			Placement: "static",
-			CPUs:      vm.Spec.Domain.CPU.Cores,
+			CPUs:      vmi.Spec.Domain.CPU.Cores,
 		}
 	}
 
@@ -432,7 +477,7 @@ func Convert_v1_VirtualMachine_To_api_Domain(vm *v1.VirtualMachine, domain *Doma
 			},
 			Source: &SerialSource{
 				Mode: "bind",
-				Path: fmt.Sprintf("/var/run/kubevirt-private/%s/%s/virt-serial%d", vm.ObjectMeta.Namespace, vm.ObjectMeta.Name, serialPort),
+				Path: fmt.Sprintf("/var/run/kubevirt-private/%s/%s/virt-serial%d", vmi.ObjectMeta.Namespace, vmi.ObjectMeta.Name, serialPort),
 			},
 		},
 	}
@@ -442,24 +487,183 @@ func Convert_v1_VirtualMachine_To_api_Domain(vm *v1.VirtualMachine, domain *Doma
 		{
 			Listen: &GraphicsListen{
 				Type:   "socket",
-				Socket: fmt.Sprintf("/var/run/kubevirt-private/%s/%s/virt-vnc", vm.ObjectMeta.Namespace, vm.ObjectMeta.Name),
+				Socket: fmt.Sprintf("/var/run/kubevirt-private/%s/%s/virt-vnc", vmi.ObjectMeta.Namespace, vmi.ObjectMeta.Name),
 			},
 			Type: "vnc",
 		},
 	}
 
+	getInterfaceType := func(iface *v1.Interface) string {
+		if iface.Slirp != nil {
+			// Slirp configuration works only with e1000 or rtl8139
+			if iface.Model != "e1000" && iface.Model != "rtl8139" {
+				log.Log.Infof("The network interface type of %s was changed to e1000 due to unsupported interface type by qemu slirp network", iface.Name)
+				return "e1000"
+			}
+			return iface.Model
+		}
+		if iface.Model != "" {
+			return iface.Model
+		}
+		return "virtio"
+	}
+
+	networks := map[string]*v1.Network{}
+	for _, network := range vmi.Spec.Networks {
+		networks[network.Name] = network.DeepCopy()
+	}
+
+	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
+		net, isExist := networks[iface.Name]
+		if !isExist {
+			return fmt.Errorf("failed to find network %s", iface.Name)
+		}
+
+		if net.Pod == nil {
+			return fmt.Errorf("network interface type not supported for %s", iface.Name)
+		}
+
+		if iface.Bridge != nil {
+			// TODO:(ihar) consider abstracting interface type conversion /
+			// detection into drivers
+			domainIface := Interface{
+				Model: &Model{
+					Type: getInterfaceType(&iface),
+				},
+				Type: "bridge",
+				Source: InterfaceSource{
+					Bridge: DefaultBridgeName,
+				},
+				Alias: &Alias{
+					Name: iface.Name,
+				},
+			}
+			domain.Spec.Devices.Interfaces = append(domain.Spec.Devices.Interfaces, domainIface)
+		} else if iface.Slirp != nil {
+			domainIface := Interface{
+				Model: &Model{
+					Type: getInterfaceType(&iface),
+				},
+				Type: "user",
+				Alias: &Alias{
+					Name: iface.Name,
+				},
+			}
+			domain.Spec.Devices.Interfaces = append(domain.Spec.Devices.Interfaces, domainIface)
+
+			// Create network interface
+			if domain.Spec.QEMUCmd == nil {
+				domain.Spec.QEMUCmd = &Commandline{}
+			}
+
+			if domain.Spec.QEMUCmd.QEMUArg == nil {
+				domain.Spec.QEMUCmd.QEMUArg = make([]Arg, 0)
+			}
+
+			err := createSlirpNetwork(iface, *net, domain)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }
 
-func SecretToLibvirtSecret(vm *v1.VirtualMachine, secretName string) string {
-	return fmt.Sprintf("%s-%s-%s---", secretName, vm.Namespace, vm.Name)
+func createSlirpNetwork(iface v1.Interface, network v1.Network, domain *Domain) error {
+	qemuArg := Arg{Value: fmt.Sprintf("user,id=%s", iface.Name)}
+
+	err := configVMCIDR(&qemuArg, iface, network)
+	if err != nil {
+		return err
+	}
+
+	err = configDNSSearchName(&qemuArg)
+	if err != nil {
+		return err
+	}
+
+	err = configPortForward(&qemuArg, iface)
+	if err != nil {
+		return err
+	}
+
+	domain.Spec.QEMUCmd.QEMUArg = append(domain.Spec.QEMUCmd.QEMUArg, Arg{Value: "-netdev"})
+	domain.Spec.QEMUCmd.QEMUArg = append(domain.Spec.QEMUCmd.QEMUArg, qemuArg)
+
+	return nil
 }
 
-func QuantityToMegaByte(quantity resource.Quantity) Memory {
-	return Memory{
-		Value: uint(quantity.ToDec().ScaledValue(6)),
-		Unit:  "MB",
+func configPortForward(qemuArg *Arg, iface v1.Interface) error {
+	if iface.Slirp.Ports == nil {
+		return nil
 	}
+
+	for _, forwardPort := range iface.Slirp.Ports {
+
+		if forwardPort.Port == 0 {
+			return fmt.Errorf("Port must be configured")
+		}
+
+		if forwardPort.Protocol == "" {
+			forwardPort.Protocol = DefaultProtocol
+		}
+
+		// Check if PodPort is configure If not Get the same Port as the vm port
+		if forwardPort.PodPort == 0 {
+			forwardPort.PodPort = forwardPort.Port
+		}
+
+		qemuArg.Value += fmt.Sprintf(",hostfwd=%s::%d-:%d", strings.ToLower(forwardPort.Protocol), forwardPort.PodPort, forwardPort.Port)
+
+	}
+
+	return nil
+}
+
+func configVMCIDR(qemuArg *Arg, iface v1.Interface, network v1.Network) error {
+	vmNetworkCIDR := ""
+	if network.Pod.VMNetworkCIDR != "" {
+		_, _, err := net.ParseCIDR(network.Pod.VMNetworkCIDR)
+		if err != nil {
+			return fmt.Errorf("Failed parsing CIDR %s", network.Pod.VMNetworkCIDR)
+		}
+		vmNetworkCIDR = network.Pod.VMNetworkCIDR
+	} else {
+		vmNetworkCIDR = DefaultVMCIDR
+	}
+
+	// Insert configuration to qemu commandline
+	qemuArg.Value += fmt.Sprintf(",net=%s", vmNetworkCIDR)
+
+	return nil
+}
+
+func configDNSSearchName(qemuArg *Arg) error {
+	_, dnsDoms, err := GetResolvConfDetailsFromPod()
+	if err != nil {
+		return err
+	}
+
+	for _, dom := range dnsDoms {
+		qemuArg.Value += fmt.Sprintf(",dnssearch=%s", dom)
+	}
+	return nil
+}
+
+func SecretToLibvirtSecret(vmi *v1.VirtualMachineInstance, secretName string) string {
+	return fmt.Sprintf("%s-%s-%s---", secretName, vmi.Namespace, vmi.Name)
+}
+
+func QuantityToByte(quantity resource.Quantity) (Memory, error) {
+	memorySize, _ := quantity.AsInt64()
+	if memorySize < 0 {
+		return Memory{Unit: "B"}, fmt.Errorf("Memory size '%s' must be greater than or equal to 0", quantity.String())
+	}
+	return Memory{
+		Value: uint64(memorySize),
+		Unit:  "B",
+	}, nil
 }
 
 func boolToOnOff(value *bool, defaultOn bool) string {
@@ -488,4 +692,85 @@ func boolToYesNo(value *bool, defaultYes bool) string {
 		return "yes"
 	}
 	return "no"
+}
+
+// returns nameservers [][]byte, searchdomains []string, error
+func GetResolvConfDetailsFromPod() ([][]byte, []string, error) {
+	b, err := ioutil.ReadFile(resolvConf)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	nameservers, err := ParseNameservers(string(b))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	searchDomains, err := ParseSearchDomains(string(b))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Log.Reason(err).Infof("Found nameservers in %s: %s", resolvConf, bytes.Join(nameservers, []byte{' '}))
+	log.Log.Reason(err).Infof("Found search domains in %s: %s", resolvConf, strings.Join(searchDomains, " "))
+
+	return nameservers, searchDomains, err
+}
+
+func ParseNameservers(content string) ([][]byte, error) {
+	var nameservers [][]byte
+
+	re, err := regexp.Compile("([0-9]{1,3}.?){4}")
+	if err != nil {
+		return nameservers, err
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(content))
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, nameserverPrefix) {
+			nameserver := re.FindString(line)
+			if nameserver != "" {
+				nameservers = append(nameservers, net.ParseIP(nameserver).To4())
+			}
+		}
+	}
+
+	if err = scanner.Err(); err != nil {
+		return nameservers, err
+	}
+
+	// apply a default DNS if none found from pod
+	if len(nameservers) == 0 {
+		nameservers = append(nameservers, net.ParseIP(defaultDNS).To4())
+	}
+
+	return nameservers, nil
+}
+
+func ParseSearchDomains(content string) ([]string, error) {
+	var searchDomains []string
+
+	scanner := bufio.NewScanner(strings.NewReader(content))
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, domainSearchPrefix) {
+			doms := strings.Fields(strings.TrimPrefix(line, domainSearchPrefix))
+			for _, dom := range doms {
+				searchDomains = append(searchDomains, dom)
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(searchDomains) == 0 {
+		searchDomains = append(searchDomains, defaultSearchDomain)
+	}
+
+	return searchDomains, nil
 }

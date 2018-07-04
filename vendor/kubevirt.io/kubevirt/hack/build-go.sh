@@ -21,6 +21,7 @@ set -e
 
 source hack/common.sh
 source hack/config.sh
+source hack/version.sh
 
 if [ -z "$1" ]; then
     target="install"
@@ -56,10 +57,19 @@ if [ $# -eq 0 ]; then
     fi
 fi
 
+# Return a pkgdir parameter based on os and arch
+function pkg_dir() {
+    if [ -n "${KUBEVIRT_GO_BASE_PKGDIR}" ]; then
+        echo "-pkgdir ${KUBEVIRT_GO_BASE_PKGDIR}/$1-$2"
+    fi
+}
+
 # handle binaries
 
 if [ "${target}" = "install" ]; then
-    rm -rf ${CMD_OUT_DIR}
+    # Delete all binaries which are not present in the binaries variable to avoid branch inconsistencies
+    to_delete=$(comm -23 <(find ${CMD_OUT_DIR} -mindepth 1 -maxdepth 1 -type d | sort) <(echo $binaries | sed -e 's/cmd\///g' -e 's/ /\n/g' | sed -e "s#^#${CMD_OUT_DIR}/#" | sort))
+    rm -rf ${to_delete}
 fi
 
 for arg in $args; do
@@ -79,13 +89,13 @@ for arg in $args; do
 
             # always build and link the linux/amd64 binary
             LINUX_NAME=${ARCH_BASENAME}-linux-amd64
-            GOOS=linux GOARCH=amd64 go build -o ${CMD_OUT_DIR}/${BIN_NAME}/${LINUX_NAME}
+            GOOS=linux GOARCH=amd64 go build -i -o ${CMD_OUT_DIR}/${BIN_NAME}/${LINUX_NAME} -ldflags "$(kubevirt::version::ldflags)" $(pkg_dir linux amd64)
             (cd ${CMD_OUT_DIR}/${BIN_NAME} && ln -sf ${LINUX_NAME} ${BIN_NAME})
 
             # build virtctl also for darwin and windows
             if [ "${BIN_NAME}" = "virtctl" ]; then
-                GOOS=darwin GOARCH=amd64 go build -o ${CMD_OUT_DIR}/${BIN_NAME}/${ARCH_BASENAME}-darwin-amd64
-                GOOS=windows GOARCH=amd64 go build -o ${CMD_OUT_DIR}/${BIN_NAME}/${ARCH_BASENAME}-windows-amd64.exe
+                GOOS=darwin GOARCH=amd64 go build -i -o ${CMD_OUT_DIR}/${BIN_NAME}/${ARCH_BASENAME}-darwin-amd64 -ldflags "$(kubevirt::version::ldflags)" $(pkg_dir darwin amd64)
+                GOOS=windows GOARCH=amd64 go build -i -o ${CMD_OUT_DIR}/${BIN_NAME}/${ARCH_BASENAME}-windows-amd64.exe -ldflags "$(kubevirt::version::ldflags)" $(pkg_dir windows amd64)
             fi
         )
     else

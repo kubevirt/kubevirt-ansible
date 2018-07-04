@@ -111,7 +111,7 @@ func SetDefaults_Firmware(obj *Firmware) {
 	}
 }
 
-func SetDefaults_VirtualMachine(obj *VirtualMachine) {
+func SetDefaults_VirtualMachineInstance(obj *VirtualMachineInstance) {
 	// FIXME we need proper validation and configurable defaulting instead of this
 	if _, exists := obj.Spec.Domain.Resources.Requests[v1.ResourceMemory]; !exists {
 		obj.Spec.Domain.Resources.Requests = v1.ResourceList{
@@ -129,9 +129,10 @@ func SetDefaults_VirtualMachine(obj *VirtualMachine) {
 		obj.Spec.Domain.Machine.Type = "q35"
 	}
 	setDefaults_DiskFromMachineType(obj)
+	SetDefaults_NetworkInterface(obj)
 }
 
-func setDefaults_DiskFromMachineType(obj *VirtualMachine) {
+func setDefaults_DiskFromMachineType(obj *VirtualMachineInstance) {
 	bus := diskBusFromMachine(obj.Spec.Domain.Machine.Type)
 
 	for i := range obj.Spec.Domain.Devices.Disks {
@@ -149,6 +150,44 @@ func setDefaults_DiskFromMachineType(obj *VirtualMachine) {
 			disk.LUN.Bus = bus
 		}
 	}
+}
+
+func SetDefaults_NetworkInterface(obj *VirtualMachineInstance) {
+	// Override only when nothing is specified
+	if len(obj.Spec.Networks) == 0 {
+		obj.Spec.Domain.Devices.Interfaces = []Interface{*DefaultNetworkInterface()}
+		obj.Spec.Networks = []Network{*DefaultPodNetwork()}
+	}
+}
+
+func DefaultNetworkInterface() *Interface {
+	iface := &Interface{
+		Name: "default",
+		InterfaceBindingMethod: InterfaceBindingMethod{
+			Bridge: &InterfaceBridge{},
+		},
+	}
+	return iface
+}
+
+func DefaultSlirpNetworkInterface() *Interface {
+	iface := &Interface{
+		Name: "default",
+		InterfaceBindingMethod: InterfaceBindingMethod{
+			Slirp: &InterfaceSlirp{},
+		},
+	}
+	return iface
+}
+
+func DefaultPodNetwork() *Network {
+	defaultNet := &Network{
+		Name: "default",
+		NetworkSource: NetworkSource{
+			Pod: &PodNetwork{},
+		},
+	}
+	return defaultNet
 }
 
 func diskBusFromMachine(machine string) string {

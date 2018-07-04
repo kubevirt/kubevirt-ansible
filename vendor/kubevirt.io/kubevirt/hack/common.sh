@@ -18,10 +18,21 @@ function build_func_tests() {
     mv ${KUBEVIRT_DIR}/tests/tests.test ${TESTS_OUT_DIR}/
 }
 
+KUBEVIRT_PROVIDER=${KUBEVIRT_PROVIDER:-k8s-1.10.3}
+KUBEVIRT_NUM_NODES=${KUBEVIRT_NUM_NODES:-1}
+
+# Use this environment variable to set a custom pkgdir path
+# Useful for cross-compilation where the default -pkdir for cross-builds may not be writable
+#KUBEVIRT_GO_BASE_PKGDIR="${GOPATH}/crossbuild-cache-root/"
+
+# If on a developer setup, expose ocp on 8443, so that the openshift web console can be used (the port is important because of auth redirects)
+if [ -z "${JOB_NAME}" ]; then
+    KUBEVIRT_PROVIDER_EXTRA_ARGS="${KUBEVIRT_PROVIDER_EXTRA_ARGS} --ocp-port 8443"
+fi
+
 #If run on jenkins, let us create isolated environments based on the job and
 # the executor number
-PROVIDER=${PROVIDER:-vagrant-kubernetes}
-provider_prefix=${JOB_NAME:-${PROVIDER}}${EXECUTOR_NUMBER}
+provider_prefix=${JOB_NAME:-${KUBEVIRT_PROVIDER}}${EXECUTOR_NUMBER}
 job_prefix=${JOB_NAME:-kubevirt}${EXECUTOR_NUMBER}
 
 # Populate an environment variable with the version info needed.

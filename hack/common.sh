@@ -10,5 +10,7 @@ TESTS_OUT_DIR=$OUT_DIR/tests
 function build_func_tests() {
     mkdir -p ${TESTS_OUT_DIR}/
     ginkgo build ${KUBEVIRT_ANSIBLE_DIR}/tests
+    ginkgo build ${KUBEVIRT_ANSIBLE_DIR}/tests/network
     mv ${KUBEVIRT_ANSIBLE_DIR}/tests/tests.test ${TESTS_OUT_DIR}/
+    mv ${KUBEVIRT_ANSIBLE_DIR}/tests/network/network.test ${TESTS_OUT_DIR}/
 }
