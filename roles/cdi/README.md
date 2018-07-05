@@ -9,7 +9,7 @@ This role deploys the CDI controller.
 | cdi_kubevirt_storageclass | kubevirt | |Storageclass that CDI will use to create PersistentVolumes. |
 | apb_action | provision |<ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
 | cdi_repo_tag | kubevirt | |CDI docker hub repo tag.|
-| cdi_release_tag | v0.5.0 | |CDI docker hub release tag.|
+| cdi_release_tag | v1.0.0 | |CDI docker hub release tag.|
 
 ### Usage
 
