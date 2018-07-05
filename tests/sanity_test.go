@@ -2,6 +2,7 @@ package tests_test
 
 import (
 	"flag"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -17,25 +18,24 @@ var _ = Describe("Sanity", func() {
 	virtClient, err := kubecli.GetKubevirtClient()
 	tests.PanicOnError(err)
 
-	var vm *v1.VirtualMachine
+	var vmi *v1.VirtualMachineInstance
 
 	BeforeEach(func() {
 		tests.BeforeTestCleanup()
-		vm = tests.NewRandomVMWithEphemeralDisk(tests.RegistryDiskFor(tests.RegistryDiskAlpine))
+		vmi = tests.NewRandomVMIWithEphemeralDisk(tests.RegistryDiskFor(tests.RegistryDiskAlpine))
 	})
 
 	Describe("Creating a VM", func() {
 		It("should success", func() {
-			err := virtClient.RestClient().Post().Resource(tests.VmResource).Namespace(tests.NamespaceTestDefault).Body(vm).Do().Error()
+			_, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(vmi)
 			Expect(err).To(BeNil())
 		})
 
-		It("should start it", func(done Done) {
-			obj, err := virtClient.RestClient().Post().Resource(tests.VmResource).Namespace(tests.NamespaceTestDefault).Body(vm).Do().Get()
+		It("should start it", func() {
+			vmi, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(vmi)
 			Expect(err).To(BeNil())
-			tests.WaitForSuccessfulVMStart(obj)
-
-			close(done)
-		}, 45)
+			
+			tests.WaitForSuccessfulVMIStart(vmi)
+		})
 	})
 })

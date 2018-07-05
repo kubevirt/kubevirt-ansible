@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Copyright 2017 Red Hat, Inc.
+ * Copyright 2017, 2018 Red Hat, Inc.
  *
  */
 
@@ -29,6 +29,7 @@ import (
 
 	"github.com/libvirt/libvirt-go"
 	"github.com/spf13/pflag"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
@@ -60,7 +61,8 @@ func markReady(readinessFile string) {
 
 func startCmdServer(socketPath string,
 	domainManager virtwrap.DomainManager,
-	stopChan chan struct{}) {
+	stopChan chan struct{},
+	options *cmdserver.ServerOptions) {
 
 	err := os.RemoveAll(socketPath)
 	if err != nil {
@@ -74,12 +76,32 @@ func startCmdServer(socketPath string,
 		panic(err)
 	}
 
-	err = cmdserver.RunServer(socketPath, domainManager, stopChan)
+	err = cmdserver.RunServer(socketPath, domainManager, stopChan, options)
 	if err != nil {
 		log.Log.Reason(err).Error("Failed to start virt-launcher cmd server")
 		panic(err)
 	}
 
+	// ensure the cmdserver is responsive before continuing
+	// PollImmediate breaks the poll loop when bool or err are returned OR if timeout occurs.
+	//
+	// Timing out causes an error to be returned
+	err = utilwait.PollImmediate(1*time.Second, 15*time.Second, func() (bool, error) {
+		client, err := cmdclient.GetClient(socketPath)
+		if err != nil {
+			return false, nil
+		}
+
+		err = client.Ping()
+		if err != nil {
+			return false, nil
+		}
+		return true, nil
+	})
+
+	if err != nil {
+		panic(fmt.Errorf("failed to connect to cmd server: %v", err))
+	}
 }
 
 func createLibvirtConnection() virtcli.Connection {
@@ -172,16 +194,41 @@ func initializeDirs(virtShareDir string,
 	}
 }
 
+func waitForDomainUUID(timeout time.Duration, domainManager virtwrap.DomainManager) string {
+	start := time.Now()
+
+	for time.Since(start) < timeout {
+		time.Sleep(time.Second)
+		list, err := domainManager.ListAllDomains()
+		if err != nil {
+			log.Log.Reason(err).Error("failed to retrieve domains from libvirt")
+			continue
+		}
+
+		if len(list) == 0 {
+			continue
+		}
+
+		domain := list[0]
+		if domain.Spec.UUID != "" {
+			log.Log.Infof("Detected domain with UUID %s", domain.Spec.UUID)
+			return domain.Spec.UUID
+		}
+	}
+
+	panic(fmt.Errorf("timed out waiting for domain to be defined"))
+}
+
 func waitForFinalNotify(deleteNotificationSent chan watch.Event,
 	domainManager virtwrap.DomainManager,
-	vm *v1.VirtualMachine) {
+	vm *v1.VirtualMachineInstance) {
 	// There are many conditions that can cause the qemu pid to exit that
-	// don't involve the VM's domain from being deleted from libvirt.
+	// don't involve the VirtualMachineInstance's domain from being deleted from libvirt.
 	//
-	// KillVM is idempotent. Making a call to KillVM here ensures that the deletion
-	// occurs regardless if the VM crashed unexpectidly or if virt-handler requested
+	// KillVMI is idempotent. Making a call to KillVMI here ensures that the deletion
+	// occurs regardless if the VirtualMachineInstance crashed unexpectedly or if virt-handler requested
 	// a graceful shutdown.
-	domainManager.KillVM(vm)
+	domainManager.KillVMI(vm)
 
 	log.Log.Info("Waiting on final notifications to be sent to virt-handler.")
 
@@ -201,17 +248,22 @@ func main() {
 	qemuTimeout := flag.Duration("qemu-timeout", defaultStartTimeout, "Amount of time to wait for qemu")
 	virtShareDir := flag.String("kubevirt-share-dir", "/var/run/kubevirt", "Shared directory between virt-handler and virt-launcher")
 	ephemeralDiskDir := flag.String("ephemeral-disk-dir", "/var/run/libvirt/kubevirt-ephemeral-disk", "Base directory for ephemeral disk data")
-	name := flag.String("name", "", "Name of the VM")
-	namespace := flag.String("namespace", "", "Namespace of the VM")
+	name := flag.String("name", "", "Name of the VirtualMachineInstance")
+	namespace := flag.String("namespace", "", "Namespace of the VirtualMachineInstance")
 	watchdogInterval := flag.Duration("watchdog-update-interval", defaultWatchdogInterval, "Interval at which watchdog file should be updated")
-	readinessFile := flag.String("readiness-file", "/tmp/health", "Pod looks for tihs file to determine when virt-launcher is initialized")
-	gracePeriodSeconds := flag.Int("grace-period-seconds", 30, "Grace period to observe before sending SIGTERM to vm process.")
+	readinessFile := flag.String("readiness-file", "/tmp/health", "Pod looks for this file to determine when virt-launcher is initialized")
+	gracePeriodSeconds := flag.Int("grace-period-seconds", 30, "Grace period to observe before sending SIGTERM to vm process")
+	useEmulation := flag.Bool("use-emulation", false, "Use software emulation")
+
+	// set new default verbosity, was set to 0 by glog
+	flag.Set("v", "2")
+
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
 	log.InitializeLogging("virt-launcher")
 
-	vm := v1.NewVMReferenceFromNameWithNS(*namespace, *name)
+	vm := v1.NewVMIReferenceFromNameWithNS(*namespace, *name)
 
 	// Initialize local and shared directories
 	initializeDirs(*virtShareDir, *ephemeralDiskDir, *namespace, *name)
@@ -234,8 +286,9 @@ func main() {
 	// Start the virt-launcher command service.
 	// Clients can use this service to tell virt-launcher
 	// to start/stop virtual machines
+	options := cmdserver.NewServerOptions(*useEmulation)
 	socketPath := cmdclient.SocketFromNamespaceName(*virtShareDir, *namespace, *name)
-	startCmdServer(socketPath, domainManager, stopChan)
+	startCmdServer(socketPath, domainManager, stopChan, options)
 
 	watchdogFile := watchdog.WatchdogFileFromNamespaceName(*virtShareDir,
 		*namespace,
@@ -252,16 +305,12 @@ func main() {
 	}
 
 	shutdownCallback := func(pid int) {
-		err := domainManager.KillVM(vm)
+		err := domainManager.KillVMI(vm)
 		if err != nil {
 			log.Log.Reason(err).Errorf("Unable to stop qemu with libvirt, falling back to SIGTERM")
 			syscall.Kill(pid, syscall.SIGTERM)
 		}
 	}
-	mon := virtlauncher.NewProcessMonitor("qemu",
-		gracefulShutdownTriggerFile,
-		*gracePeriodSeconds,
-		shutdownCallback)
 
 	deleteNotificationSent := make(chan watch.Event, 10)
 	// Send domain notifications to virt-handler
@@ -271,6 +320,12 @@ func main() {
 	// This informs virt-controller that virt-launcher is ready to handle
 	// managing virtual machines.
 	markReady(*readinessFile)
+
+	domainUUID := waitForDomainUUID(*qemuTimeout, domainManager)
+	mon := virtlauncher.NewProcessMonitor(domainUUID,
+		gracefulShutdownTriggerFile,
+		*gracePeriodSeconds,
+		shutdownCallback)
 
 	// This is a wait loop that monitors the qemu pid. When the pid
 	// exits, the wait loop breaks.

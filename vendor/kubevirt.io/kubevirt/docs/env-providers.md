@@ -10,23 +10,24 @@ All following providers allow a common workflow:
  * `make functests` to run the functional tests against KubeVirt
  * `cluster/kubectl.sh` to talk to the k8s installation
 
-It is recommended to export the `PROVIDER` vagirable as part of your `.bashrc`
+It is recommended to export the `KUBEVIRT_PROVIDER` variable as part of your `.bashrc`
 file.
-## Vagrant
+
+## Dockerized k8s/ocp clusters
 
 Allows provisioning k8s cluster based on kubeadm. Supports an arbitrary amount
 of nodes.
 
 Requires:
  * A working go installation
- * Vagrant installation with libvirt provider
  * Nested virtualization enabled
+ * A running docker daemon
 
 Usage:
 
 ```bash
-export PROVIDER=vagrant-kubernetes # choose this provider
-export VAGRANT_NUM_NODES=2 # master + two nodes
+export KUBEVIRT_PROVIDER=k8s-1.10.4 # choose this provider
+export KUBEVIRT_NUM_NODES=3 # master + two nodes
 make cluster-up
 ```
 
@@ -42,13 +43,13 @@ Requires:
 Usage:
 
 ```bash
-export PROVIDER=local # choose this provider
+export KUBEVIRT_PROVIDER=local # choose this provider
 make cluster-up
 ```
 
 ## New Providers
 
- * Create a `cluster/$PROVIDER` directory
- * Create a `cluster/$PROVIDER/provider.sh` files
+ * Create a `cluster/$KUBEVIRT_PROVIDER` directory
+ * Create a `cluster/$KUBEVIRT_PROVIDER/provider.sh` files
  * This file has to contain the functions `up`, `build`, `down` and `_kubectl`
- * Have a look at `cluster/vagrant/provider.sh` for a reference implementation
+ * Have a look at `cluster/k8s-1.10.4/provider.sh` for a reference implementation

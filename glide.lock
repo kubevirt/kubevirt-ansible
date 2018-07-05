@@ -1,5 +1,5 @@
-hash: 563297636458e2f68f455063bbd7de89cb5455b842f91a84ae16c4d280bdee44
-updated: 2018-04-30T17:22:00.749333711+03:00
+hash: 0ece4ec8bf754e47c987bba0f7173f29a08aadc2b476a653e56bb57ebcdd80b5
+updated: 2018-07-04T19:17:18.386872596+03:00
 imports:
 - name: github.com/onsi/ginkgo
   version: 11459a886d9cd66b319dac7ef1e917ee221372c9
@@ -36,18 +36,25 @@ imports:
   - matchers/support/goraph/util
   - types
 - name: kubevirt.io/kubevirt
-  version: 04747283df41770829b41cc669c9b2c71b175892
+  version: b5b91243f540739eb5db61af89b2f1e5ba449dfa
   repo: https://github.com/kubevirt/kubevirt.git
   subpackages:
   - pkg/api/v1
   - pkg/controller
+  - pkg/ephemeral-disk-utils
   - pkg/kubecli
   - pkg/log
   - pkg/precond
+  - pkg/registry-disk
+  - pkg/util/net/dns
+  - pkg/version
+  - pkg/virt-controller/services
   - pkg/virtctl
   - pkg/virtctl/console
-  - pkg/virtctl/offlinevm
+  - pkg/virtctl/expose
   - pkg/virtctl/templates
+  - pkg/virtctl/version
+  - pkg/virtctl/vm
   - pkg/virtctl/vnc
   - tests
 testImports:
@@ -76,9 +83,9 @@ testImports:
 - name: github.com/go-openapi/jsonreference
   version: 3fb327e6747da3043567ee86abd02bb6376b6be2
 - name: github.com/go-openapi/spec
-  version: bcff419492eeeb01f76e77d2ebc714dc97b607f5
+  version: 16284f9da51d5a5b5dc67c8109a99b014c4b7f0a
 - name: github.com/go-openapi/swag
-  version: 811b1089cde9dad18d4d0c2d09fbdbf28dbd27a5
+  version: 2b0bd4f193d011c203529df626a65d63cb8a79e8
 - name: github.com/go-stack/stack
   version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
 - name: github.com/gogo/protobuf
@@ -89,11 +96,11 @@ testImports:
 - name: github.com/golang/glog
   version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - name: github.com/golang/mock
-  version: 87f106fccd7e3ced294a19e86bebd7846911690a
+  version: 22bbf0ddf08105dfa364d0a2fa619dfa71014af5
   subpackages:
   - gomock
 - name: github.com/golang/protobuf
-  version: 1643683e1b54a9e88ad26d98f81400c8c9d9f4f9
+  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
   subpackages:
   - proto
   - ptypes
@@ -103,11 +110,11 @@ testImports:
 - name: github.com/google/btree
   version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/goexpect
-  version: 756071476d4175eed2d146a607574a92063d1f58
+  version: ab4b830a1d94b505ac5025eaa09ed950b329efa4
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/google/goterm
-  version: a4092ec6825782fa1703cbaaeaf24ef377d5c9c4
+  version: 70e1c263818522aa1ecbdd34d7e143639d447ced
   subpackages:
   - term
 - name: github.com/googleapis/gnostic
@@ -133,7 +140,7 @@ testImports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/json-iterator/go
-  version: 2ddf6d758266fcb080a4f9e054b9f292c85e6798
+  version: f2b4162afba35581b6d4a50d3b8f34e33c144682
 - name: github.com/juju/ratelimit
   version: 5b9ff866471762aa2ab2dced63c9fb6f53921342
 - name: github.com/kr/logfmt
@@ -157,7 +164,7 @@ testImports:
 - name: github.com/PuerkitoBio/urlesc
   version: 5bd2802263f21d8788851d5305584c82a5c75d7e
 - name: github.com/spf13/cobra
-  version: a1f051bc3eba734da4772d60e2d677f47cf93ef4
+  version: ef82de70bb3f60c65fb8eebacbb2d122ef517385
   subpackages:
   - cobra
 - name: github.com/spf13/pflag
@@ -212,7 +219,7 @@ testImports:
   - unicode/norm
   - width
 - name: google.golang.org/grpc
-  version: fc37cf1364fafea48582b50bf6d4acf9880a980a
+  version: 40cd6b15e2880b88deb091b0fcb091694285fcb0
   subpackages:
   - codes
 - name: gopkg.in/inf.v0
@@ -356,6 +363,6 @@ testImports:
   - util/integer
   - util/workqueue
 - name: k8s.io/kube-openapi
-  version: 3a0c53868c9444e4224c3dd5dc2caa9b5107ff7b
+  version: d83b052f768a50a309c692a9c271da3f3276ff88
   subpackages:
   - pkg/common

@@ -21,6 +21,7 @@ package dhcp
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"net"
 	"regexp"
@@ -30,6 +31,8 @@ import (
 	dhcp "github.com/krolaw/dhcp4"
 	dhcpConn "github.com/krolaw/dhcp4/conn"
 	"github.com/vishvananda/netlink"
+
+	"os"
 
 	"kubevirt.io/kubevirt/pkg/log"
 )
@@ -53,14 +56,19 @@ func SingleClientDHCPServer(
 	routerIP net.IP,
 	dnsIPs [][]byte,
 	routes *[]netlink.Route,
-	searchDomains []string) error {
+	searchDomains []string,
+	mtu uint16) error {
 
 	log.Log.Info("Starting SingleClientDHCPServer")
+
+	mtuArray := make([]byte, 2)
+	binary.BigEndian.PutUint16(mtuArray, mtu)
 
 	dhcpOptions := dhcp.Options{
 		dhcp.OptionSubnetMask:       []byte(clientMask),
 		dhcp.OptionRouter:           []byte(routerIP),
 		dhcp.OptionDomainNameServer: bytes.Join(dnsIPs, nil),
+		dhcp.OptionInterfaceMTU:     mtuArray,
 	}
 
 	netRoutes := formClasslessRoutes(routes)
@@ -76,6 +84,12 @@ func SingleClientDHCPServer(
 	if searchDomainBytes != nil {
 		dhcpOptions[dhcp.OptionDomainSearch] = searchDomainBytes
 	}
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		return fmt.Errorf("reading the pods hostname failed: %v", err)
+	}
+	dhcpOptions[dhcp.OptionHostName] = []byte(hostname)
 
 	handler := &DHCPHandler{
 		clientIP:      clientIP,
@@ -106,26 +120,26 @@ type DHCPHandler struct {
 }
 
 func (h *DHCPHandler) ServeDHCP(p dhcp.Packet, msgType dhcp.MessageType, options dhcp.Options) (d dhcp.Packet) {
-	log.Log.Debug("Serving a new request")
+	log.Log.V(4).Info("Serving a new request")
 	if mac := p.CHAddr(); !bytes.Equal(mac, h.clientMAC) {
-		log.Log.Debug("The request is not from our client")
+		log.Log.V(4).Info("The request is not from our client")
 		return nil // Is not our client
 	}
 
 	switch msgType {
 
 	case dhcp.Discover:
-		log.Log.Debug("The request has message type DISCOVER")
+		log.Log.V(4).Info("The request has message type DISCOVER")
 		return dhcp.ReplyPacket(p, dhcp.Offer, h.serverIP, h.clientIP, h.leaseDuration,
 			h.options.SelectOrderOrAll(options[dhcp.OptionParameterRequestList]))
 
 	case dhcp.Request:
-		log.Log.Debug("The request has message type REQUEST")
+		log.Log.V(4).Info("The request has message type REQUEST")
 		return dhcp.ReplyPacket(p, dhcp.ACK, h.serverIP, h.clientIP, h.leaseDuration,
 			h.options.SelectOrderOrAll(options[dhcp.OptionParameterRequestList]))
 
 	default:
-		log.Log.Debug("The request has unhandled message type")
+		log.Log.V(4).Info("The request has unhandled message type")
 		return nil // Ignored message type
 
 	}

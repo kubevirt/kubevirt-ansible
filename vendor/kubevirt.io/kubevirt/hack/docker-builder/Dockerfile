@@ -20,6 +20,9 @@ RUN \
     go get -u github.com/Masterminds/glide && \
     go get golang.org/x/tools/cmd/goimports && \
     go get -u mvdan.cc/sh/cmd/shfmt && \
+    cd /go/src/mvdan.cc/sh/cmd/shfmt && \
+    git checkout v2.3.0 && \
+    go install && \
     go get -u github.com/golang/mock/gomock && \
     go get -u github.com/rmohr/mock/mockgen && \
     go get -u github.com/rmohr/go-swagger-utils/swagger-doc && \
@@ -36,6 +39,8 @@ RUN \
     cd /go/src/k8s.io/code-generator/cmd/openapi-gen && \
     git checkout release-1.9 && \
     go install
+
+RUN pip install j2cli
 
 ADD entrypoint.sh /entrypoint.sh
 
