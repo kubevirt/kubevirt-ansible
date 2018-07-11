@@ -2,6 +2,8 @@
 
 # This script is meant to be run within a mock environment, using
 # mock_runner.sh or chrooter, from the root of the repository.
+readonly ARTIFACTS_PATH="exported-artifacts"
+readonly VMS_LOGS_PATH="${ARTIFACTS_PATH}/vm_logs"
 
 get_run_path() {
     # if above ram_threshold KBs are available in /dev/shm, run there
@@ -16,10 +18,14 @@ get_run_path() {
 }
 
 on_exit() {
+    set +e
+
     local run_path="${1:?}"
     local skip_cleanup="${2:-false}"
 
-    collect_logs "$run_path"
+    collect_lago_log "$run_path" "$ARTIFACTS_PATH"
+    collect_logs_from_vms "$run_path" "${VMS_LOGS_PATH}/on_exit"
+    collect_ansible_log "$ARTIFACTS_PATH"
 
     if "$skip_cleanup"; then
         echo "Skipping cleanup"
@@ -28,25 +34,29 @@ on_exit() {
     fi
 }
 
-collect_logs() {
-    set +e
-    local run_path="${1:?}"
-    local artifacts_dir="exported-artifacts"
-    local vms_logs="${artifacts_dir}/vms_logs"
+collect_ansible_log() {
+    local dest="${1:?}"
 
-    mkdir -p "$vms_logs"
+    cp ansible.log "$dest"
+}
+
+collect_lago_log() {
+    local run_path="${1:?}"
+    local dest="${2:?}"
+
+    find "$run_path" \
+        -name lago.log \
+        -exec cp {} "$dest" \;
+}
+
+collect_logs_from_vms() {
+    local run_path="${1:?}"
+    local dest="${2:?}"
 
     lago \
         --workdir "$run_path" \
         collect \
-        --output "$vms_logs" \
-        || :
-
-    find "$run_path" \
-        -name lago.log \
-        -exec cp {} "$artifacts_dir" \;
-
-    cp ansible.log "$artifacts_dir"
+        --output "$dest"
 }
 
 cleanup() {
@@ -165,6 +175,8 @@ run() {
     # Run integration tests
     http_proxy="" make test
 
+    collect_logs_from_vms "$run_path" "${VMS_LOGS_PATH}/post_tests"
+
     # Deprovision resources
     ansible-playbook \
         -u root \
@@ -252,6 +264,9 @@ main() {
     # When cleanup is skipped, the run path should be deterministic
     "$skip_cleanup" || run_path="$(get_run_path "$cluster")"
     trap "on_exit $run_path $skip_cleanup" EXIT
+
+    mkdir -p "$ARTIFACTS_PATH"
+    mkdir -p "$VMS_LOGS_PATH"
 
     run "$run_path" "$cluster"
 }
