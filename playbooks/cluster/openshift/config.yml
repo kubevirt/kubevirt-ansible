@@ -6,7 +6,7 @@
     epel_release_rpm_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
     openshift_ansible_dir: "openshift-ansible/"
     openshift_playbook_path: "playbooks/byo/config.yml"
-    kubevirt_openshift_version: "3.7"
+    kubevirt_openshift_version: "3.10"
   tasks:
     - name: include_vars
       include_vars:
@@ -92,7 +92,7 @@
       shell: docker pull "{{ item }}"
       with_items: "{{ container_images | default([]) }}"
 
-- import_playbook: "{{ openshift_ansible_dir | join_paths(openshift_playbook_path | default('playbooks/byo/config.yml')) }}"
+- import_playbook: "{{ openshift_ansible_dir | join_paths(openshift_playbook_path | default('playbooks/deploy_cluster.yml')) }}"
 
 - hosts: masters
   tasks:
