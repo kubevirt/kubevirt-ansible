@@ -57,6 +57,13 @@
 - name: update repo cache for kubernetes repo
   command: yum -q makecache -y --disablerepo=* --enablerepo=kubernetes
 
+- name: install kubelet kubeadm kubectl with version
+  command: >
+    yum install -y kubelet-{{ kubernetes_version }}
+    kubectl-{{ kubernetes_version }}
+    kubeadm-{{ kubernetes_version }}
+  when: kubernetes_version is defined
+
 - name: install all kubernetes packages
   package: 
     name: "{{ item }}"

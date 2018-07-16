@@ -80,6 +80,14 @@ Make sure that you have **passwordless ssh access** to all machines of the clust
 $ ansible-playbook -i inventory playbooks/cluster/kubernetes/config.yml
 ```
 
+To deploy a specific version of Kubernetes, you can use the kubernetes_version
+variable listed in vars/all.yml. If vars/all.yml is not included the latest
+version will be installed.
+
+```bash
+$ ansible-playbook -i inventory -e@vars/all.yml playbooks/cluster/kubernetes/config.yml
+```
+
 ### OpenShift cluster
 
 Be sure that you have an **extra disk** attached to your machines

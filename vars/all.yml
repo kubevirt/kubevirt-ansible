@@ -34,3 +34,6 @@ kubevirt_web_ui_version: "v1.4.0-13"
 # Note: this assumes that PCI ID pools are the same on all nodes which may be
 # not the case in heterogeneous environment.
 sriov_pci_ids: ''
+
+### Kubernetes (upstream) ###
+kubernetes_version: '1.13.5'
