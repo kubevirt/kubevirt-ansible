@@ -5,6 +5,34 @@
         and admin_user is defined
         and admin_password is defined
 
+# Demo content
+- name: Check that demo-content.yaml still exists in /tmp
+  stat:
+    path: "/tmp/demo-content.yaml"
+  register: demo_content_manifest
+
+- name: Check for demo-content.yaml template in {{ kubevirt_template_dir }}
+  stat:
+    path: "{{ kubevirt_template_dir }}/demo-content.yaml"
+  register: byo_demo_content
+  when: demo_content_manifest.stat.exists == False
+
+- name: Download Demo Content
+  get_url:
+    url: "{{ release_manifest_url }}/v{{ version }}/demo-content.yaml"
+    dest: "{{ kubevirt_template_dir }}/demo-content.yaml"
+  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
+
+- name: Copy BYO Demo Content to /tmp
+  copy:
+    src: "{{ kubevirt_template_dir }}/demo-content.yaml"
+    dest: "/tmp/demo-content.yaml"
+  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
+
+- name: Delete Demo Content
+  command: kubectl delete --ignore-not-found=false -f /tmp/demo-content.yaml
+
+# KubeVirt manifests
 - name: Check that kubevirt.yaml still exists in /tmp
   stat:
     path: "/tmp/kubevirt.yaml"
