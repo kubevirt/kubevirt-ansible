@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	"kubevirt.io/kubevirt-ansible/tests"
 	ktests "kubevirt.io/kubevirt/tests"
+	"github.com/davecgh/go-spew/spew"
 )
 
 var _ = Describe("Importing and starting a VM using CDI", func() {
@@ -28,6 +29,13 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 
 		Specify("the PVC should become bound", func() {
 			tests.WaitUntilResourceReadyByNameTestNamespace("pvc", pvcName, "-o=jsonpath='{.metadata.annotations}'", "pv.kubernetes.io/bind-completed:yes pv.kubernetes.io/bound-by-controller:yes")
+
+
+			out, _ := ktests.RunOcCommand("describe", pvcName, "-n", tests.NamespaceTestDefault)
+			spew.Dump("================================================")
+			spew.Dump(out)
+			spew.Dump("================================================")
+
 		})
 
 		Specify("the importer-pod should become completed", func() {
@@ -41,6 +49,11 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 
 		Specify("the VM should be running", func() {
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmName, "-o=jsonpath='{.status.phase}'", "Running")
+
+			out, _ := ktests.RunOcCommand("describe", vmName, "-n", tests.NamespaceTestDefault)
+			spew.Dump("================================================")
+			spew.Dump(out)
+			spew.Dump("================================================")
 		})
 	})
 })
