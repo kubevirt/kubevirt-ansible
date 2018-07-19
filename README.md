@@ -18,6 +18,7 @@ KubeVirt Ansible consists of a set of Ansible playbooks that deploy fully functi
 
 ## Usage
 
+### Deploy
 To deploy KubeVirt on an existing OpenShift cluster run the command below. For more information on clusters and other deployment scenarious see [playbooks instructions](./playbooks/README.md).
 
 ```
@@ -25,6 +26,35 @@ ansible-playbook -i localhost playbooks/kubevirt.yml -e@vars/all.yml
 ```
 >**Note:** Check default variables in [vars/all.yml](./vars/all.yml) and update them if needed.
 
+### E2E Testing
+
+1. Ensure it is possible to login into the cluster
+
+```
+oc login
+```
+
+2. Compile tests from the [tests](./tests) directory inside the docker container and copy it to the `kubevirt-ansible/_out` directory.
+```
+make generate-tests
+```
+
+3. Run all the e2e tests with the `~/.kube/config` file
+
+```
+make test
+```
+
+or you can pass it to tests via:
+```
+./_out/tests/<name>.test -kubeconfig=your_kubeconfig -tag=kubevirt_images_tag -prefix=kubevirt -test.timeout 60m
+```
+
+>**Note:** To test PVC's `storage.import.endpoint` with other images, use the `STREAM_IMAGE_URL` environment variable:
+```
+export STREAM_IMAGE_URL=<the_image_url>
+```
+ 
 ## Questions ? Help ? Ideas ?
 
 Stop by the [#kubevirt](https://webchat.freenode.net/?channels=kubevirt) chat channel on freenode IRC
