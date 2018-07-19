@@ -99,5 +99,5 @@ nets:
     gw: 192.168.200.1
 {% if storage_role|default('') == 'storage-glusterfs' %}
     dns_records:
-      heketi-storage-app-storage.cloudapps.example.com: 192.168.200.3
+      heketi-storage-glusterfs.cloudapps.example.com: 192.168.200.3
 {% endif %}
