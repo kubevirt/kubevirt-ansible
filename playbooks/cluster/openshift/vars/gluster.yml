@@ -2,6 +2,8 @@
 openshift_storage_glusterfs_namespace: glusterfs
 # use opneshift glusterfs StorageClass
 openshift_storage_glusterfs_storageclass: true
+# set glusterfs as default StorageClass
+openshift_storage_glusterfs_storageclass_default: true
 # glusterblock functionality is not supported outside of Logging/Metrics
 openshift_storage_glusterfs_block_deploy: false
 # Disable any other default StorageClass
