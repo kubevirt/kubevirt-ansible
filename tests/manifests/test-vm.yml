@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: cdi-test
+objects:
+- apiVersion: ${VM_APIVERSION}
+  kind: VirtualMachineInstance
+  metadata:
+    name: ${VM_NAME}
+  spec:
+    terminationGracePeriodSeconds: 0
+    domain:
+      resources:
+        requests:
+          memory: 64M
+      devices:
+        disks:
+        - name: mydisk
+          volumeName: pvcvolume
+          disk:
+            dev: vda
+    volumes:
+      - name: pvcvolume
+        persistentVolumeClaim:
+          claimName: ${PVC_NAME}
+parameters:
+- name: VM_APIVERSION
+- name: VM_NAME
+- name: PVC_NAME
