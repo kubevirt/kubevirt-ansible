@@ -3,11 +3,15 @@ apiVersion: v1
 metadata:
   name: cdi-sa
   namespace: {{ cdi_namespace }}
+  labels:
+    cdi.kubevirt.io: ""
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: cdi
+  labels:
+    cdi.kubevirt.io: ""
 rules:
 - apiGroups: [""]
   resources: ["events"]
@@ -16,20 +20,26 @@ rules:
   resources: ["persistentvolumeclaims"]
   verbs: ["get", "list", "watch", "create", "update", "patch"]
 - apiGroups: [""]
+  resources: ["persistentvolumeclaims/finalizers"]
+  verbs: ["update"]
+- apiGroups: [""]
   resources: ["pods"]
-  verbs: ["get", "list", "watch", "create"]
+  verbs: ["get", "list", "watch", "create", "delete"]
 - apiGroups: [""]
   resources: ["secrets"]
   verbs: ["get", "list", "watch", "create"]
-- apiGroups: ["cdi.io"]
-  resources: ["datavolumes"]
-  verbs: ["get", "list", "watch", "update"]
-
+- apiGroups: ["cdi.kubevirt.io"]
+  resources:
+   - '*'
+  verbs:
+   - '*'
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: cdi-sa
+  labels:
+    cdi.kubevirt.io: ""
 roleRef:
   kind: ClusterRole
   name: cdi
@@ -39,39 +49,45 @@ subjects:
     name: cdi-sa
     namespace: {{ cdi_namespace }}
 ---
-apiVersion: apps/v1beta1
+apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   name: cdi-deployment
+  labels:
+    cdi.kubevirt.io: ""
+    app: containerized-data-importer
 spec:
   selector:
     matchLabels:
-      app: cdi-controller
+      app: containerized-data-importer
   replicas: 1
   template:
     metadata:
       labels:
-        app: cdi-controller
+        app: containerized-data-importer
     spec:
       serviceAccountName: cdi-sa
       containers:
       - name: cdi-controller
         image: {{ repo_tag }}/cdi-controller:{{ release_tag }}
         imagePullPolicy: IfNotPresent
+        args: ["-v=1"] # default verbosity; change to 2 or 3 for more detailed logging
         env:
-          - name: OWN_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
+        - name: IMPORTER_IMAGE
+          value: {{ repo_tag }}/cdi-importer:{{ release_tag }}
+        - name: CLONER_IMAGE
+          value: {{ repo_tag }}/cdi-cloner:{{ release_tag }}
+        - name: PULL_POLICY
+          value: IfNotPresent
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   labels:
-    cdi.io: ""
-  name: datavolumes.cdi.io
+    cdi.kubevirt.io: ""
+  name: datavolumes.cdi.kubevirt.io
 spec:
-  group: cdi.io
+  group: cdi.kubevirt.io
   names:
     kind: DataVolume
     plural: datavolumes
