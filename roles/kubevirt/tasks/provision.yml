@@ -38,6 +38,7 @@
   get_url:
     url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
     dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+    force: yes
   when: byo_template.stat.exists == False and offline_templates.stat.exists == False
 
 - name: Render offline template
@@ -71,6 +72,7 @@
   get_url:
     url: "{{ release_manifest_url }}/v{{ version }}/demo-content.yaml"
     dest: "{{ kubevirt_template_dir }}/demo-content.yaml"
+    force: yes
   when: byo_demo_content.stat.exists == False and offline_demo_content.stat.exists == False
 
 - name: Copy Offline Demo Content to /tmp
@@ -131,6 +133,7 @@
   get_url:
     url: "{{ templates_url }}/{{ item }}.yaml"
     dest: "/tmp/{{ item }}.yaml"
+    force: yes
   with_items:
     - "{{ default_vm_templates }}"
   when: cluster == "openshift" and "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}" and "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}"
