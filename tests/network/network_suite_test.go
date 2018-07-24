@@ -5,7 +5,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"testing"
-	"kubevirt.io/kubevirt/tests"
+	"kubevirt.io/kubevirt-ansible/tests"
+
 )
 
 func TestNetwork(t *testing.T) {
@@ -15,8 +16,9 @@ func TestNetwork(t *testing.T) {
 
 
 var _ = BeforeSuite(func() {
-	tests.BeforeTestSuitSetup()
+	tests.CreateNamespaces()
 })
 
 var _ = AfterSuite(func() {
+	tests.RemoveNamespaces()
 })
