@@ -53,7 +53,7 @@
   when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
 
 - name: Create KubeVirt Resources
-  command: kubectl apply -f /tmp/kubevirt.yaml
+  command: kubectl apply -f /tmp/kubevirt.yaml --validate=false
 
 # Demo Content manifest
 - name: Check for demo-content.yaml template in {{ kubevirt_template_dir }}
