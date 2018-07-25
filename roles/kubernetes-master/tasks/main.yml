@@ -20,7 +20,10 @@
     mode: 0755
 
 - name: deploy kubernetes
-  shell: /root/deploy_kubernetes.sh | grep "kubeadm join"
+  shell: /root/deploy_kubernetes.sh
+
+- name: register print command
+  shell: kubeadm token create --print-join-command
   register: kubeadm_join_command
 
 - name: set join command as fact
