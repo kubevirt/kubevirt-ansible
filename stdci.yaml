@@ -3,3 +3,6 @@ substage:
 
 runtime_requirements:
   support_nesting_level: 2
+
+reporting:
+  style: stdci
