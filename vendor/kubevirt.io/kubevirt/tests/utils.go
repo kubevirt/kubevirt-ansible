@@ -71,12 +71,14 @@ var KubeVirtVersionTag = "latest"
 var KubeVirtRepoPrefix = "kubevirt"
 var KubeVirtKubectlPath = ""
 var KubeVirtOcPath = ""
+var KubeVirtVirtctlPath = ""
 var KubeVirtInstallNamespace = "kube-system"
 
 func init() {
 	flag.StringVar(&KubeVirtVersionTag, "tag", "latest", "Set the image tag or digest to use")
 	flag.StringVar(&KubeVirtRepoPrefix, "prefix", "kubevirt", "Set the repository prefix for all images")
 	flag.StringVar(&KubeVirtKubectlPath, "kubectl-path", "", "Set path to kubectl binary")
+	flag.StringVar(&KubeVirtVirtctlPath, "virtctl-path", "", "Set path to virtctl binary")
 	flag.StringVar(&KubeVirtOcPath, "oc-path", "", "Set path to oc binary")
 	flag.StringVar(&KubeVirtInstallNamespace, "installed-namespace", "kube-system", "Set the namespace KubeVirt is installed in")
 }
@@ -1383,6 +1385,58 @@ func SkipIfNoOc() {
 			Skip("Skip test that requires oc binary")
 		}
 	}
+}
+
+func SkipIfNoCmd(cmdName string) {
+	var cmdPath string
+	switch strings.ToLower(cmdName) {
+	case "oc":
+		cmdPath = KubeVirtOcPath
+	case "kubectl":
+		cmdPath = KubeVirtKubectlPath
+	case "virtctl":
+		cmdPath = KubeVirtVirtctlPath
+	}
+	if cmdPath == "" {
+		Skip(fmt.Sprintf("Skip test that requires %s binary", cmdName))
+	}
+}
+
+func RunCommand(cmdName string, args ...string) (string, error) {
+	var cmdPath string
+	switch cmdName {
+	case "oc":
+		cmdPath = KubeVirtOcPath
+	case "kubectl":
+		cmdPath = KubeVirtKubectlPath
+	case "virtctl":
+		cmdPath = KubeVirtVirtctlPath
+	}
+
+	if cmdPath == "" {
+		return "", fmt.Errorf("no %s binary specified", cmdName)
+	}
+
+	kubeconfig := flag.Lookup("kubeconfig").Value
+	if kubeconfig == nil || kubeconfig.String() == "" {
+		return "", fmt.Errorf("can not find kubeconfig")
+	}
+
+	master := flag.Lookup("master").Value
+	if master != nil && master.String() != "" {
+		args = append(args, "--server", master.String())
+	}
+
+	cmd := exec.Command(cmdPath, args...)
+	kubeconfEnv := fmt.Sprintf("KUBECONFIG=%s", kubeconfig.String())
+	cmd.Env = append(os.Environ(), kubeconfEnv)
+
+	stdOutErrBytes, err := cmd.CombinedOutput()
+
+	if err != nil {
+		log.Log.Reason(err).With("output", string(stdOutErrBytes)).Errorf("%s command failed: %s %s,",cmdName, cmdPath, strings.Join(args, " "))
+	}
+	return string(stdOutErrBytes), err
 }
 
 func RunOcCommand(args ...string) (string, error) {

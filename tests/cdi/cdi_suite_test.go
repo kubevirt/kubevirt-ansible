@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 	"time"
+	"os/exec"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -33,7 +34,25 @@ func TestCDI(t *testing.T) {
 	RunSpecs(t, "CDI Suite")
 }
 
+func lookupBinaryCommand() {
+	var err error
+	ktests.KubeVirtOcPath, err = exec.LookPath("oc")
+	if err != nil {
+		ktests.PanicOnError(err)
+	}
+	ktests.KubeVirtKubectlPath, err = exec.LookPath("kubectl")
+	if err != nil {
+		ktests.PanicOnError(err)
+	}
+	ktests.KubeVirtVirtctlPath, err = exec.LookPath("virtctl")
+	if err != nil {
+		ktests.PanicOnError(err)
+	}
+}
+
 var _ = BeforeSuite(func() {
+	lookupBinaryCommand()
+
 	virtCli, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
 

@@ -10,108 +10,123 @@ import (
 	. "github.com/onsi/gomega"
 
 	ktests "kubevirt.io/kubevirt/tests"
+	"github.com/davecgh/go-spew/spew"
 )
 
-type Result struct {
+type CmdBuilder struct {
+	cmd           string
 	verb          string
 	resourceType  string
 	resourceName  string
 	resourceLabel string
 	filePath      string
-	nameSpace     string
+	namespace     string
 	query         string
 	expectOut     string
 	actualOut     string
+	cmdArgs       []string
 }
-
-var KubeVirtOcPath = ""
 
 const (
-	CDI_LABEL_KEY          = "app"
-	CDI_LABEL_VALUE        = "containerized-data-importer"
-	CDI_LABEL_SELECTOR     = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
+	CDI_LABEL_KEY        = "app"
+	CDI_LABEL_VALUE      = "containerized-data-importer"
+	CDI_LABEL_SELECTOR   = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
 	NamespaceTestDefault = "kubevirt-test-default"
-	paramFlag            = "-p"
 )
 
-//TODO: make this func reuse exec()
-func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
-	By(fmt.Sprintf("Overriding the template from %s to %s", srcFilePath, dstFilePath))
-	args := []string{"process", "-f", srcFilePath}
+func Kubectl(cmdVerb string) *CmdBuilder {
+	return newInitCmd("kubectl", cmdVerb)
+}
+
+func Oc(cmdVerb string) *CmdBuilder {
+	return newInitCmd("oc", cmdVerb)
+}
+
+func Virtctl(cmdVerb string) *CmdBuilder {
+	return newInitCmd("virtctl", cmdVerb)
+}
+
+func newInitCmd(cmd, cmdVerb string) *CmdBuilder {
+	b := new(CmdBuilder)
+	b.cmdArgs = []string{cmd, cmdVerb}
+	return b
+}
+
+func (b *CmdBuilder) Param(params ...string) *CmdBuilder {
 	for _, v := range params {
-		args = append(args, paramFlag)
-		args = append(args, v)
+		b.cmdArgs = append(b.cmdArgs, v)
 	}
-	out, err := ktests.RunOcCommand(args...)
-	Expect(err).ToNot(HaveOccurred())
-	filePath, err := writeJson(dstFilePath, out)
-	Expect(err).ToNot(HaveOccurred())
-	return filePath
+	return b
 }
 
-func CreateResourceWithFilePathTestNamespace(filePath string) {
-	exec(Result{verb: "create", filePath: filePath, nameSpace: NamespaceTestDefault})
+func (b *CmdBuilder) Query(query string) *CmdBuilder {
+	b.query = query
+	b.cmdArgs = append(b.cmdArgs, query)
+	return b
 }
 
-func DeleteResourceWithLabelTestNamespace(resourceType, resourceLabel string) {
-	By(fmt.Sprintf("Deleting %s:%s from the json file with the oc-delete command", resourceType, resourceLabel))
-	exec(Result{verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel, nameSpace: NamespaceTestDefault})
+func (b *CmdBuilder) Namespace(namespace string) *CmdBuilder {
+	b.namespace = namespace
+	b.cmdArgs = append(b.cmdArgs, "-n", namespace)
+	return b
 }
 
-func WaitUntilResourceReadyByNameTestNamespace(resourceType, resourceName, query, expectOut string) {
-	By(fmt.Sprintf("Wait until %s with name %s ready", resourceType, resourceName))
-	exec(Result{verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
+func (b *CmdBuilder) TestNamespace() *CmdBuilder {
+	b.namespace = NamespaceTestDefault
+	b.cmdArgs = append(b.cmdArgs, "-n", NamespaceTestDefault)
+	return b
 }
 
-func WaitUntilResourceReadyByLabelTestNamespace(resourceType, label, query, expectOut string) {
-	By(fmt.Sprintf("Wait until resource %s with label=%s ready",resourceType, label))
-	exec(Result{verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
+func (b *CmdBuilder) FilePath(filePath string) *CmdBuilder {
+	if b.cmd == "virtctl" {
+		ktests.PanicOnError(fmt.Errorf("virtctl doesn't support -f currently"))
+		return nil
+	}
+	b.filePath = filePath
+	b.cmdArgs = append(b.cmdArgs, "-f", filePath)
+	return b
 }
 
-func exec(r Result) {
-	var err error
-	if r.verb == "" {
-		Expect(fmt.Errorf("verb can not be empty"))
-	}
-	cmd := []string{r.verb}
-	if r.filePath == "" {
-		if r.resourceType == "" {
-			Expect(fmt.Errorf("resourceType can not be empty"))
-		}
-		cmd = append(cmd, r.resourceType)
-	}
-	if r.resourceName != "" {
-		cmd = append(cmd, r.resourceName)
-	}
-	if r.filePath != "" {
-		cmd = append(cmd, "-f", r.filePath)
-	}
-	if r.resourceLabel != "" {
-		cmd = append(cmd, "-l", r.resourceLabel)
-	}
-	if r.query != "" {
-		cmd = append(cmd, r.query)
-	}
-	if r.nameSpace != "" {
-		cmd = append(cmd, "-n", r.nameSpace)
-	}
+func (b *CmdBuilder) ResourceType(resourceType string) *CmdBuilder {
+	b.resourceType = resourceType
+	b.cmdArgs = append(b.cmdArgs, resourceType)
+	return b
+}
 
-	if r.expectOut != "" {
-		Eventually(func() bool {
-			r.actualOut, err = ktests.RunOcCommand(cmd...)
-			Expect(err).ToNot(HaveOccurred())
-			return strings.Contains(r.actualOut, r.expectOut)
-		}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
-	} else {
-		r.actualOut, err = ktests.RunOcCommand(cmd...)
+func (b *CmdBuilder) ResourceName(resourceName string) *CmdBuilder {
+	b.resourceName = resourceName
+	b.cmdArgs = append(b.cmdArgs, b.resourceName)
+	return b
+}
+
+func (b *CmdBuilder) ResourceLabel(resourceLabel string) *CmdBuilder {
+	b.resourceLabel = resourceLabel
+	b.cmdArgs = append(b.cmdArgs, "-l", resourceLabel)
+	return b
+}
+
+func (b *CmdBuilder) WaitUntil(expectOut string) {
+	Eventually(func() bool {
+		spew.Dump(b.cmdArgs)
+		out, err := ktests.RunCommand(b.cmdArgs[0], b.cmdArgs[1:]...)
 		Expect(err).ToNot(HaveOccurred())
+		return strings.Contains(out, expectOut)
+	}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", b.resourceType))
+}
+
+func (b *CmdBuilder) WriteJson(jsonFile string) {
+	var err error
+	b.actualOut, err = ktests.RunCommand(b.cmdArgs[0], b.cmdArgs[1:]...)
+	Expect(err).ToNot(HaveOccurred())
+	err = ioutil.WriteFile(jsonFile, []byte(b.actualOut), 0644)
+	if err != nil {
+		ktests.PanicOnError(fmt.Errorf("failed to write the json file %s", jsonFile))
 	}
 }
 
-func writeJson(jsonFile string, json string) (string, error) {
-	err := ioutil.WriteFile(jsonFile, []byte(json), 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write the json file %s", jsonFile)
-	}
-	return jsonFile, nil
+func (b *CmdBuilder) Run() string {
+	var err error
+	b.actualOut, err = ktests.RunCommand(b.cmdArgs[0], b.cmdArgs[1:]...)
+	Expect(err).ToNot(HaveOccurred())
+	return b.actualOut
 }

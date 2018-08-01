@@ -23,42 +23,54 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 
 	Context("PVC with valid image url will succeed", func() {
 		It("should create the PVC successfully", func() {
-			tests.ProcessTemplateWithParameters(rawPVCFilePath, dstPVCFilePath, "PVC_NAME="+pvcName, "EP_URL="+url)
-			tests.CreateResourceWithFilePathTestNamespace(dstPVCFilePath)
+			tests.Oc("process").TestNamespace().FilePath(rawPVCFilePath).Param("-p", "PVC_NAME="+pvcName, "-p", "EP_URL="+url).WriteJson(dstPVCFilePath)
+			tests.Oc("create").TestNamespace().FilePath(dstPVCFilePath).Run()
 		})
 
 		Specify("the PVC should become bound", func() {
-			tests.WaitUntilResourceReadyByNameTestNamespace("pvc", pvcName, "-o=jsonpath='{.metadata.annotations}'", "pv.kubernetes.io/bind-completed:yes")
+			tests.Oc("get").TestNamespace().ResourceType("pvc").ResourceName(pvcName).Query("-o=jsonpath='{.metadata.annotations}'").WaitUntil("pv.kubernetes.io/bind-completed:yes")
 		})
 
 		Specify("the importer-pod should become completed", func() {
-			tests.WaitUntilResourceReadyByLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Succeeded")
+			tests.Oc("get").ResourceType("pod").ResourceLabel(tests.CDI_LABEL_SELECTOR).Query("-o=jsonpath='{.items[*].status.phase}'").WaitUntil("Succeeded")
+
 		})
 
 		It("should delete the importer-pod", func() {
-			tests.DeleteResourceWithLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR)
+			tests.Oc("delete").TestNamespace().ResourceType("pod").ResourceLabel(tests.CDI_LABEL_SELECTOR).Run()
 		})
 
 		It("the VM should be created successfully", func() {
-			tests.ProcessTemplateWithParameters(rawVMFilePath, dstVMFilePath, "VM_NAME="+vmName, "PVC_NAME="+pvcName, "VM_APIVERSION="+vmAPIVersion)
-			tests.CreateResourceWithFilePathTestNamespace(dstVMFilePath)
+			tests.Oc("process").TestNamespace().FilePath(rawVMFilePath).Param("-p", "VM_NAME="+vmName, "-p", "PVC_NAME="+pvcName, "-p", "VM_APIVERSION="+vmAPIVersion).WriteJson(dstVMFilePath)
+			tests.Oc("create").TestNamespace().FilePath(dstVMFilePath).Run()
 		})
 
-		Specify("the VM should be running", func() {
-			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmName, "-o=jsonpath='{.status.phase}'", "Running")
+		It("the VM should be started by virtctl", func() {
+			tests.Oc("start").ResourceName(vmName).Run()
+		})
+
+		It("the VM should be stop by virtctl", func() {
+			tests.Virtctl("stop").ResourceName(vmName).Run()
+		})
+
+		It("the VM should be started by virtctl", func() {
+			tests.Virtctl("start").ResourceName(vmName).Run()
+		})
+
+		Specify("the VMI should be running", func() {
+			tests.Oc("get").ResourceType("vmi").ResourceName(vmName).Query("-o=jsonpath='{.status.phase}'").WaitUntil("Running")
 		})
 	})
 
 	Context("PVC with invalid image url will be failed", func() {
 		It("should create the PVC successfully", func() {
-			tests.ProcessTemplateWithParameters(rawPVCFilePath, dstPVCFilePath1, "PVC_NAME="+pvcName1, "EP_URL="+invalidPVCURL)
-			tests.CreateResourceWithFilePathTestNamespace(dstPVCFilePath1)
+			tests.Oc("process").TestNamespace().FilePath(rawPVCFilePath).Param("-p", "PVC_NAME="+pvcName1, "-p", "EP_URL="+invalidPVCURL).WriteJson(dstPVCFilePath1)
+			tests.Oc("create").TestNamespace().FilePath(dstPVCFilePath1)
 		})
 
 		Specify("the PVC should become failed", func() {
-			tests.WaitUntilResourceReadyByLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Failed")
+			tests.Oc("get").ResourceType("pod").ResourceLabel(tests.CDI_LABEL_SELECTOR).Query("-o=jsonpath='{.items[*].status.phase}'").WaitUntil("Failed")
 		})
 	})
-
 
 })
