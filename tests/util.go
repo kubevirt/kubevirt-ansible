@@ -45,7 +45,7 @@ func createResourceWithFilePath(resourceType, resourceName, filePath, nameSpace 
 		out, err := ktests.RunOcCommand("get", resourceType, "-n", nameSpace)
 		Expect(err).ToNot(HaveOccurred())
 		return strings.Contains(out, resourceName)
-	}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprint("Timed out waiting for %s to appear", resourceType))
+	}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", resourceType))
 }
 
 func WaitUntilResourceReadyByNameTestNamespace(resourceType, resourceName, query, expectOut string) {
