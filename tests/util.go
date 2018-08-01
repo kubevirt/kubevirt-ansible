@@ -53,6 +53,16 @@ func CreateResourceWithFilePathTestNamespace(filePath string) {
 	exec(Result{verb: "create", filePath: filePath, nameSpace: NamespaceTestDefault})
 }
 
+func createResourceWithFilePath(resourceType, resourceName, filePath, nameSpace string) {
+	By(fmt.Sprintf("Creating %s:%s from the json file with the oc-create command", resourceType, resourceName))
+	_, err := ktests.RunOcCommand("create", "-f", filePath, "-n", nameSpace)
+	Expect(err).ToNot(HaveOccurred())
+	Eventually(func() bool {
+		out, err := ktests.RunOcCommand("get", resourceType, "-n", nameSpace)
+		Expect(err).ToNot(HaveOccurred())
+		return strings.Contains(out, resourceName)
+	}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", resourceType))
+
 func DeleteResourceWithLabelTestNamespace(resourceType, resourceLabel string) {
 	By(fmt.Sprintf("Deleting %s:%s from the json file with the oc-delete command", resourceType, resourceLabel))
 	exec(Result{verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel, nameSpace: NamespaceTestDefault})
