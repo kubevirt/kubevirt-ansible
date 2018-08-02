@@ -7,13 +7,11 @@ etcd
 openshift_deployment_type=origin
 containerized=true
 openshift_image_tag=v3.10.0
-openshift_clock_enabled=true
 ansible_ssh_user=root
 openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true', 'challenge': 'true', 'kind': 'AllowAllPasswordIdentityProvider'}]
 openshift_disable_check=memory_availability,disk_availability,docker_image_availability
 openshift_enable_excluders=false
 template_service_broker_install=false
-openshift_use_manageiq=false
 openshift_install_examples=false
 # Domain name that will be used by the Openshift router
 openshift_master_default_subdomain=cloudapps.example.com
@@ -28,14 +26,6 @@ container_runtime_docker_storage_type=overlay2
 openshift_node_groups=[{'name': 'node-config-infra-compute', 'labels': ['node-role.kubernetes.io/infra=true', 'node-role.kubernetes.io/compute=true']}, {'name': 'node-config-master', 'labels': ['node-role.kubernetes.io/master=true']}]
 
 # BEGIN ANSIBLE BROKER CONFIG
-openshift_hosted_etcd_storage_kind=nfs
-openshift_hosted_etcd_storage_nfs_options="*(rw,root_squash,sync,no_wdelay)"
-openshift_hosted_etcd_storage_nfs_directory=/opt/osev3-etcd
-openshift_hosted_etcd_storage_volume_name=etcd-vol2
-openshift_hosted_etcd_storage_access_modes=["ReadWriteOnce"]
-openshift_hosted_etcd_storage_volume_size=1100M
-openshift_hosted_etcd_storage_labels={'storage': 'etcd'}
-
 ansible_service_broker_refresh_interval=20s
 ansible_service_broker_registry_whitelist=[".*-apb$"]
 ansible_service_broker_local_registry_whitelist=[".*-apb$"]
@@ -66,7 +56,6 @@ ansible_service_broker_etcd_image_tag=latest
 
 #
 # If you run openshift deployment
-# You can add your master as schedulable node with option openshift_schedulable=true
-# Add at least one node with lable to run on it router and docker containers
-# openshift_node_labels="{'region': 'infra','zone': 'default'}"
+# Add at least one node with infra annotation to run router and docker containers there.
+# openshift_node_group_name=node-config-infra
 # END CUSTOM SETTINGS
