@@ -3,6 +3,7 @@ package util
 import (
 	"encoding/xml"
 	"fmt"
+	"os"
 	"os/exec"
 	"reflect"
 	"strings"
@@ -49,6 +50,23 @@ var CrashedReasonTranslationMap = map[libvirt.DomainCrashedReason]api.StateChang
 	libvirt.DOMAIN_CRASHED_PANICKED: api.ReasonPanicked,
 }
 
+var PausedReasonTranslationMap = map[libvirt.DomainPausedReason]api.StateChangeReason{
+	libvirt.DOMAIN_PAUSED_UNKNOWN:         api.ReasonPausedUnknown,
+	libvirt.DOMAIN_PAUSED_USER:            api.ReasonPausedUser,
+	libvirt.DOMAIN_PAUSED_MIGRATION:       api.ReasonPausedMigration,
+	libvirt.DOMAIN_PAUSED_SAVE:            api.ReasonPausedSave,
+	libvirt.DOMAIN_PAUSED_DUMP:            api.ReasonPausedDump,
+	libvirt.DOMAIN_PAUSED_IOERROR:         api.ReasonPausedIOError,
+	libvirt.DOMAIN_PAUSED_WATCHDOG:        api.ReasonPausedWatchdog,
+	libvirt.DOMAIN_PAUSED_FROM_SNAPSHOT:   api.ReasonPausedFromSnapshot,
+	libvirt.DOMAIN_PAUSED_SHUTTING_DOWN:   api.ReasonPausedShuttingDown,
+	libvirt.DOMAIN_PAUSED_SNAPSHOT:        api.ReasonPausedSnapshot,
+	libvirt.DOMAIN_PAUSED_CRASHED:         api.ReasonPausedCrashed,
+	libvirt.DOMAIN_PAUSED_STARTING_UP:     api.ReasonPausedStartingUp,
+	libvirt.DOMAIN_PAUSED_POSTCOPY:        api.ReasonPausedPostcopy,
+	libvirt.DOMAIN_PAUSED_POSTCOPY_FAILED: api.ReasonPausedPostcopyFailed,
+}
+
 func ConvState(status libvirt.DomainState) api.LifeCycle {
 	return LifeCycleTranslationMap[status]
 }
@@ -61,6 +79,8 @@ func ConvReason(status libvirt.DomainState, reason int) api.StateChangeReason {
 		return ShutoffReasonTranslationMap[libvirt.DomainShutoffReason(reason)]
 	case libvirt.DOMAIN_CRASHED:
 		return CrashedReasonTranslationMap[libvirt.DomainCrashedReason(reason)]
+	case libvirt.DOMAIN_PAUSED:
+		return PausedReasonTranslationMap[libvirt.DomainPausedReason(reason)]
 	default:
 		return api.ReasonUnknown
 	}
@@ -126,6 +146,10 @@ func StartLibvirt(stopChan chan struct{}) {
 		for {
 			exitChan := make(chan struct{})
 			cmd := exec.Command("/usr/share/kubevirt/virt-launcher/libvirtd.sh")
+
+			// libvirtd logs to stderr (see configuration in libvirtd.sh)
+			// connect libvirt's stderr to our own stdout in order to see the logs in the container logs
+			cmd.Stderr = os.Stdout
 
 			err := cmd.Start()
 			if err != nil {

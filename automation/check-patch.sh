@@ -26,6 +26,7 @@ on_exit() {
     collect_lago_log "$run_path" "$ARTIFACTS_PATH"
     collect_logs_from_vms "$run_path" "${VMS_LOGS_PATH}/on_exit"
     collect_ansible_log "$ARTIFACTS_PATH"
+    kill_make_tests
 
     if "$skip_cleanup"; then
         echo "Skipping cleanup"
@@ -106,6 +107,22 @@ set_params() {
 
 install_requirements() {
     ansible-galaxy install -r requirements.yml
+    get_virtctl
+}
+
+get_virtctl() {
+    local version="$(sed -nE 's,^version:\s*(.*)$,\1,p' vars/all.yml)"
+    local url="https://github.com/kubevirt/kubevirt/releases/download/v${version}/virtctl-v${version}-linux-amd64"
+    local name="virtctl"
+    local dest="/usr/bin/${name}"
+
+    hash "$name" &> /dev/null || {
+        curl -L -o "$dest" "$url"
+        chmod 755 "$dest"
+    }
+
+    # virtctl version returns rc 1 if the server isn't available
+    "$name" version || :
 }
 
 is_code_changed() {
@@ -113,6 +130,17 @@ is_code_changed() {
     | grep -v -E -e '\.md$'
 
     return $?
+}
+
+kill_make_tests() {
+    local my_pid="$$"
+    local make_tests_pid="$MAKE_TESTS_PID"
+    local make_tests_ppid
+
+    [[ "$make_tests_pid" ]] || return
+    make_tests_ppid="$(ps -o ppid= "$make_tests_pid" || echo -1)"
+
+    [[ "$my_pid" -eq "$make_tests_ppid" ]] && kill -9 "$make_tests_pid"
 }
 
 run() {
@@ -165,6 +193,10 @@ run() {
         "openshift_playbook_path=$openshift_playbook_path"
 	"storage_role=$storage_role"
     )
+
+    make generate-tests &> "${ARTIFACTS_PATH}/generate-tests.log" &
+    readonly MAKE_TESTS_PID="$!"
+
     ansible-playbook \
         -u root \
         -i "$inventory_file" \
@@ -173,6 +205,11 @@ run() {
         playbooks/automation/check-patch.yml
 
     # Run integration tests
+    wait "$MAKE_TESTS_PID" || {
+        local ret="$?"
+        echo "Error: Failed to compile tests"
+        exit "$ret"
+    }
     http_proxy="" make test
 
     collect_logs_from_vms "$run_path" "${VMS_LOGS_PATH}/post_tests"

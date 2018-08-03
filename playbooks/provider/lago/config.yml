@@ -65,9 +65,18 @@
       delegate_to: localhost
       connection: local
 
-    - name: Set docker storage disk path
+    - name: Mount container storage
+      shell: |
+        disk="/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_2"
+        mount_path="/var/lib/containers"
+        findmnt --source "$disk" --target "$mount_path" && exit 0
+        mkdir -p "$mount_path"
+        mkfs.xfs "$disk"
+        echo -e "${disk}\t${mount_path}\txfs\tdefaults\t0 0" >> /etc/fstab
+        mount "$disk" "$mount_path"
+
+    - name: Set gluster disk idx
       set_fact:
-        container_runtime_docker_storage_setup_device: "/dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_2"
         gluster_disk_idx: "{{ '4' if inventory_hostname == groups['masters'][0] else '3' }}"
 
     - name: Set gluster disk path

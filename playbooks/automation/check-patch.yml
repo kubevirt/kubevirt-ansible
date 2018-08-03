@@ -4,5 +4,4 @@
 - import_playbook: "{{ playbook_dir }}/../cluster/{{ cluster | default('openshift') }}/config.yml"
 - import_playbook: "{{ playbook_dir }}/../cluster-login.yml"
 - import_playbook: "{{ playbook_dir }}/../kubevirt.yml"
-- import_playbook: "{{ playbook_dir }}/../generate-tests.yml"
 - import_playbook: "{{ playbook_dir }}/../storage.yml"

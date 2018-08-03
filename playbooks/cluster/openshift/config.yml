@@ -52,29 +52,21 @@
         - ansible_distribution in ["CentOS","RedHat"]
 
     - name: Install openshift requirements
-      package:
-        name: "{{ item }}"
-      with_items:
-        - python-yaml
-        - python-ipaddress
-        - wget
-        - git
-        - net-tools
-        - bind-utils
-        - iptables-services
-        - bridge-utils
-        - bash-completion
-        - kexec-tools
-        - sos
-        - psacct
-        - docker
-        - NetworkManager
-
-    - name: Enable and start docker service
-      service:
-        state: started
-        enabled: yes
-        name: docker
+      yum:
+        name:
+          - python-yaml
+          - python-ipaddress
+          - wget
+          - git
+          - net-tools
+          - bind-utils
+          - iptables-services
+          - bridge-utils
+          - bash-completion
+          - kexec-tools
+          - sos
+          - psacct
+          - NetworkManager
 
     - name: Enable and start NetworkManager service
       service:
@@ -83,14 +75,6 @@
         name: NetworkManager
 
 - import_playbook: "{{ openshift_ansible_dir }}/playbooks/prerequisites.yml"
-
-- hosts: masters nodes
-  remote_user: root
-  strategy: free
-  tasks:
-    - name: Pre-pull container images
-      shell: docker pull "{{ item }}"
-      with_items: "{{ container_images | default([]) }}"
 
 - import_playbook: "{{ openshift_ansible_dir | join_paths(openshift_playbook_path | default('playbooks/deploy_cluster.yml')) }}"
 

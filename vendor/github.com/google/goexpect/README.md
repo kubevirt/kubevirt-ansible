@@ -28,9 +28,9 @@ with the device.
 ### VerboseWriter
 
 The VerboseWriter option can be used to change where the verbose session logs are written.
-Using this option will start writing verbose output to the provided io.Writer instead of the glog default.
+Using this option will start writing verbose output to the provided io.Writer instead of the log default.
 
-See the [ExampleVerbose](https://github.com/google/goexpect/blob/5c8d637b0287a2ae7bb805554056728c453871e4/expect_test.go#L585) code for an example of how to use this. 
+See the [ExampleVerbose](https://github.com/google/goexpect/blob/5c8d637b0287a2ae7bb805554056728c453871e4/expect_test.go#L585) code for an example of how to use this.
 
 ### NoCheck
 
@@ -47,6 +47,10 @@ everytime the check is run. Can be used for troubleshooting and debugging of Spa
 The ChangeCheck option makes it possible to replace the Spawner Check function with a brand new one.
 
 ## Basic Examples
+
+### networkbit.ch
+
+An [article](http://networkbit.ch/golang-regular-expression/) with some examples was written about goexpect on [networkbit.ch](http://networkbit.ch).
 
 ### The [Wikipedia Expect](https://en.wikipedia.org/wiki/Expect) examples.
 
@@ -75,10 +79,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"regexp"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/google/goexpect"
 	"github.com/google/goterm/term"
 )
@@ -104,7 +108,7 @@ func main() {
 
 	e, _, err := expect.Spawn(fmt.Sprintf("telnet %s", *addr), -1)
 	if err != nil {
-		glog.Exit(err)
+		log.Fatal(err)
 	}
 	defer e.Close()
 
@@ -153,9 +157,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/google/goexpect"
 	"github.com/google/goterm/term"
 )
@@ -176,7 +180,7 @@ func main() {
 
 	e, _, err := expect.Spawn(fmt.Sprintf("ftp %s", *addr), -1)
 	if err != nil {
-		glog.Exit(err)
+		log.Fatal(err)
 	}
 	defer e.Close()
 
@@ -226,7 +230,7 @@ Interaction:
 + router#
 ```
 
-*ssh_example.to*
+*ssh_example.go*
 
 ```
 package main
@@ -234,6 +238,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"regexp"
 	"time"
 
@@ -241,7 +246,6 @@ import (
 
 	"google.golang.org/grpc/codes"
 
-	"github.com/golang/glog"
 	"github.com/google/goexpect"
 	"github.com/google/goterm/term"
 )
@@ -267,13 +271,13 @@ func main() {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	})
 	if err != nil {
-		glog.Exitf("ssh.Dial(%q) failed: %v", *addr, err)
+		log.Fatalf("ssh.Dial(%q) failed: %v", *addr, err)
 	}
 	defer sshClt.Close()
 
 	e, _, err := expect.SpawnSSH(sshClt, timeout)
 	if err != nil {
-		glog.Exit(err)
+		log.Fatal(err)
 	}
 	defer e.Close()
 
@@ -295,7 +299,7 @@ func main() {
 ### Generic Spawner
 
 The Go Expect package supports adding new Spawners with the `func SpawnGeneric(opt *GenOptions, timeout time.Duration, opts ...Option) (*GExpect, <-chan error, error)`
-function. 
+function.
 
 *telnet spawner*
 
@@ -327,7 +331,7 @@ func telnetSpawn(addr string, timeout time.Duration, opts ...expect.Option) (exp
 
 ### Fake Spawner
 
-The Go Expect package includes a Fake Spawner `func SpawnFake(b []Batcher, timeout time.Duration, opt ...Option) (*GExpect, <-chan error, error)`. 
+The Go Expect package includes a Fake Spawner `func SpawnFake(b []Batcher, timeout time.Duration, opt ...Option) (*GExpect, <-chan error, error)`.
 This is expected to be used to simplify testing and faking of interactive workflows.
 
 *Fake Spawner*

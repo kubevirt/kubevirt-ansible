@@ -114,6 +114,10 @@ type ResourceRequirements struct {
 	// Valid resource keys are "memory" and "cpu".
 	// +optional
 	Limits v1.ResourceList `json:"limits,omitempty"`
+	// Don't ask the scheduler to take the guest-management overhead into account. Instead
+	// put the overhead only into the requested memory limits. This can lead to crashes if
+	// all memory is in use on a node. Defaults to false.
+	OvercommitGuestOverhead bool `json:"overcommitGuestOverhead,omitempty"`
 }
 
 // CPU allows specifying the CPU topology.
@@ -125,6 +129,10 @@ type CPU struct {
 	Cores uint32 `json:"cores,omitempty"`
 	// Model specifies the CPU model inside the VMI.
 	// List of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.
+	// It is possible to specify special cases like "host-passthrough" to get the same CPU as the node
+	// and "host-model" to get CPU closest to the node one.
+	// For more information see https://libvirt.org/formatdomain.html#elementsCPU.
+	// Defaults to host-model.
 	// +optional
 	Model string `json:"model,omitempty"`
 }
@@ -136,6 +144,11 @@ type Memory struct {
 	// Hugepages allow to use hugepages for the VirtualMachineInstance instead of regular memory.
 	// +optional
 	Hugepages *Hugepages `json:"hugepages,omitempty"`
+	// Guest allows to specifying the amount of memory which is visible inside the Guest OS.
+	// The Guest must lie between Requests and Limits from the resources section.
+	// Defaults to the requested memory in the resources section if not specified.
+	// + optional
+	Guest *resource.Quantity `json:"guest,omitempty"`
 }
 
 // Hugepages allow to use hugepages for the VirtualMachineInstance instead of regular memory.
@@ -170,6 +183,11 @@ type Devices struct {
 	Watchdog *Watchdog `json:"watchdog,omitempty"`
 	// Interfaces describe network interfaces which are added to the vm.
 	Interfaces []Interface `json:"interfaces,omitempty"`
+	// Whether to attach a pod network interface. Defaults to true.
+	AutoattachPodInterface *bool `json:"autoattachPodInterface,omitempty"`
+	// Wheater to attach the default graphics device or not.
+	// VNC will not be available if set to false. Defaults to true.
+	AutoattachGraphicsDevice *bool `json:"autoattachGraphicsDevice,omitempty"`
 }
 
 // ---
@@ -185,6 +203,7 @@ type Disk struct {
 	DiskDevice `json:",inline"`
 	// BootOrder is an integer value > 0, used to determine ordering of boot devices.
 	// Lower values take precedence.
+	// Each disk or interface that has a boot order must have a unique value.
 	// Disks without a boot order are not tried if a disk with a boot order exists.
 	// +optional
 	BootOrder *uint `json:"bootOrder,omitempty"`
@@ -684,6 +703,15 @@ type Interface struct {
 	Ports []Port `json:"ports,omitempty"`
 	// Interface MAC address. For example: de:ad:00:00:be:af or DE-AD-00-00-BE-AF.
 	MacAddress string `json:"macAddress,omitempty"`
+	// BootOrder is an integer value > 0, used to determine ordering of boot devices.
+	// Lower values take precedence.
+	// Each interface or disk that has a boot order must have a unique value.
+	// Interfaces without a boot order are not tried.
+	// +optional
+	BootOrder *uint `json:"bootOrder,omitempty"`
+	// If specified, the virtual network interface will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10
+	// +optional
+	PciAddress string `json:"pciAddress,omitempty"`
 }
 
 // Represents the method which will be used to connect the interface to the guest.

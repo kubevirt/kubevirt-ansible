@@ -20,6 +20,7 @@
 package services
 
 import (
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -30,13 +31,15 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
+	"kubevirt.io/kubevirt/pkg/hooks"
 	"kubevirt.io/kubevirt/pkg/precond"
 	"kubevirt.io/kubevirt/pkg/registry-disk"
 	"kubevirt.io/kubevirt/pkg/util/net/dns"
 )
 
 const configMapName = "kube-system/kubevirt-config"
-const useEmulationKey = "debug.useEmulation"
+const UseEmulationKey = "debug.useEmulation"
+const ImagePullPolicyKey = "dev.imagePullPolicy"
 const KvmDevice = "devices.kubevirt.io/kvm"
 const TunDevice = "devices.kubevirt.io/tun"
 
@@ -51,21 +54,43 @@ type templateService struct {
 	store           cache.Store
 }
 
-func IsEmulationAllowed(store cache.Store) (bool, error) {
-	obj, exists, err := store.GetByKey(configMapName)
-	if err != nil {
-		return false, err
+func getConfigMapEntry(store cache.Store, key string) (string, error) {
+
+	if obj, exists, err := store.GetByKey(configMapName); err != nil {
+		return "", err
+	} else if !exists {
+		return "", nil
+	} else {
+		return obj.(*k8sv1.ConfigMap).Data[key], nil
 	}
-	if !exists {
-		return exists, nil
+}
+
+func IsEmulationAllowed(store cache.Store) (useEmulation bool, err error) {
+	var value string
+	value, err = getConfigMapEntry(store, UseEmulationKey)
+	if strings.ToLower(value) == "true" {
+		useEmulation = true
 	}
-	useEmulation := false
-	cm := obj.(*k8sv1.ConfigMap)
-	emu, ok := cm.Data[useEmulationKey]
-	if ok {
-		useEmulation = (strings.ToLower(emu) == "true")
+	return
+}
+
+func GetImagePullPolicy(store cache.Store) (policy k8sv1.PullPolicy, err error) {
+	var value string
+	if value, err = getConfigMapEntry(store, ImagePullPolicyKey); err != nil || value == "" {
+		policy = k8sv1.PullIfNotPresent // Default if not specified
+	} else {
+		switch value {
+		case "Always":
+			policy = k8sv1.PullAlways
+		case "Never":
+			policy = k8sv1.PullNever
+		case "IfNotPresent":
+			policy = k8sv1.PullIfNotPresent
+		default:
+			err = fmt.Errorf("Invalid ImagePullPolicy in ConfigMap: %s", value)
+		}
 	}
-	return useEmulation, nil
+	return
 }
 
 func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (*k8sv1.Pod, error) {
@@ -196,7 +221,9 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	} else {
 		// Add overhead memory
 		memoryRequest := resources.Requests[k8sv1.ResourceMemory]
-		memoryRequest.Add(*memoryOverhead)
+		if !vmi.Spec.Domain.Resources.OvercommitGuestOverhead {
+			memoryRequest.Add(*memoryOverhead)
+		}
 		resources.Requests[k8sv1.ResourceMemory] = memoryRequest
 
 		if memoryLimit, ok := resources.Limits[k8sv1.ResourceMemory]; ok {
@@ -205,16 +232,42 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		}
 	}
 
+	// Read requested hookSidecars from VMI meta
+	requestedHookSidecarList, err := hooks.UnmarshalHookSidecarList(vmi)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(requestedHookSidecarList) != 0 {
+		volumes = append(volumes, k8sv1.Volume{
+			Name: "hook-sidecar-sockets",
+			VolumeSource: k8sv1.VolumeSource{
+				EmptyDir: &k8sv1.EmptyDirVolumeSource{},
+			},
+		})
+		volumesMounts = append(volumesMounts, k8sv1.VolumeMount{
+			Name:      "hook-sidecar-sockets",
+			MountPath: hooks.HookSocketsSharedDirectory,
+		})
+	}
+
 	command := []string{"/usr/share/kubevirt/virt-launcher/entrypoint.sh",
 		"--qemu-timeout", "5m",
 		"--name", domain,
+		"--uid", string(vmi.UID),
 		"--namespace", namespace,
 		"--kubevirt-share-dir", t.virtShareDir,
 		"--readiness-file", "/tmp/healthy",
 		"--grace-period-seconds", strconv.Itoa(int(gracePeriodSeconds)),
+		"--hook-sidecars", strconv.Itoa(len(requestedHookSidecarList)),
 	}
 
 	useEmulation, err := IsEmulationAllowed(t.store)
+	if err != nil {
+		return nil, err
+	}
+
+	imagePullPolicy, err := GetImagePullPolicy(t.store)
 	if err != nil {
 		return nil, err
 	}
@@ -243,7 +296,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	container := k8sv1.Container{
 		Name:            "compute",
 		Image:           t.launcherImage,
-		ImagePullPolicy: k8sv1.PullIfNotPresent,
+		ImagePullPolicy: imagePullPolicy,
 		SecurityContext: &k8sv1.SecurityContext{
 			RunAsUser: &userId,
 			// Privileged mode is disabled.
@@ -304,9 +357,23 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		podLabels[k] = v
 	}
 	podLabels[v1.AppLabel] = "virt-launcher"
-	podLabels[v1.DomainLabel] = domain
+	podLabels[v1.CreatedByLabel] = string(vmi.UID)
 
 	containers = append(containers, container)
+
+	for i, requestedHookSidecar := range requestedHookSidecarList {
+		containers = append(containers, k8sv1.Container{
+			Name:            fmt.Sprintf("hook-sidecar-%d", i),
+			Image:           requestedHookSidecar.Image,
+			ImagePullPolicy: requestedHookSidecar.ImagePullPolicy,
+			VolumeMounts: []k8sv1.VolumeMount{
+				k8sv1.VolumeMount{
+					Name:      "hook-sidecar-sockets",
+					MountPath: hooks.HookSocketsSharedDirectory,
+				},
+			},
+		})
+	}
 
 	hostName := dns.SanitizeHostname(vmi)
 
@@ -316,8 +383,8 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			GenerateName: "virt-launcher-" + domain + "-",
 			Labels:       podLabels,
 			Annotations: map[string]string{
-				v1.CreatedByAnnotation: string(vmi.UID),
-				v1.OwnedByAnnotation:   "virt-controller",
+				v1.DomainAnnotation:  domain,
+				v1.OwnedByAnnotation: "virt-controller",
 			},
 		},
 		Spec: k8sv1.PodSpec{
@@ -354,6 +421,12 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		}
 	}
 
+	if vmi.Spec.Tolerations != nil {
+		pod.Spec.Tolerations = []k8sv1.Toleration{}
+		for _, v := range vmi.Spec.Tolerations {
+			pod.Spec.Tolerations = append(pod.Spec.Tolerations, v)
+		}
+	}
 	return &pod, nil
 }
 
@@ -401,7 +474,9 @@ func getMemoryOverhead(domain v1.DomainSpec) *resource.Quantity {
 	overhead.Add(resource.MustParse("8Mi"))
 
 	// Add video RAM overhead
-	overhead.Add(resource.MustParse("16Mi"))
+	if domain.Devices.AutoattachGraphicsDevice == nil || *domain.Devices.AutoattachGraphicsDevice == true {
+		overhead.Add(resource.MustParse("16Mi"))
+	}
 
 	return overhead
 }
