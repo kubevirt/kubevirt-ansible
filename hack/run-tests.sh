@@ -8,4 +8,4 @@ prefix=${DOCKER_PREFIX:-kubevirt}
 tag=${DOCKER_TAG:-v0.6.3}
 kubeconfig=${KUBECONFIG:-~/.kube/config}
 
-${TESTS_OUT_DIR}/tests.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -test.timeout 60m
+${TESTS_OUT_DIR}/tests.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -test.timeout 60m ${FUNC_TEST_ARGS}
