@@ -16,7 +16,7 @@ import (
 )
 
 type Result struct {
-    cmd           string
+	cmd           string
 	verb          string
 	resourceType  string
 	resourceName  string
@@ -81,7 +81,7 @@ func RemoveNamespaces() {
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
 	By(fmt.Sprintf("Overriding the template from %s to %s", srcFilePath, dstFilePath))
-    out := execute(Result{cmd: "oc", verb: "process", filePath: srcFilePath, params: params})
+	out := execute(Result{cmd: "oc", verb: "process", filePath: srcFilePath, params: params})
 	filePath, err := writeJson(dstFilePath, out)
 	Expect(err).ToNot(HaveOccurred())
 	return filePath

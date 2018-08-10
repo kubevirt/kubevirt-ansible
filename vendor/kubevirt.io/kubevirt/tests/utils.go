@@ -71,6 +71,7 @@ import (
 var KubeVirtVersionTag = "latest"
 var KubeVirtRepoPrefix = "kubevirt"
 var KubeVirtKubectlPath = ""
+var KubeVirtVirtctlPath = ""
 var KubeVirtOcPath = ""
 var KubeVirtVirtctlPath = ""
 var KubeVirtInstallNamespace = "kube-system"
@@ -265,9 +266,9 @@ func (w *ObjectEventWatcher) Watch(processFunc ProcessFunc) {
 	uid := w.object.(metav1.ObjectMetaAccessor).GetObjectMeta().GetName()
 	eventWatcher, err := cli.CoreV1().Events(k8sv1.NamespaceAll).
 		Watch(metav1.ListOptions{
-			FieldSelector:   fields.ParseSelectorOrDie("involvedObject.name=" + string(uid)).String(),
-			ResourceVersion: resourceVersion,
-		})
+		FieldSelector:   fields.ParseSelectorOrDie("involvedObject.name=" + string(uid)).String(),
+		ResourceVersion: resourceVersion,
+	})
 	if err != nil {
 		panic(err)
 	}
