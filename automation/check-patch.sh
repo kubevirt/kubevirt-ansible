@@ -106,6 +106,22 @@ set_params() {
 
 install_requirements() {
     ansible-galaxy install -r requirements.yml
+    get_virtctl
+}
+
+get_virtctl() {
+    local version="$(sed -nE 's,^version:\s*(.*)$,\1,p' vars/all.yml)"
+    local url="https://github.com/kubevirt/kubevirt/releases/download/v${version}/virtctl-v${version}-linux-amd64"
+    local name="virtctl"
+    local dest="/usr/bin/${name}"
+
+    hash "$name" &> /dev/null || {
+        curl -L -o "$dest" "$url"
+        chmod 755 "$dest"
+    }
+
+    # virtctl version returns rc 1 if the server isn't available
+    "$name" version || :
 }
 
 is_code_changed() {
