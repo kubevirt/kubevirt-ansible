@@ -1,33 +1,37 @@
 package tests_test
 
-
 import (
 	"flag"
+	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ktests "kubevirt.io/kubevirt/tests"
-	"github.com/davecgh/go-spew/spew"
 	"kubevirt.io/kubevirt-ansible/tests"
 	"kubevirt.io/kubevirt/pkg/kubecli"
+	ktests "kubevirt.io/kubevirt/tests"
 )
 
-const vmName = "vm-cirros"
+const (
+	vmName       = "vm-cirros"
+	testPod      = "testpod"
+	vmCirrosPath = "tests/manifests/vm-cirros.yml"
+)
 
-var _ = Describe("D1", func() {
+var _ = Describe("VM/VMI system test", func() {
 
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
 
-	ktests.SkipIfNoOc()
-
-	Context("C1", func() {
+	Context("Expose service via ssh and console VNC", func() {
 
 		It("the VM should be created successfully", func() {
-			tests.CreateResourceWithFilePathTestNamespace("tests/manifests/vm-cirros.yml")
+			args := []string{"create", "-f", vmCirrosPath, "-n", tests.NamespaceTestDefault}
+			_, err := ktests.RunCommand("oc", args...)
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("the VM should be started by virtctl", func() {
@@ -37,12 +41,13 @@ var _ = Describe("D1", func() {
 		})
 
 		Specify("the VMI should be running", func() {
-			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmName, "-o=jsonpath='{.status.phase}'", "Running")
-			args := []string{"get", "vmi", vmName, "-o", "yaml", "-n", tests.NamespaceTestDefault}
-			out, err := ktests.RunCommand("oc", args...)
-			spew.Dump("====================")
-			Expect(err).ToNot(HaveOccurred())
-			spew.Dump(out)
+			By("Wait until vmi ready")
+			Eventually(func() bool {
+				args := []string{"get", "vmi", vmName, "-o=jsonpath='{.status.phase}'", "-n", tests.NamespaceTestDefault}
+				out, err := ktests.RunCommand("oc", args...)
+				Expect(err).ToNot(HaveOccurred())
+				return strings.Contains(out, "Running")
+			}, time.Duration(2)*time.Minute).Should(BeTrue(), "Timed out waiting for vmi to appear")
 		})
 
 		It("the VM should be exposed by virtctl via ClusterIP", func() {
@@ -51,37 +56,38 @@ var _ = Describe("D1", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("the VMI should be able to login by ssh", func() {
-			By("Create an testpod as an ssh client to connect to VMI")
-			args := []string{"run", "testpod", "-n", tests.NamespaceTestDefault, "--image=shiywang/test-ssh", "--", "sleep", "3600"}
+		It("the VMI should be able to connect via ssh", func() {
+			By("Create a pod as ssh client to connect to VMI")
+			args := []string{"run", testPod, "-n", tests.NamespaceTestDefault, "--image=shiywang/test-ssh", "--", "sleep", "3600"}
 			_, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
-			tests.WaitUntilResourceReadyByLabelTestNamespace("pod", "deploymentconfig=testpod", "-o=jsonpath='{.items[*].status.phase}'", "Running")
+			By("Wait until test pod ready")
+			Eventually(func() bool {
+				args := []string{"get", "pod", "-l", "deploymentconfig=" + testPod, "-o=jsonpath='{.items[*].status.phase}'", "-n", tests.NamespaceTestDefault}
+				out, err := ktests.RunCommand("oc", args...)
+				Expect(err).ToNot(HaveOccurred())
+				return strings.Contains(out, "Running")
+			}, time.Duration(2)*time.Minute).Should(BeTrue(), "Timed out waiting for vmi to appear")
 
-			By("Fetch the name of testpod")
-			args = []string{"get", "pod", "-l", "deploymentconfig=testpod", "-n", tests.NamespaceTestDefault, "-o=jsonpath='{.items[*].metadata.name}'"}
+			By("Fetch the name of pod")
+			args = []string{"get", "pod", "-l", "deploymentconfig=" + testPod, "-n", tests.NamespaceTestDefault, "-o=jsonpath='{.items[*].metadata.name}'"}
 			podName, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
-			//oc get svc myvm-ssh -o=jsonpath='{.spec.clusterIP}'
-			By("Fetch the clusterIP of service myvm-ssh")
-			args = []string{"get", "svc", "myvm-ssh", "-o=jsonpath='{.spec.clusterIP}'"}
+			By("Fetch the clusterIP of service")
+			args = []string{"get", "svc", "myvm-ssh", "-o=jsonpath='{.spec.clusterIP}'", "-n", tests.NamespaceTestDefault}
 			clusterIP, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
-
-			spew.Dump(podName[1:len(podName)-1])
 			By("Run exec ssh command inside the testpod")
-			args = []string{"exec", podName[1:len(podName)-1], "-n", tests.NamespaceTestDefault, "-i", "-t", "--", "sshlogin", clusterIP[1:len(clusterIP)-1], "cirros", "gocubsgo"}
+			args = []string{"exec", podName[1 : len(podName)-1], "-n", tests.NamespaceTestDefault, "-i", "-t", "--", "sshlogin", clusterIP[1 : len(clusterIP)-1], "cirros", "gocubsgo"}
 			out, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
-			spew.Dump(out)
 			Expect(out).Should(ContainSubstring("vm-cirros"))
 		})
 
-
-		It("the VMI should be able to login by virtctl console", func() {
+		It("the VMI should be able to connect via virtctl console", func() {
 			vmi, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Get(vmName, &metav1.GetOptions{})
 			expecter, err := ktests.LoggedInCirrosExpecter(vmi)
 			Expect(err).ToNot(HaveOccurred())

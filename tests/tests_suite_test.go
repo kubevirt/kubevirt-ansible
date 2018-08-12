@@ -6,11 +6,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-
-	"kubevirt.io/kubevirt/tests"
 	"kubevirt.io/qe-tools/pkg/ginkgo-reporters"
 	ktests "kubevirt.io/kubevirt/tests"
-	"kubevirt.io/kubevirt-ansible/tests"
 )
 
 func TestTests(t *testing.T) {
