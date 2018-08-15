@@ -1,5 +1,5 @@
-hash: 8016c8b5bb3c7d9032b75136500520bad1a220c8da8160c9d4af8788f2352af0
-updated: 2018-08-16T17:26:15.413502764+02:00
+hash: ceb7a23b4bde1fee30e22073965fb1062fae3bcc5480c861ac8b8b1d91689947
+updated: 2018-08-15T12:45:50.011723685+02:00
 imports:
 - name: github.com/onsi/ginkgo
   version: 11459a886d9cd66b319dac7ef1e917ee221372c9
@@ -362,3 +362,32 @@ testImports:
   version: e3762e86a74c878ffed47484592986685639c2cd
   subpackages:
   - pkg/common
+- name: kubevirt.io/kubevirt
+  version: b5b91243f540739eb5db61af89b2f1e5ba449dfa
+  repo: https://github.com/kubevirt/kubevirt.git
+  subpackages:
+  - pkg/api/v1
+  - pkg/controller
+  - pkg/ephemeral-disk-utils
+  - pkg/kubecli
+  - pkg/log
+  - pkg/precond
+  - pkg/registry-disk
+  - pkg/util/net/dns
+  - pkg/version
+  - pkg/virt-controller/services
+  - pkg/virtctl
+  - pkg/virtctl/console
+  - pkg/virtctl/expose
+  - pkg/virtctl/templates
+  - pkg/virtctl/version
+  - pkg/virtctl/vm
+  - pkg/virtctl/vnc
+  - tests
+- name: kubevirt.io/qe-tools
+  version: cfa2a5aff14e51a06fc637f97c941d392cf1acb6
+  repo: https://github.com/kubevirt/qe-tools.git
+  subpackages:
+  - pkg/ginkgo-reporters
+  - pkg/polarion-xml
+testImports: []
