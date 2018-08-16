@@ -1,7 +1,3 @@
-## HEAD
-
-- When using custom reporters register the custom reporters *before* the default reporter.  This allows users to see the output of any print statements in their customer reporters. [#365]
-
 ## 1.4.0 7/16/2017
 
 - `ginkgo` now provides a hint if you accidentally forget to run `ginkgo bootstrap` to generate a `*_suite_test.go` file that actually invokes the Ginkgo test runner. [#345](https://github.com/onsi/ginkgo/pull/345)
@@ -93,7 +89,7 @@ New Features:
 - `ginkgo -tags=TAG_LIST` passes a list of tags down to the `go build` command.
 - `ginkgo --failFast` aborts the test suite after the first failure.
 - `ginkgo generate file_1 file_2` can take multiple file arguments.
-- Ginkgo now summarizes any spec failures that occured at the end of the test run. 
+- Ginkgo now summarizes any spec failures that occured at the end of the test run.
 - `ginkgo --randomizeSuites` will run tests *suites* in random order using the generated/passed-in seed.
 
 Improvements:
@@ -127,7 +123,7 @@ Bug Fixes:
 Breaking changes:
 
 - `thirdparty/gomocktestreporter` is gone.  Use `GinkgoT()` instead
-- Modified the Reporter interface 
+- Modified the Reporter interface
 - `watch` is now a subcommand, not a flag.
 
 DSL changes:

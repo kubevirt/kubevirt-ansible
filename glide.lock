@@ -1,8 +1,8 @@
-hash: ceb7a23b4bde1fee30e22073965fb1062fae3bcc5480c861ac8b8b1d91689947
-updated: 2018-08-15T12:45:50.011723685+02:00
+hash: c6e1ac4f6a5a50d35594331a329dfc9c4b6fb8341516d96db35588ba8249efd0
+updated: 2018-08-16T17:46:29.769988858+02:00
 imports:
 - name: github.com/onsi/ginkgo
-  version: 11459a886d9cd66b319dac7ef1e917ee221372c9
+  version: 9eda700730cba42af70d53180f9dcce9266bc2bc
   subpackages:
   - config
   - internal/codelocation
@@ -53,6 +53,12 @@ imports:
   - pkg/virtctl/vm
   - pkg/virtctl/vnc
   - tests
+- name: kubevirt.io/qe-tools
+  version: 51aa15b370eeb41194adc275eba8f7f362fdaceb
+  repo: https://github.com/kubevirt/qe-tools.git
+  subpackages:
+  - pkg/ginkgo-reporters
+  - pkg/polarion-xml
 testImports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -362,32 +368,3 @@ testImports:
   version: e3762e86a74c878ffed47484592986685639c2cd
   subpackages:
   - pkg/common
-- name: kubevirt.io/kubevirt
-  version: b5b91243f540739eb5db61af89b2f1e5ba449dfa
-  repo: https://github.com/kubevirt/kubevirt.git
-  subpackages:
-  - pkg/api/v1
-  - pkg/controller
-  - pkg/ephemeral-disk-utils
-  - pkg/kubecli
-  - pkg/log
-  - pkg/precond
-  - pkg/registry-disk
-  - pkg/util/net/dns
-  - pkg/version
-  - pkg/virt-controller/services
-  - pkg/virtctl
-  - pkg/virtctl/console
-  - pkg/virtctl/expose
-  - pkg/virtctl/templates
-  - pkg/virtctl/version
-  - pkg/virtctl/vm
-  - pkg/virtctl/vnc
-  - tests
-- name: kubevirt.io/qe-tools
-  version: cfa2a5aff14e51a06fc637f97c941d392cf1acb6
-  repo: https://github.com/kubevirt/qe-tools.git
-  subpackages:
-  - pkg/ginkgo-reporters
-  - pkg/polarion-xml
-testImports: []
