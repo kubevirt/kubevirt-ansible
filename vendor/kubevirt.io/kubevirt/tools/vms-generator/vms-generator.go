@@ -51,7 +51,6 @@ const (
 	vmiNoCloud        = "vmi-nocloud"
 	vmiPVC            = "vmi-pvc"
 	vmiWindows        = "vmi-windows"
-	vmiSlirp          = "vmi-slirp"
 	vmTemplateFedora  = "vm-template-fedora"
 	vmTemplateRHEL7   = "vm-template-rhel7"
 	vmTemplateWindows = "vm-template-windows2012r2"
@@ -234,21 +233,6 @@ func getVMIEphemeralFedora() *v1.VirtualMachineInstance {
 	return vmi
 }
 
-func getVMISlirp() *v1.VirtualMachineInstance {
-	vm := getBaseVMI(vmiSlirp)
-	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
-	vm.Spec.Networks = []v1.Network{v1.Network{Name: "testSlirp", NetworkSource: v1.NetworkSource{Pod: &v1.PodNetwork{}}}}
-
-	addRegistryDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", dockerPrefix, imageFedora, dockerTag), busVirtio)
-	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" |passwd fedora --stdin\nyum install -y nginx\nsystemctl enable nginx\nsystemctl start nginx")
-
-	slirp := &v1.InterfaceSlirp{}
-	ports := []v1.Port{v1.Port{Name: "http", Protocol: "TCP", Port: 80}}
-	vm.Spec.Domain.Devices.Interfaces = []v1.Interface{v1.Interface{Name: "testSlirp", Ports: ports, InterfaceBindingMethod: v1.InterfaceBindingMethod{Slirp: slirp}}}
-
-	return vm
-}
-
 func getVMINoCloud() *v1.VirtualMachineInstance {
 	vmi := getBaseVMI(vmiNoCloud)
 
@@ -311,15 +295,11 @@ func getVMIWindows() *v1.VirtualMachineInstance {
 					k8sv1.ResourceMemory: resource.MustParse("2048Mi"),
 				},
 			},
-			Devices: v1.Devices{
-				Interfaces: []v1.Interface{*v1.DefaultNetworkInterface()},
-			},
 		},
-		Networks: []v1.Network{*v1.DefaultPodNetwork()},
 	}
 
 	// pick e1000 network model type for windows machines
-	vmi.Spec.Domain.Devices.Interfaces[0].Model = "e1000"
+	vmi.ObjectMeta.Annotations = map[string]string{v1.InterfaceModel: "e1000"}
 
 	addPVCDisk(&vmi.Spec, "disk-windows", busSata, "pvcdisk", "pvcvolume")
 	return vmi
@@ -453,7 +433,7 @@ func getPVCForTemplate(name string) *k8sv1.PersistentVolumeClaim {
 func getBaseTemplate(vm *v1.VirtualMachine, memory string, cores string) *Template {
 
 	obj := toUnstructured(vm)
-	unstructured.SetNestedField(obj.Object, "${{CPU_CORES}}", "spec", "template", "spec", "domain", "cpu", "cores")
+	unstructured.SetNestedField(obj.Object, "${{CPU_CORES}}", "spec", "template", "spec", "domain", "cpu")
 	unstructured.SetNestedField(obj.Object, "${MEMORY}", "spec", "template", "spec", "domain", "resources", "requests", "memory")
 	obj.SetName("${NAME}")
 
@@ -568,7 +548,7 @@ func getVMIPresetSmall() *v1.VirtualMachineInstancePreset {
 		"kubevirt.io/vmPreset": vmiPresetSmall,
 	})
 
-	vmPreset.Spec.Domain = &v1.DomainPresetSpec{
+	vmPreset.Spec.Domain = &v1.DomainSpec{
 		Resources: v1.ResourceRequirements{
 			Requests: k8sv1.ResourceList{
 				k8sv1.ResourceMemory: resource.MustParse("64M"),
@@ -597,7 +577,6 @@ func main() {
 		vmiNoCloud:     getVMINoCloud(),
 		vmiPVC:         getVMIPvc(),
 		vmiWindows:     getVMIWindows(),
-		vmiSlirp:       getVMISlirp(),
 	}
 
 	var vmireplicasets = map[string]*v1.VirtualMachineInstanceReplicaSet{

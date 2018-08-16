@@ -32,13 +32,10 @@ import (
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/precond"
 	"kubevirt.io/kubevirt/pkg/registry-disk"
-	"kubevirt.io/kubevirt/pkg/util/net/dns"
 )
 
 const configMapName = "kube-system/kubevirt-config"
-const useEmulationKey = "debug.useEmulation"
-const KvmDevice = "devices.kubevirt.io/kvm"
-const TunDevice = "devices.kubevirt.io/tun"
+const allowEmulationKey = "debug.allowEmulation"
 
 type TemplateService interface {
 	RenderLaunchManifest(*v1.VirtualMachineInstance) (*k8sv1.Pod, error)
@@ -59,13 +56,15 @@ func IsEmulationAllowed(store cache.Store) (bool, error) {
 	if !exists {
 		return exists, nil
 	}
-	useEmulation := false
+	allowEmulation := false
 	cm := obj.(*k8sv1.ConfigMap)
-	emu, ok := cm.Data[useEmulationKey]
+	emu, ok := cm.Data[allowEmulationKey]
 	if ok {
-		useEmulation = (strings.ToLower(emu) == "true")
+		// TODO: is this too specific? should we just look for the existence of
+		// the 'allowEmulation' key itself regardless of content?
+		allowEmulation = (strings.ToLower(emu) == "true")
 	}
-	return useEmulation, nil
+	return allowEmulation, nil
 }
 
 func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (*k8sv1.Pod, error) {
@@ -81,7 +80,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 
 	var volumes []k8sv1.Volume
 	var userId int64 = 0
-	var privileged bool = false
+	var privileged bool = true
 	var volumesMounts []k8sv1.VolumeMount
 	var imagePullSecrets []k8sv1.LocalObjectReference
 
@@ -196,7 +195,9 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	} else {
 		// Add overhead memory
 		memoryRequest := resources.Requests[k8sv1.ResourceMemory]
-		memoryRequest.Add(*memoryOverhead)
+		if !vmi.Spec.Domain.Resources.OvercommitGuestOverhead {
+			memoryRequest.Add(*memoryOverhead)
+		}
 		resources.Requests[k8sv1.ResourceMemory] = memoryRequest
 
 		if memoryLimit, ok := resources.Limits[k8sv1.ResourceMemory]; ok {
@@ -214,44 +215,24 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		"--grace-period-seconds", strconv.Itoa(int(gracePeriodSeconds)),
 	}
 
-	useEmulation, err := IsEmulationAllowed(t.store)
+	allowEmulation, err := IsEmulationAllowed(t.store)
 	if err != nil {
 		return nil, err
 	}
-
-	if resources.Limits == nil {
-		resources.Limits = make(k8sv1.ResourceList)
+	if allowEmulation {
+		command = append(command, "--allow-emulation")
 	}
-
-	// TODO: This can be hardcoded in the current model, but will need to be revisted
-	// once dynamic network device allocation is added
-	resources.Limits[TunDevice] = resource.MustParse("1")
-
-	// FIXME: decision point: allow emulation means "it's ok to skip hw acceleration if not present"
-	// but if the KVM resource is not requested then it's guaranteed to be not present
-	// This code works for now, but the semantics are wrong. revisit this.
-	if useEmulation {
-		command = append(command, "--use-emulation")
-	} else {
-		resources.Limits[KvmDevice] = resource.MustParse("1")
-	}
-
-	// Add ports from interfaces to the pod manifest
-	ports := getPortsFromVMI(vmi)
 
 	// VirtualMachineInstance target container
 	container := k8sv1.Container{
 		Name:            "compute",
 		Image:           t.launcherImage,
 		ImagePullPolicy: k8sv1.PullIfNotPresent,
+		// Privileged mode is required for /dev/kvm and the
+		// ability to create macvtap devices
 		SecurityContext: &k8sv1.SecurityContext{
-			RunAsUser: &userId,
-			// Privileged mode is disabled.
+			RunAsUser:  &userId,
 			Privileged: &privileged,
-			Capabilities: &k8sv1.Capabilities{
-				// NET_ADMIN is needed to set up networking for the VM
-				Add: []k8sv1.Capability{"NET_ADMIN"},
-			},
 		},
 		Command:      command,
 		VolumeMounts: volumesMounts,
@@ -271,7 +252,6 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			FailureThreshold:    int32(failureThreshold),
 		},
 		Resources: resources,
-		Ports:     ports,
 	}
 
 	containers := registrydisk.GenerateContainers(vmi, "libvirt-runtime", "/var/run/libvirt")
@@ -308,7 +288,10 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 
 	containers = append(containers, container)
 
-	hostName := dns.SanitizeHostname(vmi)
+	hostName := vmi.Name
+	if vmi.Spec.Hostname != "" {
+		hostName = vmi.Spec.Hostname
+	}
 
 	// TODO use constants for podLabels
 	pod := k8sv1.Pod{
@@ -325,9 +308,6 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			Subdomain: vmi.Spec.Subdomain,
 			SecurityContext: &k8sv1.PodSecurityContext{
 				RunAsUser: &userId,
-				SELinuxOptions: &k8sv1.SELinuxOptions{
-					Type: "spc_t",
-				},
 			},
 			TerminationGracePeriodSeconds: &gracePeriodKillAfter,
 			RestartPolicy:                 k8sv1.RestartPolicyNever,
@@ -401,31 +381,11 @@ func getMemoryOverhead(domain v1.DomainSpec) *resource.Quantity {
 	overhead.Add(resource.MustParse("8Mi"))
 
 	// Add video RAM overhead
-	overhead.Add(resource.MustParse("16Mi"))
+	if domain.Devices.AutoattachGraphicsDevice == nil || *domain.Devices.AutoattachGraphicsDevice == true {
+		overhead.Add(resource.MustParse("16Mi"))
+	}
 
 	return overhead
-}
-
-func getPortsFromVMI(vmi *v1.VirtualMachineInstance) []k8sv1.ContainerPort {
-	ports := make([]k8sv1.ContainerPort, 0)
-
-	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
-		if iface.Ports != nil {
-			for _, port := range iface.Ports {
-				if port.Protocol == "" {
-					port.Protocol = "TCP"
-				}
-
-				ports = append(ports, k8sv1.ContainerPort{Protocol: k8sv1.Protocol(port.Protocol), Name: port.Name, ContainerPort: port.Port})
-			}
-		}
-	}
-
-	if len(ports) == 0 {
-		return nil
-	}
-
-	return ports
 }
 
 func NewTemplateService(launcherImage string, virtShareDir string, imagePullSecret string, configMapCache cache.Store) TemplateService {

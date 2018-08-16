@@ -51,6 +51,8 @@ spec:
                       type: string
                 devices:
                   properties:
+                    autoattachGraphicsDevice:
+                      type: boolean
                     disks:
                       items:
                         properties:
@@ -85,8 +87,6 @@ spec:
                                 type: boolean
                           name:
                             type: string
-                          serial:
-                            type: string
                           volumeName:
                             type: string
                         required:
@@ -97,26 +97,8 @@ spec:
                       items:
                         properties:
                           bridge: {}
-                          macAddress:
-                            type: string
-                          model:
-                            type: string
                           name:
                             type: string
-                          ports:
-                            items:
-                              properties:
-                                name:
-                                  type: string
-                                port:
-                                  format: int32
-                                  type: integer
-                                protocol:
-                                  type: string
-                              required:
-                              - port
-                            type: array
-                          slirp: {}
                         required:
                         - name
                       type: array
@@ -205,6 +187,8 @@ spec:
                   properties:
                     limits:
                       type: object
+                    overcommitGuestOverhead:
+                      type: boolean
                     requests:
                       type: object
               required:
@@ -216,10 +200,7 @@ spec:
                 properties:
                   name:
                     type: string
-                  pod:
-                    properties:
-                      vmNetworkCIDR:
-                        type: string
+                  pod: {}
                 required:
                 - name
               type: array

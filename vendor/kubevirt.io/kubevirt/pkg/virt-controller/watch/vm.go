@@ -56,9 +56,9 @@ func NewVMController(vmiInformer cache.SharedIndexInformer, vmiVMInformer cache.
 	}
 
 	c.vmiVMInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc:    c.addVm,
-		DeleteFunc: c.deleteVm,
-		UpdateFunc: c.updateVm,
+		AddFunc:    c.addOvmi,
+		DeleteFunc: c.deleteOvmi,
+		UpdateFunc: c.updateOvmi,
 	})
 
 	c.vmiInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -134,7 +134,7 @@ func (c *VMController) execute(key string) error {
 
 	logger.Info("Started processing VM")
 
-	//TODO default vm if necessary, the aggregated apiserver will do that in the future
+	//TODO default rs if necessary, the aggregated apiserver will do that in the future
 	if VM.Spec.Template == nil {
 		logger.Error("Invalid controller spec, will not re-enqueue.")
 		return nil
@@ -179,7 +179,7 @@ func (c *VMController) execute(key string) error {
 		}
 	}
 
-	var createErr error
+	var createErr, vmiError error
 
 	// Scale up or down, if all expected creates and deletes were report by the listener
 	if needsSync && VM.ObjectMeta.DeletionTimestamp == nil {
@@ -194,16 +194,15 @@ func (c *VMController) execute(key string) error {
 	}
 
 	if createErr != nil {
-		logger.Reason(err).Error("Creating the VirtualMachine failed.")
+		logger.Reason(err).Error("Scaling the VirtualMachine failed.")
 	}
 
-	err = c.updateStatus(VM.DeepCopy(), vmi, createErr)
+	err = c.updateStatus(VM.DeepCopy(), vmi, createErr, vmiError)
 	if err != nil {
 		logger.Reason(err).Error("Updating the VirtualMachine status failed.")
-		return err
 	}
 
-	return createErr
+	return err
 }
 
 // orphan removes the owner reference of all VMIs which are owned by the controller instance.
@@ -295,7 +294,7 @@ func (c *VMController) startVMI(vm *virtv1.VirtualMachine) error {
 }
 
 func (c *VMController) stopVMI(vm *virtv1.VirtualMachine, vmi *virtv1.VirtualMachineInstance) error {
-	if vmi == nil || vmi.DeletionTimestamp != nil {
+	if vmi == nil {
 		// nothing to do
 		return nil
 	}
@@ -469,7 +468,7 @@ func (c *VMController) addVirtualMachine(obj interface{}) {
 		}
 		log.Log.Object(vmi).Infof("VirtualMachineInstance created bacause %s was added.", vmi.Name)
 		c.expectations.CreationObserved(vmKey)
-		c.enqueueVm(vm)
+		c.enqueueOvmi(vm)
 		return
 	}
 
@@ -483,7 +482,7 @@ func (c *VMController) addVirtualMachine(obj interface{}) {
 	}
 	log.Log.V(4).Object(vmi).Infof("Orphan VirtualMachineInstance created")
 	for _, vm := range vms {
-		c.enqueueVm(vm)
+		c.enqueueOvmi(vm)
 	}
 }
 
@@ -519,19 +518,19 @@ func (c *VMController) updateVirtualMachine(old, cur interface{}) {
 	controllerRefChanged := !reflect.DeepEqual(curControllerRef, oldControllerRef)
 	if controllerRefChanged && oldControllerRef != nil {
 		// The ControllerRef was changed. Sync the old controller, if any.
-		if vm := c.resolveControllerRef(oldVMI.Namespace, oldControllerRef); vm != nil {
-			c.enqueueVm(vm)
+		if rs := c.resolveControllerRef(oldVMI.Namespace, oldControllerRef); rs != nil {
+			c.enqueueOvmi(rs)
 		}
 	}
 
 	// If it has a ControllerRef, that's all that matters.
 	if curControllerRef != nil {
-		vm := c.resolveControllerRef(curVMI.Namespace, curControllerRef)
-		if vm == nil {
+		rs := c.resolveControllerRef(curVMI.Namespace, curControllerRef)
+		if rs == nil {
 			return
 		}
 		log.Log.V(4).Object(curVMI).Infof("VirtualMachineInstance updated")
-		c.enqueueVm(vm)
+		c.enqueueOvmi(rs)
 		// TODO: MinReadySeconds in the VirtualMachineInstance will generate an Available condition to be added in
 		// Update once we support the available conect on the rs
 		return
@@ -540,13 +539,13 @@ func (c *VMController) updateVirtualMachine(old, cur interface{}) {
 	// Otherwise, it's an orphan. If anything changed, sync matching controllers
 	// to see if anyone wants to adopt it now.
 	if labelChanged || controllerRefChanged {
-		vms := c.getMatchingControllers(curVMI)
-		if len(vms) == 0 {
+		rss := c.getMatchingControllers(curVMI)
+		if len(rss) == 0 {
 			return
 		}
 		log.Log.V(4).Object(curVMI).Infof("Orphan VirtualMachineInstance updated")
-		for _, vm := range vms {
-			c.enqueueVm(vm)
+		for _, rs := range rss {
+			c.enqueueOvmi(rs)
 		}
 	}
 }
@@ -587,22 +586,22 @@ func (c *VMController) deleteVirtualMachine(obj interface{}) {
 		return
 	}
 	c.expectations.DeletionObserved(vmKey, controller.VirtualMachineKey(vmi))
-	c.enqueueVm(vm)
+	c.enqueueOvmi(vm)
 }
 
-func (c *VMController) addVm(obj interface{}) {
-	c.enqueueVm(obj)
+func (c *VMController) addOvmi(obj interface{}) {
+	c.enqueueOvmi(obj)
 }
 
-func (c *VMController) deleteVm(obj interface{}) {
-	c.enqueueVm(obj)
+func (c *VMController) deleteOvmi(obj interface{}) {
+	c.enqueueOvmi(obj)
 }
 
-func (c *VMController) updateVm(old, curr interface{}) {
-	c.enqueueVm(curr)
+func (c *VMController) updateOvmi(old, curr interface{}) {
+	c.enqueueOvmi(curr)
 }
 
-func (c *VMController) enqueueVm(obj interface{}) {
+func (c *VMController) enqueueOvmi(obj interface{}) {
 	logger := log.Log
 	vm := obj.(*virtv1.VirtualMachine)
 	key, err := controller.KeyFunc(vm)
@@ -632,7 +631,7 @@ func (c *VMController) removeCondition(vm *virtv1.VirtualMachine, cond virtv1.Vi
 	vm.Status.Conditions = conds
 }
 
-func (c *VMController) updateStatus(vm *virtv1.VirtualMachine, vmi *virtv1.VirtualMachineInstance, createErr error) error {
+func (c *VMController) updateStatus(vm *virtv1.VirtualMachine, vmi *virtv1.VirtualMachineInstance, createErr, vmiError error) error {
 
 	// Check if it is worth updating
 	errMatch := (createErr != nil) == c.hasCondition(vm, virtv1.VirtualMachineFailure)

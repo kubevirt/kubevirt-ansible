@@ -338,6 +338,8 @@ const (
 	NodeNameLabel        string = "kubevirt.io/nodeName"
 	NodeSchedulable      string = "kubevirt.io/schedulable"
 	VirtHandlerHeartbeat string = "kubevirt.io/heartbeat"
+	InterfaceModel       string = "alpha.kubevirt.io/interface-model"
+	// TODO remove InterfaceModel when we have proper api for network models
 
 	VirtualMachineInstanceFinalizer string = "foregroundDeleteVirtualMachine"
 )
@@ -633,14 +635,14 @@ type VirtualMachineInstancePresetSpec struct {
 	// Required.
 	Selector metav1.LabelSelector `json:"selector"`
 	// Domain is the same object type as contained in VirtualMachineInstanceSpec
-	Domain *DomainPresetSpec `json:"domain,omitempty"`
+	Domain *DomainSpec `json:"domain,omitempty"`
 }
 
 func NewVirtualMachinePreset(name string, selector metav1.LabelSelector) *VirtualMachineInstancePreset {
 	return &VirtualMachineInstancePreset{
 		Spec: VirtualMachineInstancePresetSpec{
 			Selector: selector,
-			Domain:   &DomainPresetSpec{},
+			Domain:   &DomainSpec{},
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

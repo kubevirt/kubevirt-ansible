@@ -22,11 +22,15 @@
 package network
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/vishvananda/netlink"
 
@@ -129,7 +133,7 @@ func (h *NetworkUtilsHandler) SetRandomMac(iface string) (net.HardwareAddr, erro
 }
 
 func (h *NetworkUtilsHandler) StartDHCP(nic *VIF, serverAddr *netlink.Addr) {
-	nameservers, searchDomains, err := api.GetResolvConfDetailsFromPod()
+	nameservers, searchDomains, err := getResolvConfDetailsFromPod()
 	if err != nil {
 		log.Log.Errorf("Failed to get DNS servers from resolv.conf: %v", err)
 		panic(err)
@@ -166,36 +170,36 @@ func initHandler() {
 	}
 }
 
-func writeToCachedFile(inter interface{}, fileName, name string) error {
-	buf, err := json.MarshalIndent(&inter, "", "  ")
+func getInterfaceCacheFile(name string) string {
+	return fmt.Sprintf(interfaceCacheFile, name)
+}
+
+func setCachedInterface(name string, ifconf *api.Interface) error {
+	buf, err := json.MarshalIndent(&ifconf, "", "  ")
 	if err != nil {
-		return fmt.Errorf("error marshaling cached object: %v", err)
+		return fmt.Errorf("error marshaling interface cache: %v", err)
 	}
-	err = ioutil.WriteFile(getInterfaceCacheFile(fileName, name), buf, 0644)
+	err = ioutil.WriteFile(getInterfaceCacheFile(name), buf, 0644)
 	if err != nil {
-		return fmt.Errorf("error writing cached object: %v", err)
+		return fmt.Errorf("error writing interface cache %v", err)
 	}
 	return nil
 }
 
-func readFromCachedFile(name, fileName string, inter interface{}) (bool, error) {
-	buf, err := ioutil.ReadFile(getInterfaceCacheFile(fileName, name))
+func getCachedInterface(name string) (*api.Interface, error) {
+	buf, err := ioutil.ReadFile(getInterfaceCacheFile(name))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return false, nil
+			return nil, nil
 		}
-		return false, err
+		return nil, err
 	}
-
-	err = json.Unmarshal(buf, &inter)
+	ifconf := api.Interface{}
+	err = json.Unmarshal(buf, &ifconf)
 	if err != nil {
-		return false, fmt.Errorf("error unmarshaling cached object: %v", err)
+		return nil, fmt.Errorf("error unmarshaling interface: %v", err)
 	}
-	return true, nil
-}
-
-func getInterfaceCacheFile(filePath, name string) string {
-	return fmt.Sprintf(filePath, name)
+	return &ifconf, nil
 }
 
 // filter out irrelevant routes
@@ -219,4 +223,85 @@ func filterPodNetworkRoutes(routes []netlink.Route, nic *VIF) (filteredRoutes []
 // only used by unit test suite
 func setInterfaceCacheFile(path string) {
 	interfaceCacheFile = path
+}
+
+// returns nameservers [][]byte, searchdomains []string, error
+func getResolvConfDetailsFromPod() ([][]byte, []string, error) {
+	b, err := ioutil.ReadFile(resolvConf)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	nameservers, err := ParseNameservers(string(b))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	searchDomains, err := ParseSearchDomains(string(b))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	log.Log.Reason(err).Infof("Found nameservers in %s: %s", resolvConf, bytes.Join(nameservers, []byte{' '}))
+	log.Log.Reason(err).Infof("Found search domains in %s: %s", resolvConf, strings.Join(searchDomains, " "))
+
+	return nameservers, searchDomains, err
+}
+
+func ParseNameservers(content string) ([][]byte, error) {
+	var nameservers [][]byte
+
+	re, err := regexp.Compile("([0-9]{1,3}.?){4}")
+	if err != nil {
+		return nameservers, err
+	}
+
+	scanner := bufio.NewScanner(strings.NewReader(content))
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, nameserverPrefix) {
+			nameserver := re.FindString(line)
+			if nameserver != "" {
+				nameservers = append(nameservers, net.ParseIP(nameserver).To4())
+			}
+		}
+	}
+
+	if err = scanner.Err(); err != nil {
+		return nameservers, err
+	}
+
+	// apply a default DNS if none found from pod
+	if len(nameservers) == 0 {
+		nameservers = append(nameservers, net.ParseIP(defaultDNS).To4())
+	}
+
+	return nameservers, nil
+}
+
+func ParseSearchDomains(content string) ([]string, error) {
+	var searchDomains []string
+
+	scanner := bufio.NewScanner(strings.NewReader(content))
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, domainSearchPrefix) {
+			doms := strings.Fields(strings.TrimPrefix(line, domainSearchPrefix))
+			for _, dom := range doms {
+				searchDomains = append(searchDomains, dom)
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	if len(searchDomains) == 0 {
+		searchDomains = append(searchDomains, defaultSearchDomain)
+	}
+
+	return searchDomains, nil
 }
