@@ -9,6 +9,8 @@ objects:
   kind: VirtualMachineInstance
   metadata:
     name: ${VM_NAME}
+    labels:
+      test: cdi-manifests
   spec:
     terminationGracePeriodSeconds: 0
     domain:

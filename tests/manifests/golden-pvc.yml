@@ -8,7 +8,9 @@ objects:
 - apiVersion: v1
   kind: PersistentVolumeClaim
   metadata:
-    name: ${PVC_NAME}
+    name: ${RESOURCE_NAME}
+    labels:
+      test: cdi-manifests
     annotations:
       cdi.kubevirt.io/storage.import.endpoint: "${EP_URL}"
       cdi.kubevirt.io/storage.import.secretName: "${EP_SECRET}"
@@ -17,8 +19,8 @@ objects:
     - ReadWriteOnce
     resources:
       requests:
-        storage: 10Gi
+        storage: 500Mi
 parameters:
-- name: PVC_NAME
+- name: RESOURCE_NAME
 - name: EP_URL
 - name: EP_SECRET

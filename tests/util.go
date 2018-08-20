@@ -16,7 +16,7 @@ import (
 )
 
 type Result struct {
-    cmd           string
+	cmd           string
 	verb          string
 	resourceType  string
 	resourceName  string
@@ -35,6 +35,9 @@ const (
 	CDI_LABEL_KEY        = "app"
 	CDI_LABEL_VALUE      = "containerized-data-importer"
 	CDI_LABEL_SELECTOR   = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
+	CDI_TEST_LABEL_KEY   = "test"
+	CDI_TEST_LABEL_VALUE = "cdi-manifests"
+	CDI_TEST_LABEL_SELECTOR = CDI_TEST_LABEL_KEY + "=" + CDI_TEST_LABEL_VALUE
 	NamespaceTestDefault = "kubevirt-test-default"
 	paramFlag            = "-p"
 )
@@ -81,30 +84,42 @@ func RemoveNamespaces() {
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
 	By(fmt.Sprintf("Overriding the template from %s to %s", srcFilePath, dstFilePath))
-    out := execute(Result{cmd: "oc", verb: "process", filePath: srcFilePath, params: params})
+	out := execute(Result{cmd: "oc", verb: "process", filePath: srcFilePath, params: params})
 	filePath, err := writeJson(dstFilePath, out)
 	Expect(err).ToNot(HaveOccurred())
 	return filePath
 }
 
-func CreateResourceWithFilePathTestNamespace(filePath string) {
+func CreateResourceWithFilePath(filePath, namespace string) {
+	if namespace == "" {
+		namespace = NamespaceTestDefault
+	}
 	By("Creating resource from the json file with the oc-create command")
-	execute(Result{cmd: "oc", verb: "create", filePath: filePath, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "create", filePath: filePath, nameSpace: namespace})
 }
 
-func DeleteResourceWithLabelTestNamespace(resourceType, resourceLabel string) {
+func DeleteResourceWithLabel(resourceType, resourceLabel, namespace string) {
+	if namespace == "" {
+		namespace = NamespaceTestDefault
+	}
 	By(fmt.Sprintf("Deleting %s:%s from the json file with the oc-delete command", resourceType, resourceLabel))
-	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel, nameSpace: namespace})
 }
 
-func WaitUntilResourceReadyByNameTestNamespace(resourceType, resourceName, query, expectOut string) {
+func WaitUntilResourceReadyByName(resourceType, resourceName, query, expectOut, namespace string) {
+	if namespace == "" {
+		namespace = NamespaceTestDefault
+	}
 	By(fmt.Sprintf("Wait until %s with name %s ready", resourceType, resourceName))
-	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut, nameSpace: namespace})
 }
 
-func WaitUntilResourceReadyByLabelTestNamespace(resourceType, label, query, expectOut string) {
+func WaitUntilResourceReadyByLabel(resourceType, label, query, expectOut, namespace string) {
+	if namespace == "" {
+		namespace = NamespaceTestDefault
+	}
 	By(fmt.Sprintf("Wait until resource %s with label=%s ready", resourceType, label))
-	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: namespace})
 }
 
 func execute(r Result) string {
@@ -144,7 +159,7 @@ func execute(r Result) string {
 			r.actualOut, err = ktests.RunCommand(r.cmd, cmd...)
 			Expect(err).ToNot(HaveOccurred())
 			return strings.Contains(r.actualOut, r.expectOut)
-		}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
+		}, time.Duration(3)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
 	} else {
 		r.actualOut, err = ktests.RunCommand(r.cmd, cmd...)
 		Expect(err).ToNot(HaveOccurred())
