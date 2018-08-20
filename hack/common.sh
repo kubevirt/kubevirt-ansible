@@ -7,7 +7,8 @@ KUBEVIRT_ANSIBLE_DIR="$(
 OUT_DIR=$KUBEVIRT_ANSIBLE_DIR/_out
 TESTS_OUT_DIR=$OUT_DIR/tests
 
-FUNC_TEST_ARGS="${FUNC_TEST_ARGS:--test.timeout 60m --junit-output=junit.xml}"
+FUNC_TEST_ARGS="${FUNC_TEST_ARGS:--test.timeout 60m --junit-output=junit-func-tests.xml}"
+CDI_TEST_ARGS="${CDI_TEST_ARGS:--test.timeout 60m --junit-output=junit-cdi-tests.xml}"
 
 function build_func_tests() {
     mkdir -p ${TESTS_OUT_DIR}/
