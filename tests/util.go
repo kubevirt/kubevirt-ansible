@@ -92,6 +92,7 @@ func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...st
 }
 
 func CreateResourceWithFilePathTestNamespace(filePath string) {
+	By("Creating resource from the json file with the oc-create command")
 	exec(Result{verb: "create", filePath: filePath, nameSpace: NamespaceTestDefault})
 }
 
