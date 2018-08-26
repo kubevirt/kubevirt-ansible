@@ -34,3 +34,5 @@
 - name: Create CDI deployment
   command: "kubectl apply -f /tmp/cdi-provision.yml -n {{ cdi_namespace }}"
 
+- name: Enable privileged containers in the security context
+  command: "oc adm policy add-scc-to-user privileged -z cdi-sa"
