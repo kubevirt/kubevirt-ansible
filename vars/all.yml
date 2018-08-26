@@ -13,3 +13,4 @@ image_pull_policy: IfNotPresent
 
 ### Components ###
 storage_role: "storage-none"
+network_role: "network-multus"
