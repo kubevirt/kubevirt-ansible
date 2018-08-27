@@ -43,7 +43,7 @@
   template:
     src: "{{ offline_template_dir }}/v{{ version }}/kubevirt.yaml.j2"
     dest: "/tmp/kubevirt.yaml"
-  when: offline_templates.stat.exists == True
+  when: (offline_templates is not skipped) and (offline_templates.stat.exists == True)
 
 - name: Render KubeVirt Yaml
   template:
