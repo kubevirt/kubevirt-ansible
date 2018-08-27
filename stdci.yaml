@@ -1,5 +1,4 @@
 substage:
-  - openshift_3-9
   - openshift_3-10
 
 runtime_requirements:

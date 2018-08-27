@@ -7,7 +7,7 @@ This repository provides a collection of playbooks to
 
 > **NOTE:** Checked box means that playbook is working and supported, unchecked box means that playbook needs stabilization.
 
-**Tested on CentOS Linux release 7.5 (Core), OpenShift 3.9 and Ansible 2.5.3**
+**Tested on CentOS Linux release 7.5 (Core), OpenShift 3.10 and Ansible 2.5.3**
 
 ## Requirements
 
@@ -27,8 +27,8 @@ For OpenShift deployment clone [**OpenShift Ansible**](openshift-ansible-project
 $ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
 ```
 
-> **NOTE:** For OpenShift 3.9 there is no release yet,
-please read [this file](../automation/check-patch.openshift_3-9.sh) to see
+> **NOTE:** For OpenShift 3.10 there is no release yet,
+please read [this file](../automation/check-patch.openshift_3-10.sh) to see
 what branch is currently used for automation.
 
 ## Cluster configuration

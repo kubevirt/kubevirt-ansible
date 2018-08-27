@@ -114,7 +114,7 @@ run the following command (replace the following variables):
 * `jenkins` - the directory that contains the jenkins repository
   (as explained in [Setting up mock_runner])
 
-* `cluster_version` - The CI flow that you want to run, for example `openshift_3-9.sh`
+* `cluster_version` - The CI flow that you want to run, for example `openshift_3-10.sh`
 
 ```bash
 
