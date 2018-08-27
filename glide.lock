@@ -1,5 +1,5 @@
-hash: 0ece4ec8bf754e47c987bba0f7173f29a08aadc2b476a653e56bb57ebcdd80b5
-updated: 2018-08-15T11:27:46.287965917+02:00
+hash: ceb7a23b4bde1fee30e22073965fb1062fae3bcc5480c861ac8b8b1d91689947
+updated: 2018-08-15T12:45:50.011723685+02:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -361,4 +361,10 @@ imports:
   - pkg/virtctl/vm
   - pkg/virtctl/vnc
   - tests
+- name: kubevirt.io/qe-tools
+  version: cfa2a5aff14e51a06fc637f97c941d392cf1acb6
+  repo: https://github.com/kubevirt/qe-tools.git
+  subpackages:
+  - pkg/ginkgo-reporters
+  - pkg/polarion-xml
 testImports: []
