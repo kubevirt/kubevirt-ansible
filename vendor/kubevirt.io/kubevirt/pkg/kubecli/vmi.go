@@ -226,7 +226,7 @@ func (ws *wsStreamer) streamDone() {
 func (ws *wsStreamer) Stream(options StreamOptions) error {
 	wsReadWriter := &BinaryReadWriter{Conn: ws.conn}
 
-	copyErr := make(chan error, 1)
+	copyErr := make(chan error)
 
 	go func() {
 		_, err := io.Copy(wsReadWriter, options.In)
@@ -269,7 +269,7 @@ func (v *vmis) asyncSubresourceHelper(name string, resource string) (StreamInter
 		return nil, fmt.Errorf("unable to create request for remote execution: %v", err)
 	}
 
-	errChan := make(chan error, 1)
+	errChan := make(chan error)
 
 	go func() {
 		// Send the request and let the callback do its work

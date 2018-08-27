@@ -1,8 +1,137 @@
-hash: 0ece4ec8bf754e47c987bba0f7173f29a08aadc2b476a653e56bb57ebcdd80b5
-updated: 2018-07-04T19:17:18.386872596+03:00
+hash: 0a509ac478aa151bc08767fdbd0fc7634589d6c432350f359d683ee7ae1ffe68
+updated: 2018-08-20T16:00:08.106215186+02:00
 imports:
+- name: kubevirt.io/kubevirt
+  version: 9d48bd14f93db30a226667d809818ad44be68af7
+  repo: https://github.com/kubevirt/kubevirt.git
+  subpackages:
+  - pkg/api/v1
+  - pkg/controller
+  - pkg/kubecli
+  - pkg/log
+  - pkg/precond
+  - pkg/version
+  - pkg/virtctl
+  - pkg/virtctl/console
+  - pkg/virtctl/expose
+  - pkg/virtctl/templates
+  - pkg/virtctl/version
+  - pkg/virtctl/vm
+  - pkg/virtctl/vnc
+  - tests
+- name: kubevirt.io/qe-tools
+  version: 51aa15b370eeb41194adc275eba8f7f362fdaceb
+  repo: https://github.com/kubevirt/qe-tools.git
+  subpackages:
+  - pkg/ginkgo-reporters
+  - pkg/polarion-xml
+testImports:
+- name: github.com/davecgh/go-spew
+  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
+  subpackages:
+  - spew
+- name: github.com/docker/spdystream
+  version: 449fdfce4d962303d702fec724ef0ad181c92528
+  subpackages:
+  - spdy
+- name: github.com/emicklei/go-restful
+  version: 26b41036311f2da8242db402557a0dbd09dc83da
+  subpackages:
+  - log
+- name: github.com/ghodss/yaml
+  version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
+- name: github.com/go-kit/kit
+  version: fe6fe28ba0d54b39f27e79cddba4911b7e4fffc7
+  subpackages:
+  - log
+- name: github.com/go-logfmt/logfmt
+  version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
+- name: github.com/go-openapi/jsonpointer
+  version: 3a0015ad55fa9873f41605d3e8f28cd279c32ab2
+- name: github.com/go-openapi/jsonreference
+  version: 3fb327e6747da3043567ee86abd02bb6376b6be2
+- name: github.com/go-openapi/spec
+  version: 384415f06ee238aae1df5caad877de6ceac3a5c4
+- name: github.com/go-openapi/swag
+  version: becd2f08beafcca035645a8a101e0e3e18140458
+- name: github.com/go-stack/stack
+  version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
+- name: github.com/gogo/protobuf
+  version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
+  subpackages:
+  - proto
+  - sortkeys
+- name: github.com/golang/glog
+  version: 44145f04b68cf362d9c4df2182967c2275eaefed
+- name: github.com/golang/mock
+  version: 5f7a43820b4647d500f43b4ffcf344eaf01bcad5
+  subpackages:
+  - gomock
+- name: github.com/golang/protobuf
+  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
+  subpackages:
+  - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
+- name: github.com/google/btree
+  version: 7d79101e329e5a3adf994758c578dab82b90c017
+- name: github.com/google/goexpect
+  version: 9db06cbbaed691242d13045e8e5f5037f72db9e7
+- name: github.com/google/gofuzz
+  version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
+- name: github.com/google/goterm
+  version: 70e1c263818522aa1ecbdd34d7e143639d447ced
+  subpackages:
+  - term
+- name: github.com/googleapis/gnostic
+  version: 0c5108395e2debce0d731cf0287ddf7242066aba
+  subpackages:
+  - OpenAPIv2
+  - compiler
+  - extensions
+- name: github.com/gorilla/websocket
+  version: 0647012449a1878977514a346b26637dd022446c
+- name: github.com/gregjones/httpcache
+  version: 787624de3eb7bd915c329cba748687a3b22666a6
+  subpackages:
+  - diskcache
+- name: github.com/hashicorp/golang-lru
+  version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
+  subpackages:
+  - simplelru
+- name: github.com/howeyc/gopass
+  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
+- name: github.com/hpcloud/tail
+  version: a1dbeea552b7c8df4b542c66073e393de198a800
+  subpackages:
+  - ratelimiter
+  - util
+  - watch
+  - winfile
+- name: github.com/imdario/mergo
+  version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
+- name: github.com/inconshreveable/mousetrap
+  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
+- name: github.com/json-iterator/go
+  version: f2b4162afba35581b6d4a50d3b8f34e33c144682
+- name: github.com/juju/ratelimit
+  version: 5b9ff866471762aa2ab2dced63c9fb6f53921342
+- name: github.com/kr/logfmt
+  version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
+- name: github.com/mailru/easyjson
+  version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
+- name: github.com/modern-go/concurrent
+  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
+- name: github.com/modern-go/reflect2
+  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/onsi/ginkgo
-  version: 11459a886d9cd66b319dac7ef1e917ee221372c9
+  version: 3774a09d95489ccaa16032e0770d08ea77ba6184
   subpackages:
   - config
   - internal/codelocation
@@ -35,126 +164,6 @@ imports:
   - matchers/support/goraph/node
   - matchers/support/goraph/util
   - types
-- name: kubevirt.io/kubevirt
-  version: b5b91243f540739eb5db61af89b2f1e5ba449dfa
-  repo: https://github.com/kubevirt/kubevirt.git
-  subpackages:
-  - pkg/api/v1
-  - pkg/controller
-  - pkg/ephemeral-disk-utils
-  - pkg/kubecli
-  - pkg/log
-  - pkg/precond
-  - pkg/registry-disk
-  - pkg/util/net/dns
-  - pkg/version
-  - pkg/virt-controller/services
-  - pkg/virtctl
-  - pkg/virtctl/console
-  - pkg/virtctl/expose
-  - pkg/virtctl/templates
-  - pkg/virtctl/version
-  - pkg/virtctl/vm
-  - pkg/virtctl/vnc
-  - tests
-testImports:
-- name: github.com/davecgh/go-spew
-  version: 782f4967f2dc4564575ca782fe2d04090b5faca8
-  subpackages:
-  - spew
-- name: github.com/docker/spdystream
-  version: 449fdfce4d962303d702fec724ef0ad181c92528
-  subpackages:
-  - spdy
-- name: github.com/emicklei/go-restful
-  version: 26b41036311f2da8242db402557a0dbd09dc83da
-  subpackages:
-  - log
-- name: github.com/ghodss/yaml
-  version: 0ca9ea5df5451ffdf184b4428c902747c2c11cd7
-- name: github.com/go-kit/kit
-  version: fe6fe28ba0d54b39f27e79cddba4911b7e4fffc7
-  subpackages:
-  - log
-- name: github.com/go-logfmt/logfmt
-  version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
-- name: github.com/go-openapi/jsonpointer
-  version: 3a0015ad55fa9873f41605d3e8f28cd279c32ab2
-- name: github.com/go-openapi/jsonreference
-  version: 3fb327e6747da3043567ee86abd02bb6376b6be2
-- name: github.com/go-openapi/spec
-  version: 16284f9da51d5a5b5dc67c8109a99b014c4b7f0a
-- name: github.com/go-openapi/swag
-  version: 2b0bd4f193d011c203529df626a65d63cb8a79e8
-- name: github.com/go-stack/stack
-  version: 259ab82a6cad3992b4e21ff5cac294ccb06474bc
-- name: github.com/gogo/protobuf
-  version: c0656edd0d9eab7c66d1eb0c568f9039345796f7
-  subpackages:
-  - proto
-  - sortkeys
-- name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
-- name: github.com/golang/mock
-  version: 22bbf0ddf08105dfa364d0a2fa619dfa71014af5
-  subpackages:
-  - gomock
-- name: github.com/golang/protobuf
-  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
-  subpackages:
-  - proto
-  - ptypes
-  - ptypes/any
-  - ptypes/duration
-  - ptypes/timestamp
-- name: github.com/google/btree
-  version: 7d79101e329e5a3adf994758c578dab82b90c017
-- name: github.com/google/goexpect
-  version: ab4b830a1d94b505ac5025eaa09ed950b329efa4
-- name: github.com/google/gofuzz
-  version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
-- name: github.com/google/goterm
-  version: 70e1c263818522aa1ecbdd34d7e143639d447ced
-  subpackages:
-  - term
-- name: github.com/googleapis/gnostic
-  version: 0c5108395e2debce0d731cf0287ddf7242066aba
-  subpackages:
-  - OpenAPIv2
-  - compiler
-  - extensions
-- name: github.com/gorilla/websocket
-  version: 0647012449a1878977514a346b26637dd022446c
-- name: github.com/gregjones/httpcache
-  version: 787624de3eb7bd915c329cba748687a3b22666a6
-  subpackages:
-  - diskcache
-- name: github.com/hashicorp/golang-lru
-  version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
-  subpackages:
-  - simplelru
-- name: github.com/howeyc/gopass
-  version: bf9dde6d0d2c004a008c27aaee91170c786f6db8
-- name: github.com/imdario/mergo
-  version: 6633656539c1639d9d78127b7d47c622b5d7b6dc
-- name: github.com/inconshreveable/mousetrap
-  version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
-- name: github.com/json-iterator/go
-  version: f2b4162afba35581b6d4a50d3b8f34e33c144682
-- name: github.com/juju/ratelimit
-  version: 5b9ff866471762aa2ab2dced63c9fb6f53921342
-- name: github.com/kr/logfmt
-  version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
-- name: github.com/mailru/easyjson
-  version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
-  subpackages:
-  - buffer
-  - jlexer
-  - jwriter
-- name: github.com/modern-go/concurrent
-  version: bacd9c7ef1dd9b15be4a9909b8ac7a4e313eec94
-- name: github.com/modern-go/reflect2
-  version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/pborman/uuid
   version: c65b2f87fee37d1c7854c9164a450713c28d50cd
 - name: github.com/peterbourgon/diskv
@@ -168,7 +177,7 @@ testImports:
   subpackages:
   - cobra
 - name: github.com/spf13/pflag
-  version: 583c0c0531f06d5278b7d917446061adc344b5cd
+  version: 947b89bd1b7dabfed991ac30e1a56f5193f0c88b
 - name: golang.org/x/crypto
   version: 81e90905daefcd6fd217b62423c0908922eadb30
   subpackages:
@@ -219,13 +228,17 @@ testImports:
   - unicode/norm
   - width
 - name: google.golang.org/grpc
-  version: 40cd6b15e2880b88deb091b0fcb091694285fcb0
+  version: 9907ae0e57ce159e835381ed54eb271206bf7b12
   subpackages:
   - codes
+- name: gopkg.in/fsnotify/fsnotify.v1
+  version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
+- name: gopkg.in/tomb.v1
+  version: c131134a1947e9afd9cecfe11f4c6dff0732ae58
 - name: gopkg.in/yaml.v2
-  version: 5420a8b6744d3b0345ab293f6fcba19c978f1183
+  version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
   version: acf347b865f29325eb61f4cd2df11e86e073a5ee
   subpackages:
@@ -363,6 +376,6 @@ testImports:
   - util/integer
   - util/workqueue
 - name: k8s.io/kube-openapi
-  version: d83b052f768a50a309c692a9c271da3f3276ff88
+  version: e3762e86a74c878ffed47484592986685639c2cd
   subpackages:
   - pkg/common

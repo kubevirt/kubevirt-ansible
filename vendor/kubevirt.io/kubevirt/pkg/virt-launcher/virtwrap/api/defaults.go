@@ -1,32 +1,6 @@
 package api
 
-const (
-	defaultDNS          = "8.8.8.8"
-	resolvConf          = "/etc/resolv.conf"
-	defaultSearchDomain = "cluster.local"
-	domainSearchPrefix  = "search"
-	nameserverPrefix    = "nameserver"
-	DefaultProtocol     = "TCP"
-	DefaultVMCIDR       = "10.0.2.0/24"
-	DefaultBridgeName   = "br1"
-)
-
-func SetDefaults_Devices(devices *Devices) {
-	// Use vga as video device, since it is better than cirrus
-	// and does not require guest drivers
-	var heads uint = 1
-	var vram uint = 16384
-	devices.Video = []Video{
-		{
-			Model: VideoModel{
-				Type:  "vga",
-				Heads: &heads,
-				VRam:  &vram,
-			},
-		},
-	}
-
-}
+const DefaultBridgeName = "br1"
 
 func SetDefaults_OSType(ostype *OSType) {
 	ostype.OS = "hvm"

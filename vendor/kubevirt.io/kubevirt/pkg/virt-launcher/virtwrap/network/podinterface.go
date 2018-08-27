@@ -23,7 +23,6 @@ package network
 
 import (
 	"fmt"
-	"net"
 
 	"github.com/vishvananda/netlink"
 
@@ -35,18 +34,11 @@ import (
 
 var bridgeFakeIP = "169.254.75.86/32"
 
-// DefaultProtocol is the default port protocol
-const DefaultProtocol string = "TCP"
-
-// DefaultVMCIDR is the default CIDR for vm network
-const DefaultVMCIDR = "10.0.2.0/24"
-
 type BindMechanism interface {
 	discoverPodNetworkInterface() error
 	preparePodNetworkInterfaces() error
-	decorateConfig() error
-	loadCachedInterface(name string) (bool, error)
-	setCachedInterface(name string) error
+	startDHCPServer()
+	decorateInterfaceConfig(ifconf *api.Interface)
 }
 
 type PodInterface struct{}
@@ -67,79 +59,62 @@ func (l *PodInterface) Plug(iface *v1.Interface, network *v1.Network, domain *ap
 	precond.MustNotBeNil(domain)
 	initHandler()
 
-	driver, err := getBinding(iface, domain)
+	driver, err := getBinding(iface)
 	if err != nil {
 		return err
 	}
 
-	isExist, err := driver.loadCachedInterface(iface.Name)
+	ifconf, err := getCachedInterface(iface.Name)
 	if err != nil {
 		return err
 	}
 
-	if !isExist {
+	interfaces := domain.Spec.Devices.Interfaces
+	podInterfaceNum, err := findInterfaceByName(interfaces, iface.Name)
+	if err != nil {
+		return err
+	}
+
+	if ifconf == nil {
 		err := driver.discoverPodNetworkInterface()
 		if err != nil {
 			return err
 		}
-
 		if err := driver.preparePodNetworkInterfaces(); err != nil {
 			log.Log.Reason(err).Critical("failed to prepared pod networking")
 			panic(err)
 		}
 
+		defaultIconf := interfaces[podInterfaceNum]
+		driver.startDHCPServer()
+
 		// After the network is configured, cache the result
 		// in case this function is called again.
-		err = driver.decorateConfig()
+		driver.decorateInterfaceConfig(&defaultIconf)
+		err = setCachedInterface(iface.Name, &defaultIconf)
 		if err != nil {
-			log.Log.Reason(err).Critical("failed to create libvirt configuration")
 			panic(err)
 		}
-
-		err = driver.setCachedInterface(iface.Name)
-		if err != nil {
-			log.Log.Reason(err).Critical("failed to save interface configuration")
-			panic(err)
-		}
+		ifconf = &defaultIconf
 	}
+
+	interfaces[podInterfaceNum] = *ifconf
 
 	return nil
 }
 
-func getBinding(iface *v1.Interface, domain *api.Domain) (BindMechanism, error) {
-	podInterfaceNum, err := findInterfaceByName(domain.Spec.Devices.Interfaces, iface.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	populateMacAddress := func(vif *VIF, iface *v1.Interface) error {
-		if iface.MacAddress != "" {
-			macAddress, err := net.ParseMAC(iface.MacAddress)
-			if err != nil {
-				return err
-			}
-			vif.MAC = macAddress
-		}
-		return nil
-	}
-
+func getBinding(iface *v1.Interface) (BindMechanism, error) {
+	vif := &VIF{Name: podInterface}
 	if iface.Bridge != nil {
-		vif := &VIF{Name: podInterface}
-		populateMacAddress(vif, iface)
-		return &BridgePodInterface{iface: iface, vif: vif, domain: domain, podInterfaceNum: podInterfaceNum}, nil
-	}
-	if iface.Slirp != nil {
-		return &SlirpPodInterface{iface: iface, domain: domain, podInterfaceNum: podInterfaceNum}, nil
+		return &BridgePodInterface{iface: iface, vif: vif}, nil
 	}
 	return nil, fmt.Errorf("Not implemented")
 }
 
 type BridgePodInterface struct {
-	vif             *VIF
-	iface           *v1.Interface
-	podNicLink      netlink.Link
-	domain          *api.Domain
-	podInterfaceNum int
+	vif        *VIF
+	iface      *v1.Interface
+	podNicLink netlink.Link
 }
 
 func (b *BridgePodInterface) discoverPodNetworkInterface() error {
@@ -166,15 +141,13 @@ func (b *BridgePodInterface) discoverPodNetworkInterface() error {
 		return err
 	}
 
-	if len(b.vif.MAC) == 0 {
-		// Get interface MAC address
-		mac, err := Handler.GetMacDetails(podInterface)
-		if err != nil {
-			log.Log.Reason(err).Errorf("failed to get MAC for %s", podInterface)
-			return err
-		}
-		b.vif.MAC = mac
+	// Get interface MAC address
+	mac, err := Handler.GetMacDetails(podInterface)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to get MAC for %s", podInterface)
+		return err
 	}
+	b.vif.MAC = mac
 
 	// Get interface MTU
 	b.vif.Mtu = uint16(b.podNicLink.Attrs().MTU)
@@ -212,8 +185,6 @@ func (b *BridgePodInterface) preparePodNetworkInterfaces() error {
 		return err
 	}
 
-	b.startDHCPServer()
-
 	return nil
 }
 
@@ -223,31 +194,8 @@ func (b *BridgePodInterface) startDHCPServer() {
 	Handler.StartDHCP(b.vif, fakeServerAddr)
 }
 
-func (b *BridgePodInterface) decorateConfig() error {
-	b.domain.Spec.Devices.Interfaces[b.podInterfaceNum].MAC = &api.MAC{MAC: b.vif.MAC.String()}
-
-	return nil
-}
-
-func (b *BridgePodInterface) loadCachedInterface(name string) (bool, error) {
-	var ifaceConfig api.Interface
-
-	isExist, err := readFromCachedFile(name, interfaceCacheFile, &ifaceConfig)
-	if err != nil {
-		return false, err
-	}
-
-	if isExist {
-		b.domain.Spec.Devices.Interfaces[b.podInterfaceNum] = ifaceConfig
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func (b *BridgePodInterface) setCachedInterface(name string) error {
-	err := writeToCachedFile(&b.domain.Spec.Devices.Interfaces[b.podInterfaceNum], interfaceCacheFile, name)
-	return err
+func (b *BridgePodInterface) decorateInterfaceConfig(ifconf *api.Interface) {
+	ifconf.MAC = &api.MAC{MAC: b.vif.MAC.String()}
 }
 
 func (b *BridgePodInterface) setInterfaceRoutes() error {
@@ -300,61 +248,4 @@ func (b *BridgePodInterface) createDefaultBridge() error {
 	}
 
 	return nil
-}
-
-type SlirpPodInterface struct {
-	iface           *v1.Interface
-	domain          *api.Domain
-	podInterfaceNum int
-}
-
-func (s *SlirpPodInterface) discoverPodNetworkInterface() error {
-	s.domain.Spec.QEMUCmd.QEMUArg = append(s.domain.Spec.QEMUCmd.QEMUArg, api.Arg{Value: "-device"})
-	return nil
-}
-
-func (s *SlirpPodInterface) preparePodNetworkInterfaces() error {
-	interfaces := s.domain.Spec.Devices.Interfaces
-	domainInterface := interfaces[s.podInterfaceNum]
-	s.domain.Spec.QEMUCmd.QEMUArg = append(s.domain.Spec.QEMUCmd.QEMUArg, api.Arg{Value: fmt.Sprintf("%s,netdev=%s", domainInterface.Model.Type, s.iface.Name)})
-
-	s.domain.Spec.Devices.Interfaces = append(interfaces[:s.podInterfaceNum], interfaces[s.podInterfaceNum+1:]...)
-	s.podInterfaceNum = len(s.domain.Spec.QEMUCmd.QEMUArg) - 1
-
-	return nil
-}
-
-func (s *SlirpPodInterface) decorateConfig() error {
-	s.domain.Spec.QEMUCmd.QEMUArg[s.podInterfaceNum].Value += fmt.Sprintf(",id=%s", s.iface.Name)
-	if s.iface.MacAddress != "" {
-		// We assume address was already validated in API layer so just pass it to libvirt as-is.
-		s.domain.Spec.QEMUCmd.QEMUArg[s.podInterfaceNum].Value += fmt.Sprintf(",mac=%s", s.iface.MacAddress)
-	}
-	return nil
-}
-
-func (s *SlirpPodInterface) loadCachedInterface(name string) (bool, error) {
-	var qemuArg api.Arg
-	interfaces := s.domain.Spec.Devices.Interfaces
-
-	isExist, err := readFromCachedFile(name, qemuArgCacheFile, &qemuArg)
-	if err != nil {
-		return false, err
-	}
-
-	if isExist {
-		// remove slirp interface from domain spec devices interfaces
-		interfaces = append(interfaces[:s.podInterfaceNum], interfaces[s.podInterfaceNum+1:]...)
-
-		// Add interface configuration to qemuArgs
-		s.domain.Spec.QEMUCmd.QEMUArg = append(s.domain.Spec.QEMUCmd.QEMUArg, qemuArg)
-		return true, nil
-	}
-
-	return false, nil
-}
-
-func (s *SlirpPodInterface) setCachedInterface(name string) error {
-	err := writeToCachedFile(&s.domain.Spec.QEMUCmd.QEMUArg[s.podInterfaceNum], qemuArgCacheFile, name)
-	return err
 }

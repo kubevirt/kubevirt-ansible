@@ -30,9 +30,7 @@ import (
 	"os"
 	"os/exec"
 	"reflect"
-	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/goexpect"
@@ -49,7 +47,6 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/rand"
-	k8sversion "k8s.io/apimachinery/pkg/version"
 
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
@@ -62,22 +59,18 @@ import (
 	"kubevirt.io/kubevirt/pkg/controller"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
-	"kubevirt.io/kubevirt/pkg/util/net/dns"
-	"kubevirt.io/kubevirt/pkg/virt-controller/services"
 	"kubevirt.io/kubevirt/pkg/virtctl"
 )
 
 var KubeVirtVersionTag = "latest"
 var KubeVirtRepoPrefix = "kubevirt"
 var KubeVirtKubectlPath = ""
-var KubeVirtOcPath = ""
 var KubeVirtInstallNamespace = "kube-system"
 
 func init() {
 	flag.StringVar(&KubeVirtVersionTag, "tag", "latest", "Set the image tag or digest to use")
 	flag.StringVar(&KubeVirtRepoPrefix, "prefix", "kubevirt", "Set the repository prefix for all images")
 	flag.StringVar(&KubeVirtKubectlPath, "kubectl-path", "", "Set path to kubectl binary")
-	flag.StringVar(&KubeVirtOcPath, "oc-path", "", "Set path to oc binary")
 	flag.StringVar(&KubeVirtInstallNamespace, "installed-namespace", "kube-system", "Set the namespace KubeVirt is installed in")
 }
 
@@ -335,47 +328,6 @@ func BeforeTestSuitSetup() {
 	CreatePVC(osAlpineHostPath, defaultDiskSize)
 
 	CreatePVC(osWindows, defaultWindowsDiskSize)
-
-	EnsureKVMPresent()
-}
-
-func EnsureKVMPresent() {
-	useEmulation := false
-	virtClient, err := kubecli.GetKubevirtClient()
-	PanicOnError(err)
-
-	options := metav1.GetOptions{}
-	cfgMap, err := virtClient.CoreV1().ConfigMaps("kube-system").Get("kubevirt-config", options)
-	if err == nil {
-		val, ok := cfgMap.Data["debug.useEmulation"]
-		useEmulation = ok && (val == "true")
-	} else {
-		// If the cfgMap is missing, default to useEmulation=false
-		// no other error is expected
-		if !errors.IsNotFound(err) {
-			Expect(err).ToNot(HaveOccurred())
-		}
-	}
-	if !useEmulation {
-		listOptions := metav1.ListOptions{LabelSelector: v1.AppLabel + "=virt-handler"}
-		virtHandlerPods, err := virtClient.CoreV1().Pods(metav1.NamespaceSystem).List(listOptions)
-		Expect(err).ToNot(HaveOccurred())
-
-		Eventually(func() bool {
-			ready := true
-			// cluster is not ready until all nodes are ready.
-			for _, pod := range virtHandlerPods.Items {
-				virtHandlerNode, err := virtClient.CoreV1().Nodes().Get(pod.Spec.NodeName, metav1.GetOptions{})
-				Expect(err).ToNot(HaveOccurred())
-
-				allocatable, ok := virtHandlerNode.Status.Allocatable[services.KvmDevice]
-				ready = ready && ok
-				ready = ready && (allocatable.Value() > 0)
-			}
-			return ready
-		}, 120*time.Second, 1*time.Second).Should(BeTrue(),
-			"KVM devices are required for testing, but are not present on cluster nodes")
-	}
 }
 
 func CreatePVC(os string, size string) {
@@ -980,31 +932,10 @@ func NewRandomVMIWithWatchdog() *v1.VirtualMachineInstance {
 	return vmi
 }
 
-func NewRandomVMIWithSlirpInterfaceEphemeralDiskAndUserdata(containerImage string, userData string, Ports []v1.Port) *v1.VirtualMachineInstance {
-	vmi := NewRandomVMIWithEphemeralDiskAndUserdata(containerImage, userData)
-	vmi.Spec.Domain.Devices.Interfaces = []v1.Interface{{Name: "default", Ports: Ports, InterfaceBindingMethod: v1.InterfaceBindingMethod{Slirp: &v1.InterfaceSlirp{}}}}
-	vmi.Spec.Networks = []v1.Network{*v1.DefaultPodNetwork()}
-
-	return vmi
-}
-
-func AddExplicitPodNetworkInterface(vmi *v1.VirtualMachineInstance) {
-	vmi.Spec.Domain.Devices.Interfaces = []v1.Interface{*v1.DefaultNetworkInterface()}
-	vmi.Spec.Networks = []v1.Network{*v1.DefaultPodNetwork()}
-}
-
 func NewRandomVMIWithe1000NetworkInterface() *v1.VirtualMachineInstance {
 	// Use alpine because cirros dhcp client starts prematurily before link is ready
 	vmi := NewRandomVMIWithEphemeralDisk(RegistryDiskFor(RegistryDiskAlpine))
-	AddExplicitPodNetworkInterface(vmi)
-	vmi.Spec.Domain.Devices.Interfaces[0].Model = "e1000"
-	return vmi
-}
-
-func NewRandomVMIWithCustomMacAddress() *v1.VirtualMachineInstance {
-	vmi := NewRandomVMIWithEphemeralDisk(RegistryDiskFor(RegistryDiskAlpine))
-	AddExplicitPodNetworkInterface(vmi)
-	vmi.Spec.Domain.Devices.Interfaces[0].MacAddress = "de:ad:00:00:be:af"
+	vmi.ObjectMeta.Annotations = map[string]string{v1.InterfaceModel: "e1000"}
 	return vmi
 }
 
@@ -1129,6 +1060,7 @@ func NewConsoleExpecter(virtCli kubecli.KubevirtClient, vmi *v1.VirtualMachineIn
 	vmiReader, vmiWriter := io.Pipe()
 	expecterReader, expecterWriter := io.Pipe()
 	resCh := make(chan error)
+	stopChan := make(chan struct{})
 	go func() {
 		con, err := virtCli.VirtualMachineInstance(vmi.ObjectMeta.Namespace).SerialConsole(vmi.ObjectMeta.Name)
 		if err != nil {
@@ -1149,8 +1081,7 @@ func NewConsoleExpecter(virtCli kubecli.KubevirtClient, vmi *v1.VirtualMachineIn
 			return <-resCh
 		},
 		Close: func() error {
-			expecterWriter.Close()
-			vmiReader.Close()
+			close(stopChan)
 			return nil
 		},
 		Check: func() bool { return true },
@@ -1176,19 +1107,19 @@ func RegistryDiskFor(name RegistryDisk) string {
 	panic(fmt.Sprintf("Unsupported registry disk %s", name))
 }
 
-func CheckForTextExpecter(vmi *v1.VirtualMachineInstance, expected []expect.Batcher, wait int) error {
+func CheckForTextExpecter(vmi *v1.VirtualMachineInstance, text string, wait int) error {
 	virtClient, err := kubecli.GetKubevirtClient()
 	PanicOnError(err)
 	expecter, _, err := NewConsoleExpecter(virtClient, vmi, 10*time.Second)
 	if err != nil {
 		return err
 	}
-	defer expecter.Close()
-
-	resp, err := expecter.ExpectBatch(expected, time.Second*time.Duration(wait))
-	if err != nil {
-		log.DefaultLogger().Object(vmi).Infof("%v", resp)
-	}
+	b := append([]expect.Batcher{
+		&expect.BSnd{S: "\n"},
+		&expect.BSnd{S: "\n"},
+		&expect.BExp{R: text},
+	})
+	_, err = expecter.ExpectBatch(b, time.Second*time.Duration(wait))
 	return err
 }
 
@@ -1199,36 +1130,23 @@ func LoggedInCirrosExpecter(vmi *v1.VirtualMachineInstance) (expect.Expecter, er
 	if err != nil {
 		return nil, err
 	}
-	hostName := dns.SanitizeHostname(vmi)
-
-	// Do not login, if we already logged in
-	err = expecter.Send("\n")
-	if err != nil {
-		expecter.Close()
-		return nil, err
+	vmiName := vmi.Name
+	if vmi.Spec.Hostname != "" {
+		vmiName = vmi.Spec.Hostname
 	}
-	_, _, err = expecter.Expect(regexp.MustCompile(`\$`), 10*time.Second)
-	if err == nil {
-		return expecter, nil
-	}
-
 	b := append([]expect.Batcher{
 		&expect.BSnd{S: "\n"},
 		&expect.BSnd{S: "\n"},
 		&expect.BExp{R: "login as 'cirros' user. default password: 'gocubsgo'. use 'sudo' for root."},
 		&expect.BSnd{S: "\n"},
-		&expect.BExp{R: hostName + " login:"},
+		&expect.BExp{R: vmiName + " login:"},
 		&expect.BSnd{S: "cirros\n"},
 		&expect.BExp{R: "Password:"},
 		&expect.BSnd{S: "gocubsgo\n"},
-		&expect.BExp{R: "\\$"}})
-	resp, err := expecter.ExpectBatch(b, 180*time.Second)
-	if err != nil {
-		log.DefaultLogger().Object(vmi).Infof("Login: %v", resp)
-		expecter.Close()
-		return nil, err
-	}
-	return expecter, nil
+		&expect.BExp{R: "$"}})
+	res, err := expecter.ExpectBatch(b, 180*time.Second)
+	log.DefaultLogger().Object(vmi).V(4).Infof("%v", res)
+	return expecter, err
 }
 
 func LoggedInAlpineExpecter(vmi *v1.VirtualMachineInstance) (expect.Expecter, error) {
@@ -1245,11 +1163,7 @@ func LoggedInAlpineExpecter(vmi *v1.VirtualMachineInstance) (expect.Expecter, er
 		&expect.BSnd{S: "root\n"},
 		&expect.BExp{R: "localhost:~#"}})
 	res, err := expecter.ExpectBatch(b, 180*time.Second)
-	if err != nil {
-		log.DefaultLogger().Object(vmi).Infof("Login: %v", res)
-		expecter.Close()
-		return nil, err
-	}
+	log.DefaultLogger().Object(vmi).V(4).Infof("%v", res)
 	return expecter, err
 }
 
@@ -1375,48 +1289,6 @@ func RunKubectlCommand(args ...string) (string, error) {
 	return string(stdOutBytes), nil
 }
 
-func SkipIfNoOc() {
-	if KubeVirtOcPath == "" {
-		var err error
-		KubeVirtOcPath, err = exec.LookPath("oc")
-		if err != nil {
-			Skip("Skip test that requires oc binary")
-		}
-	}
-}
-
-func RunOcCommand(args ...string) (string, error) {
-	if KubeVirtOcPath == "" {
-		var err error
-		KubeVirtOcPath, err = exec.LookPath("oc")
-		if err != nil {
-			return "", fmt.Errorf("can not find oc binary")
-		}
-	}
-
-	kubeconfig := flag.Lookup("kubeconfig").Value
-	if kubeconfig == nil || kubeconfig.String() == "" {
-		return "", fmt.Errorf("can not find kubeconfig")
-	}
-
-	master := flag.Lookup("master").Value
-	if master != nil && master.String() != "" {
-		args = append(args, "--server", master.String())
-	}
-
-	cmd := exec.Command(KubeVirtOcPath, args...)
-	kubeconfEnv := fmt.Sprintf("KUBECONFIG=%s", kubeconfig.String())
-	cmd.Env = append(os.Environ(), kubeconfEnv)
-
-	stdOutErrBytes, err := cmd.CombinedOutput()
-
-	if err != nil {
-		fmt.Printf("%s %s %s\n%s%v\n", kubeconfEnv, KubeVirtOcPath, strings.Join(args, " "), string(stdOutErrBytes), err)
-		return string(stdOutErrBytes), err
-	}
-	return string(stdOutErrBytes), nil
-}
-
 func GenerateVMIJson(vmi *v1.VirtualMachineInstance) (string, error) {
 	data, err := json.Marshal(vmi)
 	if err != nil {
@@ -1424,20 +1296,6 @@ func GenerateVMIJson(vmi *v1.VirtualMachineInstance) (string, error) {
 	}
 
 	jsonFile := fmt.Sprintf("%s.json", vmi.Name)
-	err = ioutil.WriteFile(jsonFile, data, 0644)
-	if err != nil {
-		return "", fmt.Errorf("failed to write json file %s", jsonFile)
-	}
-	return jsonFile, nil
-}
-
-func GenerateTemplateJson(template *Template) (string, error) {
-	data, err := json.Marshal(template)
-	if err != nil {
-		return "", fmt.Errorf("failed to generate json for vm template %s", template.Name)
-	}
-
-	jsonFile := fmt.Sprintf("%s.json", template.Name)
 	err = ioutil.WriteFile(jsonFile, data, 0644)
 	if err != nil {
 		return "", fmt.Errorf("failed to write json file %s", jsonFile)
@@ -1506,34 +1364,11 @@ func GetNodeWithHugepages(virtClient kubecli.KubevirtClient, hugepages k8sv1.Res
 	return nil
 }
 
-// SkipIfVersionBelow will skip tests if it runs on an environment with k8s version below specified
-func SkipIfVersionBelow(message string, expectedVersion string) {
+// StartVmOnNode will start a VMI on the specified node
+func StartVmOnNode(vmi *v1.VirtualMachineInstance, nodeName string) {
 	virtClient, err := kubecli.GetKubevirtClient()
 	PanicOnError(err)
 
-	response, err := virtClient.RestClient().Get().AbsPath("/version").DoRaw()
-	Expect(err).ToNot(HaveOccurred())
-
-	var info k8sversion.Info
-
-	err = json.Unmarshal(response, &info)
-	Expect(err).ToNot(HaveOccurred())
-
-	curVersion := strings.Split(info.GitVersion, "+")[0]
-	curVersion = strings.Trim(curVersion, "v")
-
-	if curVersion < expectedVersion {
-		Skip(message)
-	}
-}
-
-// GetNodeLibvirtCapabilities returns node libvirt capabilities
-func GetNodeLibvirtCapabilities(nodeName string) string {
-	virtClient, err := kubecli.GetKubevirtClient()
-	PanicOnError(err)
-
-	// Create a virt-launcher pod, that can fetch virsh capabilities
-	vmi := NewRandomVMIWithEphemeralDiskAndUserdata(RegistryDiskFor(RegistryDiskCirros), "#!/bin/bash\necho 'hello'\n")
 	vmi.Spec.Affinity = &v1.Affinity{
 		NodeAffinity: &k8sv1.NodeAffinity{
 			RequiredDuringSchedulingIgnoredDuringExecution: &k8sv1.NodeSelector{
@@ -1551,6 +1386,12 @@ func GetNodeLibvirtCapabilities(nodeName string) string {
 	_, err = virtClient.VirtualMachineInstance(NamespaceTestDefault).Create(vmi)
 	Expect(err).ToNot(HaveOccurred())
 	WaitForSuccessfulVMIStart(vmi)
+}
+
+// RunCommandOnVmiPod will run specified command on the virt-launcher pod
+func RunCommandOnVmiPod(vmi *v1.VirtualMachineInstance, command []string) string {
+	virtClient, err := kubecli.GetKubevirtClient()
+	PanicOnError(err)
 
 	pods, err := virtClient.CoreV1().Pods(NamespaceTestDefault).List(UnfinishedVMIPodSelector(vmi))
 	Expect(err).ToNot(HaveOccurred())
@@ -1561,9 +1402,26 @@ func GetNodeLibvirtCapabilities(nodeName string) string {
 		virtClient,
 		&vmiPod,
 		"compute",
-		[]string{"virsh", "-r", "capabilities"},
+		command,
 	)
 	Expect(err).ToNot(HaveOccurred())
 
 	return output
+}
+
+// GetNodeLibvirtCapabilities returns node libvirt capabilities
+func GetNodeLibvirtCapabilities(nodeName string) string {
+	// Create a virt-launcher pod, that can fetch virsh capabilities
+	vmi := NewRandomVMIWithEphemeralDiskAndUserdata(RegistryDiskFor(RegistryDiskCirros), "#!/bin/bash\necho 'hello'\n")
+	StartVmOnNode(vmi, nodeName)
+
+	return RunCommandOnVmiPod(vmi, []string{"virsh", "-r", "capabilities"})
+}
+
+// GetNodeCPUInfo returns output of lscpu on the pod that runs on the specified node
+func GetNodeCPUInfo(nodeName string) string {
+	vmi := NewRandomVMIWithEphemeralDiskAndUserdata(RegistryDiskFor(RegistryDiskCirros), "#!/bin/bash\necho 'hello'\n")
+	StartVmOnNode(vmi, nodeName)
+
+	return RunCommandOnVmiPod(vmi, []string{"lscpu"})
 }
