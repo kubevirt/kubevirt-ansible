@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"kubevirt.io/kubevirt-ansible/tests"
+	"kubevirt.io/qe-tools/pkg/ginkgo-reporters"
 )
 
 // template parameters
@@ -23,7 +24,14 @@ const (
 
 func TestCDI(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CDI Suite")
+	reporters := make([]Reporter, 0)
+	if ginkgo_reporters.Polarion.Run {
+		reporters = append(reporters, &ginkgo_reporters.Polarion)
+	}
+	if ginkgo_reporters.JunitOutput != "" {
+		reporters = append(reporters, ginkgo_reporters.NewJunitReporter())
+	}
+	RunSpecsWithDefaultAndCustomReporters(t, "CDI Suite", reporters)
 }
 
 var _ = BeforeSuite(func() {

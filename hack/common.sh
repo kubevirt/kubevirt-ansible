@@ -7,6 +7,9 @@ KUBEVIRT_ANSIBLE_DIR="$(
 OUT_DIR=$KUBEVIRT_ANSIBLE_DIR/_out
 TESTS_OUT_DIR=$OUT_DIR/tests
 
+FUNC_TEST_ARGS="${FUNC_TEST_ARGS:--test.timeout 60m --junit-output=exported-artifacts/tests.junit.xml}"
+CDI_TEST_ARGS="${CDI_TEST_ARGS:--test.timeout 60m --junit-output=exported-artifacts/cdi.junit.xml}"
+
 function build_func_tests() {
     mkdir -p ${TESTS_OUT_DIR}/
     ginkgo build ${KUBEVIRT_ANSIBLE_DIR}/tests
