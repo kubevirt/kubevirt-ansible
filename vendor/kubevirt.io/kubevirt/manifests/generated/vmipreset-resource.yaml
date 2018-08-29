@@ -46,6 +46,10 @@ spec:
                       type: string
                 devices:
                   properties:
+                    autoattachGraphicsDevice:
+                      type: boolean
+                    autoattachPodInterface:
+                      type: boolean
                     disks:
                       items:
                         properties:
@@ -91,12 +95,17 @@ spec:
                     interfaces:
                       items:
                         properties:
+                          bootOrder:
+                            format: int32
+                            type: integer
                           bridge: {}
                           macAddress:
                             type: string
                           model:
                             type: string
                           name:
+                            type: string
+                          pciAddress:
                             type: string
                           ports:
                             items:
@@ -192,6 +201,7 @@ spec:
                   - type
                 memory:
                   properties:
+                    guest: {}
                     hugepages:
                       properties:
                         pageSize:
@@ -200,14 +210,11 @@ spec:
                   properties:
                     limits:
                       type: object
+                    overcommitGuestOverhead:
+                      type: boolean
                     requests:
                       type: object
             selector: {}
           required:
           - selector
   version: v1alpha2
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null

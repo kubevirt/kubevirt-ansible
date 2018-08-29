@@ -35,6 +35,7 @@ import (
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
 	ephemeraldisk "kubevirt.io/kubevirt/pkg/ephemeral-disk"
+	"kubevirt.io/kubevirt/pkg/hooks"
 	"kubevirt.io/kubevirt/pkg/log"
 	registrydisk "kubevirt.io/kubevirt/pkg/registry-disk"
 	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
@@ -160,15 +161,14 @@ func startWatchdogTicker(watchdogFile string, watchdogInterval time.Duration, st
 
 func initializeDirs(virtShareDir string,
 	ephemeralDiskDir string,
-	namespace string,
-	name string) {
+	uid string) {
 
 	err := virtlauncher.InitializeSharedDirectories(virtShareDir)
 	if err != nil {
 		panic(err)
 	}
 
-	err = virtlauncher.InitializePrivateDirectories(filepath.Join("/var/run/kubevirt-private", namespace, name))
+	err = virtlauncher.InitializePrivateDirectories(filepath.Join("/var/run/kubevirt-private", uid))
 	if err != nil {
 		panic(err)
 	}
@@ -249,11 +249,13 @@ func main() {
 	virtShareDir := flag.String("kubevirt-share-dir", "/var/run/kubevirt", "Shared directory between virt-handler and virt-launcher")
 	ephemeralDiskDir := flag.String("ephemeral-disk-dir", "/var/run/libvirt/kubevirt-ephemeral-disk", "Base directory for ephemeral disk data")
 	name := flag.String("name", "", "Name of the VirtualMachineInstance")
+	uid := flag.String("uid", "", "UID of the VirtualMachineInstance")
 	namespace := flag.String("namespace", "", "Namespace of the VirtualMachineInstance")
 	watchdogInterval := flag.Duration("watchdog-update-interval", defaultWatchdogInterval, "Interval at which watchdog file should be updated")
 	readinessFile := flag.String("readiness-file", "/tmp/health", "Pod looks for this file to determine when virt-launcher is initialized")
 	gracePeriodSeconds := flag.Int("grace-period-seconds", 30, "Grace period to observe before sending SIGTERM to vm process")
 	useEmulation := flag.Bool("use-emulation", false, "Use software emulation")
+	hookSidecars := flag.Uint("hook-sidecars", 0, "Number of requested hook sidecars, virt-launcher will wait for all of them to become available")
 
 	// set new default verbosity, was set to 0 by glog
 	flag.Set("v", "2")
@@ -263,10 +265,17 @@ func main() {
 
 	log.InitializeLogging("virt-launcher")
 
+	// Block until all requested hookSidecars are ready
+	hookManager := hooks.GetManager()
+	err := hookManager.Collect(*hookSidecars, *qemuTimeout)
+	if err != nil {
+		panic(err)
+	}
+
 	vm := v1.NewVMIReferenceFromNameWithNS(*namespace, *name)
 
 	// Initialize local and shared directories
-	initializeDirs(*virtShareDir, *ephemeralDiskDir, *namespace, *name)
+	initializeDirs(*virtShareDir, *ephemeralDiskDir, *uid)
 
 	// Start libvirtd, virtlogd, and establish libvirt connection
 	stopChan := make(chan struct{})
@@ -287,7 +296,7 @@ func main() {
 	// Clients can use this service to tell virt-launcher
 	// to start/stop virtual machines
 	options := cmdserver.NewServerOptions(*useEmulation)
-	socketPath := cmdclient.SocketFromNamespaceName(*virtShareDir, *namespace, *name)
+	socketPath := cmdclient.SocketFromUID(*virtShareDir, *uid)
 	startCmdServer(socketPath, domainManager, stopChan, options)
 
 	watchdogFile := watchdog.WatchdogFileFromNamespaceName(*virtShareDir,

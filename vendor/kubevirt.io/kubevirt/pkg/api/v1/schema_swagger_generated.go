@@ -39,8 +39,9 @@ func (DomainPresetSpec) SwaggerDoc() map[string]string {
 
 func (ResourceRequirements) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"requests": "Requests is a description of the initial vmi resources.\nValid resource keys are \"memory\" and \"cpu\".\n+optional",
-		"limits":   "Limits describes the maximum amount of compute resources allowed.\nValid resource keys are \"memory\" and \"cpu\".\n+optional",
+		"requests":                "Requests is a description of the initial vmi resources.\nValid resource keys are \"memory\" and \"cpu\".\n+optional",
+		"limits":                  "Limits describes the maximum amount of compute resources allowed.\nValid resource keys are \"memory\" and \"cpu\".\n+optional",
+		"overcommitGuestOverhead": "Don't ask the scheduler to take the guest-management overhead into account. Instead\nput the overhead only into the requested memory limits. This can lead to crashes if\nall memory is in use on a node. Defaults to false.",
 	}
 }
 
@@ -48,7 +49,7 @@ func (CPU) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":      "CPU allows specifying the CPU topology.",
 		"cores": "Cores specifies the number of cores inside the vmi.\nMust be a value greater or equal 1.",
-		"model": "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\n+optional",
+		"model": "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\nIt is possible to specify special cases like \"host-passthrough\" to get the same CPU as the node\nand \"host-model\" to get CPU closest to the node one.\nFor more information see https://libvirt.org/formatdomain.html#elementsCPU.\nDefaults to host-model.\n+optional",
 	}
 }
 
@@ -56,6 +57,7 @@ func (Memory) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":          "Memory allows specifying the VirtualMachineInstance memory features.",
 		"hugepages": "Hugepages allow to use hugepages for the VirtualMachineInstance instead of regular memory.\n+optional",
+		"guest":     "Guest allows to specifying the amount of memory which is visible inside the Guest OS.\nThe Guest must lie between Requests and Limits from the resources section.\nDefaults to the requested memory in the resources section if not specified.\n+ optional",
 	}
 }
 
@@ -80,9 +82,11 @@ func (Firmware) SwaggerDoc() map[string]string {
 
 func (Devices) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"disks":      "Disks describes disks, cdroms, floppy and luns which are connected to the vmi.",
-		"watchdog":   "Watchdog describes a watchdog device which can be added to the vmi.",
-		"interfaces": "Interfaces describe network interfaces which are added to the vm.",
+		"disks":                    "Disks describes disks, cdroms, floppy and luns which are connected to the vmi.",
+		"watchdog":                 "Watchdog describes a watchdog device which can be added to the vmi.",
+		"interfaces":               "Interfaces describe network interfaces which are added to the vm.",
+		"autoattachPodInterface":   "Whether to attach a pod network interface. Defaults to true.",
+		"autoattachGraphicsDevice": "Wheater to attach the default graphics device or not.\nVNC will not be available if set to false. Defaults to true.",
 	}
 }
 
@@ -90,7 +94,7 @@ func (Disk) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"name":       "Name is the device name",
 		"volumeName": "Name of the volume which is referenced.\nMust match the Name of a Volume.",
-		"bootOrder":  "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nDisks without a boot order are not tried if a disk with a boot order exists.\n+optional",
+		"bootOrder":  "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach disk or interface that has a boot order must have a unique value.\nDisks without a boot order are not tried if a disk with a boot order exists.\n+optional",
 		"serial":     "Serial provides the ability to specify a serial number for the disk device.\n+optional",
 	}
 }
@@ -318,6 +322,8 @@ func (Interface) SwaggerDoc() map[string]string {
 		"model":      "Interface model.\nOne of: e1000, e1000e, ne2k_pci, pcnet, rtl8139, virtio.\nDefaults to virtio.",
 		"ports":      "List of ports to be forwarded to the virtual machine.",
 		"macAddress": "Interface MAC address. For example: de:ad:00:00:be:af or DE-AD-00-00-BE-AF.",
+		"bootOrder":  "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach interface or disk that has a boot order must have a unique value.\nInterfaces without a boot order are not tried.\n+optional",
+		"pciAddress": "If specified, the virtual network interface will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10\n+optional",
 	}
 }
 
