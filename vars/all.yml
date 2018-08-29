@@ -9,6 +9,7 @@ openshift_playbook_path: "{{ openshift_ansible_dir }}/{{ 'playbooks/byo/config.y
 
 ### KubeVirt ###
 version: 0.6.2
+image_pull_policy: IfNotPresent
 
 ### Components ###
 storage_role: "storage-none"
