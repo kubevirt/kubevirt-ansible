@@ -2,11 +2,24 @@ namespace: "kube-system"
 cluster: "openshift"
 apb_action: "provision"
 
+multus_provisioner_name: "kube-multus-amd64"
 multus_provisioner_repo: "docker.io/nfvpe/multus"
 multus_provisioner_release: "latest"
 
 cni_provisioner_repo: "quay.io/schseba/cni-plugins"
+cni_provisioner_name: "kube-cni-plugins-amd64"
 cni_provisioner_release: "latest"
+
+ovs_provisioner_repo: "quay.io/kubevirt/ovs-cni-plugin"
+ovs_provisioner_name: "kube-ovs-cni-plugin-amd64"
+ovs_provisioner_release: "latest"
+
+origin_node_provisioner_name: "ovs-vsctl-amd64"
+origin_node_provisioner_repo: "docker.io/openshift/origin-node"
+origin_node_provisioner_release: "latest"
+
+deploy_cni_plugins: true
+deploy_ovs_plugin: true
 
 openshift_cni_config: |
   '{

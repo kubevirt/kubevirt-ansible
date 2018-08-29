@@ -46,7 +46,10 @@
 
   - name: Create multus Resources
     shell: "{{ cluster_command }} apply -f /tmp/multus.yml"
+  when: crd.stdout=="0"
 
+- name: Deploy CNI plugins
+  block:
   - name: Render cni plugins deployment yaml
     template:
       src: cni-plugins.yml
@@ -54,16 +57,72 @@
 
   - name: Create cni plugins Resources
     shell: "{{ cluster_command }} apply -f /tmp/cni-plugins.yml"
+  when: deploy_cni_plugins
 
+- name: Deploy OVS Plugin
+  block:
+  - name: Render OVS deployment yaml
+    template:
+      src: ovs-cni.yml
+      dest: /tmp/ovs-cni.yml
 
-  - name: Wait until multus is running
-    shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ item }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
-    loop:
-    - kube-multus-ds-amd64
-    - kube-cni-plugins-ds-amd64
-    register: result
-    until: result.stdout == "0"
-    retries: 20
-    delay: 5
+  - name: Create ovs Resources
+    shell: "{{ cluster_command }} apply -f /tmp/ovs-cni.yml"
 
-  when: crd.stdout=="0"
+  - name: Deploy ovs-vsctl template
+    block:
+    - name: check if ovs is installed
+      yum:
+        list="openvswitch"
+      register: ovs_pkgs
+
+    - name: fail if ovs is installed
+      fail:
+        msg: "Cannot deploy OVS plugin where ovs is already installed"
+      when:
+        ovs_pkgs.results | selectattr("yumstate", "match", "installed") | list | length > 0
+
+    - name: Render ovs-vsctl deployment yaml
+      template:
+        src: ovs-vsctl.yml
+        dest: /tmp/ovs-vsctl.yml
+    - name: Create ovs-vsctl resources
+      shell: "{{ cluster_command }} apply -f /tmp/ovs-vsctl.yml"
+    when: cluster == "openshift"
+
+  - name: enable ovs
+    block:
+    - name: install ovs
+      yum:
+        name: openvswitch
+        state: installed
+    - name: start ovs
+      service:
+        name: openvswitch
+        enabled: true
+        state: started
+    when: cluster == "kubernetes"
+  when: deploy_ovs_plugin
+
+- name: Wait until multus is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ multus_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 20
+  delay: 5
+
+- name: Wait until CNI plugins are running
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ cni_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 20
+  delay: 5
+  when: deploy_cni_plugins
+
+- name: Wait until OVS Plugin is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ ovs_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 20
+  delay: 5
+  when: deploy_ovs_plugin

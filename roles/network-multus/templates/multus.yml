@@ -70,7 +70,7 @@ data:
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: kube-multus-ds-amd64
+  name: {{ multus_provisioner_name }}
   namespace: {{ namespace }}
   labels:
     tier: node
