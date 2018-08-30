@@ -49,5 +49,4 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 		})
 	})
 
-
 })
