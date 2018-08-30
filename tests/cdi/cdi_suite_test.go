@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"kubevirt.io/kubevirt-ansible/tests"
-	ktests "kubevirt.io/kubevirt/tests"
 	"kubevirt.io/qe-tools/pkg/ginkgo-reporters"
 )
 
@@ -40,7 +39,6 @@ var _ = BeforeSuite(func() {
 	if !flag.Parsed() {
 		flag.Parse()
 	}
-	ktests.SkipIfNoOc()
 	tests.CreateNamespaces()
 })
 
