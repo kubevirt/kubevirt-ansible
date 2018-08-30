@@ -1,12 +1,14 @@
 package cdi_test
 
 import (
+	"flag"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"kubevirt.io/kubevirt-ansible/tests"
+	ktests "kubevirt.io/kubevirt/tests"
 	"kubevirt.io/qe-tools/pkg/ginkgo-reporters"
 )
 
@@ -15,7 +17,7 @@ const (
 	pvcEPHTTPNOAUTHURL = "https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img"
 	invalidPVCURL      = "https://noneexist.com"
 	pvcName            = "golden-pvc"
-	pvcName1            = "golden-pvc1"
+	pvcName1           = "golden-pvc1"
 	vmName             = "test-vm"
 	vmAPIVersion       = "kubevirt.io/v1alpha2"
 	rawPVCFilePath     = "tests/manifests/golden-pvc.yml"
@@ -35,6 +37,10 @@ func TestCDI(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
+	if !flag.Parsed() {
+		flag.Parse()
+	}
+	ktests.SkipIfNoOc()
 	tests.CreateNamespaces()
 })
 
