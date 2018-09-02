@@ -31,7 +31,6 @@ import (
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/interop"
 	testpb "google.golang.org/grpc/interop/grpc_testing"
-	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/testdata"
 )
 
@@ -64,7 +63,6 @@ var (
         cancel_after_begin: cancellation after metadata has been sent but before payloads are sent;
         cancel_after_first_response: cancellation after receiving 1st message from the server;
         status_code_and_message: status code propagated back to client;
-        special_status_message: Unicode and whitespace is correctly processed in status message;
         custom_metadata: server will echo custom metadata;
         unimplemented_method: client attempts to call unimplemented method;
         unimplemented_service: client attempts to call unimplemented service.`)
@@ -72,7 +70,6 @@ var (
 
 func main() {
 	flag.Parse()
-	resolver.SetDefaultScheme("dns")
 	if *useTLS && *useALTS {
 		grpclog.Fatalf("use_tls and use_alts cannot be both set to true")
 	}
@@ -97,17 +94,6 @@ func main() {
 			creds = credentials.NewClientTLSFromCert(nil, sn)
 		}
 		opts = append(opts, grpc.WithTransportCredentials(creds))
-	} else if *useALTS {
-		altsOpts := alts.DefaultClientOptions()
-		if *altsHSAddr != "" {
-			altsOpts.HandshakerServiceAddress = *altsHSAddr
-		}
-		altsTC := alts.NewClientCreds(altsOpts)
-		opts = append(opts, grpc.WithTransportCredentials(altsTC))
-	} else {
-		opts = append(opts, grpc.WithInsecure())
-	}
-	if *useTLS || *useALTS {
 		if *testCase == "compute_engine_creds" {
 			opts = append(opts, grpc.WithPerRPCCredentials(oauth.NewComputeEngine()))
 		} else if *testCase == "service_account_creds" {
@@ -125,6 +111,15 @@ func main() {
 		} else if *testCase == "oauth2_auth_token" {
 			opts = append(opts, grpc.WithPerRPCCredentials(oauth.NewOauthAccess(interop.GetToken(*serviceAccountKeyFile, *oauthScope))))
 		}
+	} else if *useALTS {
+		altsOpts := alts.DefaultClientOptions()
+		if *altsHSAddr != "" {
+			altsOpts.HandshakerServiceAddress = *altsHSAddr
+		}
+		altsTC := alts.NewClientCreds(altsOpts)
+		opts = append(opts, grpc.WithTransportCredentials(altsTC))
+	} else {
+		opts = append(opts, grpc.WithInsecure())
 	}
 	opts = append(opts, grpc.WithBlock())
 	conn, err := grpc.Dial(serverAddr, opts...)
@@ -156,32 +151,32 @@ func main() {
 		interop.DoTimeoutOnSleepingServer(tc)
 		grpclog.Infoln("TimeoutOnSleepingServer done")
 	case "compute_engine_creds":
-		if !*useTLS && !*useALTS {
-			grpclog.Fatalf("Neither TLS or ALTS are enabled. TLS or ALTS is required to execute compute_engine_creds test case.")
+		if !*useTLS {
+			grpclog.Fatalf("TLS is not enabled. TLS is required to execute compute_engine_creds test case.")
 		}
 		interop.DoComputeEngineCreds(tc, *defaultServiceAccount, *oauthScope)
 		grpclog.Infoln("ComputeEngineCreds done")
 	case "service_account_creds":
-		if !*useTLS && !*useALTS {
-			grpclog.Fatalf("Neither TLS or ALTS are enabled. TLS or ALTS is required to execute service_account_creds test case.")
+		if !*useTLS {
+			grpclog.Fatalf("TLS is not enabled. TLS is required to execute service_account_creds test case.")
 		}
 		interop.DoServiceAccountCreds(tc, *serviceAccountKeyFile, *oauthScope)
 		grpclog.Infoln("ServiceAccountCreds done")
 	case "jwt_token_creds":
-		if !*useTLS && !*useALTS {
-			grpclog.Fatalf("Neither TLS or ALTS are enabled. TLS or ALTS is required to execute jwt_token_creds test case.")
+		if !*useTLS {
+			grpclog.Fatalf("TLS is not enabled. TLS is required to execute jwt_token_creds test case.")
 		}
 		interop.DoJWTTokenCreds(tc, *serviceAccountKeyFile)
 		grpclog.Infoln("JWTtokenCreds done")
 	case "per_rpc_creds":
-		if !*useTLS && !*useALTS {
-			grpclog.Fatalf("Neither TLS or ALTS are enabled. TLS or ALTS is required to execute per_rpc_creds test case.")
+		if !*useTLS {
+			grpclog.Fatalf("TLS is not enabled. TLS is required to execute per_rpc_creds test case.")
 		}
 		interop.DoPerRPCCreds(tc, *serviceAccountKeyFile, *oauthScope)
 		grpclog.Infoln("PerRPCCreds done")
 	case "oauth2_auth_token":
-		if !*useTLS && !*useALTS {
-			grpclog.Fatalf("Neither TLS or ALTS are enabled. TLS or ALTS is required to execute oauth2_auth_token test case.")
+		if !*useTLS {
+			grpclog.Fatalf("TLS is not enabled. TLS is required to execute oauth2_auth_token test case.")
 		}
 		interop.DoOauth2TokenCreds(tc, *serviceAccountKeyFile, *oauthScope)
 		grpclog.Infoln("Oauth2TokenCreds done")
@@ -194,9 +189,6 @@ func main() {
 	case "status_code_and_message":
 		interop.DoStatusCodeAndMessage(tc)
 		grpclog.Infoln("StatusCodeAndMessage done")
-	case "special_status_message":
-		interop.DoSpecialStatusMessage(tc)
-		grpclog.Infoln("SpecialStatusMessage done")
 	case "custom_metadata":
 		interop.DoCustomMetadata(tc)
 		grpclog.Infoln("CustomMetadata done")

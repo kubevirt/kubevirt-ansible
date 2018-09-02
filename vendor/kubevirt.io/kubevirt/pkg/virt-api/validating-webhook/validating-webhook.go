@@ -41,6 +41,7 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/log"
+	"kubevirt.io/kubevirt/pkg/util"
 )
 
 const (
@@ -189,7 +190,7 @@ func validateDisks(field *k8sfield.Path, disks []v1.Disk) []metav1.StatusCause {
 			causes = append(causes, metav1.StatusCause{
 				Type:    metav1.CauseTypeFieldValueInvalid,
 				Message: fmt.Sprintf("%s must have a boot order > 0, if supplied", field.Index(idx).String()),
-				Field:   field.Index(idx).Child("bootorder").String(),
+				Field:   field.Index(idx).Child("bootOrder").String(),
 			})
 		}
 
@@ -383,6 +384,19 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 		}
 	}
 
+	// Validate subdomain according to DNS subdomain rules
+	if spec.Subdomain != "" {
+		errors := validation.IsDNS1123Subdomain(spec.Subdomain)
+		if len(errors) != 0 {
+			causes = append(causes, metav1.StatusCause{
+				Type: metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s does not conform to the kubernetes DNS_SUBDOMAIN rules : %s",
+					field.Child("subdomain").String(), strings.Join(errors, ", ")),
+				Field: field.Child("subdomain").String(),
+			})
+		}
+	}
+
 	// Validate memory size if values are not negative
 	if spec.Domain.Resources.Requests.Memory().Value() < 0 {
 		causes = append(causes, metav1.StatusCause{
@@ -410,6 +424,16 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 				spec.Domain.Resources.Requests.Memory(),
 				field.Child("domain", "resources", "limits", "memory").String(),
 				spec.Domain.Resources.Limits.Memory()),
+			Field: field.Child("domain", "resources", "requests", "memory").String(),
+		})
+	}
+
+	if spec.Domain.Memory != nil && spec.Domain.Memory.Hugepages != nil && spec.Domain.Memory.Guest != nil {
+		causes = append(causes, metav1.StatusCause{
+			Type: metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("'%s' and '%s' must not be set at the same time",
+				field.Child("domain", "memory", "guest").String(),
+				field.Child("domain", "memory", "hugepages", "size").String()),
 			Field: field.Child("domain", "resources", "requests", "memory").String(),
 		})
 	}
@@ -454,6 +478,36 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 			}
 		}
 	}
+	// Validate hugepages
+	if spec.Domain.Memory != nil && spec.Domain.Memory.Guest != nil {
+		requests := spec.Domain.Resources.Requests.Memory().Value()
+		limits := spec.Domain.Resources.Limits.Memory().Value()
+		guest := spec.Domain.Memory.Guest.Value()
+		if requests > guest {
+			causes = append(causes, metav1.StatusCause{
+				Type: metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s '%s' must be equal to or larger than the requested memory %s '%s'",
+					field.Child("domain", "memory", "guest").String(),
+					spec.Domain.Memory.Guest,
+					field.Child("domain", "resources", "requests", "memory").String(),
+					spec.Domain.Resources.Requests.Memory(),
+				),
+				Field: field.Child("domain", "memory", "guest").String(),
+			})
+		}
+		if limits < guest && limits != 0 {
+			causes = append(causes, metav1.StatusCause{
+				Type: metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s '%s' must be equal to or less than the memory limit %s '%s'",
+					field.Child("domain", "memory", "guest").String(),
+					spec.Domain.Memory.Guest,
+					field.Child("domain", "resources", "limits", "memory").String(),
+					spec.Domain.Resources.Limits.Memory(),
+				),
+				Field: field.Child("domain", "memory", "guest").String(),
+			})
+		}
+	}
 
 	if len(spec.Domain.Devices.Interfaces) > arrayLenMax {
 		causes = append(causes, metav1.StatusCause{
@@ -472,7 +526,7 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 	} else if getNumberOfPodInterfaces(spec) > 1 {
 		causes = append(causes, metav1.StatusCause{
 			Type:    metav1.CauseTypeFieldValueDuplicate,
-			Message: fmt.Sprintf("multiple pod interfaces in %s", field.Child("interfaces").String()),
+			Message: fmt.Sprintf("more than one interface is connected to a pod network in %s", field.Child("interfaces").String()),
 			Field:   field.Child("interfaces").String(),
 		})
 		return causes
@@ -481,6 +535,9 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 	for _, volume := range spec.Volumes {
 		volumeNameMap[volume.Name] = &volume
 	}
+
+	// used to validate uniqueness of boot orders among disks and interfaces
+	bootOrderMap := make(map[uint]bool)
 
 	// Validate disks and VolumeNames match up correctly
 	for idx, disk := range spec.Domain.Devices.Disks {
@@ -516,6 +573,19 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 				Field:   field.Child("domain", "devices", "disks").Index(idx).Child("lun").String(),
 			})
 		}
+
+		// verify that there are no duplicate boot orders
+		if disk.BootOrder != nil {
+			order := *disk.BootOrder
+			if bootOrderMap[order] {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("Boot order for %s already set for a different device.", field.Child("domain", "devices", "disks").Index(idx).Child("bootOrder").String()),
+					Field:   field.Child("domain", "devices", "disks").Index(idx).Child("bootOrder").String(),
+				})
+			}
+			bootOrderMap[order] = true
+		}
 	}
 
 	if len(spec.Networks) > 0 && len(spec.Domain.Devices.Interfaces) > 0 {
@@ -529,6 +599,9 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 			}
 			networkNameMap[network.Name] = &network
 		}
+
+		// Make sure interfaces and networks are 1to1 related
+		networkInterfaceMap := make(map[string]struct{})
 
 		// Make sure the port name is unique across all the interfaces
 		portForwardMap := make(map[string]struct{})
@@ -557,6 +630,17 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 					Field:   field.Child("domain", "devices", "interfaces").Index(idx).Child("name").String(),
 				})
 			}
+
+			// Check if the interface name is unique
+			if _, networkAlreadyUsed := networkInterfaceMap[iface.Name]; networkAlreadyUsed {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueDuplicate,
+					Message: fmt.Sprintf("Only one interface can be connected to one specific network"),
+					Field:   field.Child("domain", "devices", "interfaces").Index(idx).Child("name").String(),
+				})
+			}
+
+			networkInterfaceMap[iface.Name] = struct{}{}
 
 			// Check only ports configured on interfaces connected to a pod network
 			if networkExists && networkData.Pod != nil && iface.Ports != nil {
@@ -638,6 +722,39 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 						Type:    metav1.CauseTypeFieldValueInvalid,
 						Message: fmt.Sprintf("interface %s has MAC address (%s) that is too long.", field.Child("domain", "devices", "interfaces").Index(idx).Child("name").String(), iface.MacAddress),
 						Field:   field.Child("domain", "devices", "interfaces").Index(idx).Child("macAddress").String(),
+					})
+				}
+			}
+
+			if iface.BootOrder != nil {
+				order := *iface.BootOrder
+				// Verify boot order is greater than 0, if provided
+				if order < 1 {
+					causes = append(causes, metav1.StatusCause{
+						Type:    metav1.CauseTypeFieldValueInvalid,
+						Message: fmt.Sprintf("%s must have a boot order > 0, if supplied", field.Index(idx).String()),
+						Field:   field.Index(idx).Child("bootOrder").String(),
+					})
+				} else {
+					// verify that there are no duplicate boot orders
+					if bootOrderMap[order] {
+						causes = append(causes, metav1.StatusCause{
+							Type:    metav1.CauseTypeFieldValueInvalid,
+							Message: fmt.Sprintf("Boot order for %s already set for a different device.", field.Child("domain", "devices", "interfaces").Index(idx).Child("bootOrder").String()),
+							Field:   field.Child("domain", "devices", "interfaces").Index(idx).Child("bootOrder").String(),
+						})
+					}
+					bootOrderMap[order] = true
+				}
+			}
+			// verify that the specified pci address is valid
+			if iface.PciAddress != "" {
+				_, err := util.ParsePciAddress(iface.PciAddress)
+				if err != nil {
+					causes = append(causes, metav1.StatusCause{
+						Type:    metav1.CauseTypeFieldValueInvalid,
+						Message: fmt.Sprintf("interface %s has malformed PCI address (%s).", field.Child("domain", "devices", "interfaces").Index(idx).Child("name").String(), iface.PciAddress),
+						Field:   field.Child("domain", "devices", "interfaces").Index(idx).Child("pciAddress").String(),
 					})
 				}
 			}

@@ -26,13 +26,11 @@ package cmdclient
 */
 
 import (
-	goerror "errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/rpc"
 	"path/filepath"
-	"strings"
 
 	"net"
 	"os"
@@ -58,6 +56,7 @@ type LauncherClient interface {
 	SyncVirtualMachine(vmi *v1.VirtualMachineInstance) error
 	ShutdownVirtualMachine(vmi *v1.VirtualMachineInstance) error
 	KillVirtualMachine(vmi *v1.VirtualMachineInstance) error
+	DeleteDomain(vmi *v1.VirtualMachineInstance) error
 	GetDomain() (*api.Domain, bool, error)
 	Ping() error
 	Close()
@@ -94,21 +93,9 @@ func SocketsDirectory(baseDir string) string {
 	return filepath.Join(baseDir, "sockets")
 }
 
-func SocketFromNamespaceName(baseDir string, namespace string, name string) string {
-	sockFile := namespace + "_" + name + "_sock"
+func SocketFromUID(baseDir string, uid string) string {
+	sockFile := uid + "_sock"
 	return filepath.Join(SocketsDirectory(baseDir), sockFile)
-}
-
-func DomainFromSocketPath(socketPath string) (*api.Domain, error) {
-	splitName := strings.SplitN(filepath.Base(socketPath), "_", 3)
-	if len(splitName) != 3 {
-		return nil, goerror.New(fmt.Sprintf("malformed domain socket %s", socketPath))
-	}
-	namespace := splitName[0]
-	name := splitName[1]
-	domain := api.NewDomainReferenceFromName(namespace, name)
-
-	return domain, nil
 }
 
 func GetClient(socketPath string) (LauncherClient, error) {
@@ -153,6 +140,17 @@ func (c *VirtLauncherClient) ShutdownVirtualMachine(vmi *v1.VirtualMachineInstan
 
 func (c *VirtLauncherClient) KillVirtualMachine(vmi *v1.VirtualMachineInstance) error {
 	cmd := "Launcher.Kill"
+
+	args := &Args{
+		VMI: vmi,
+	}
+	_, err := c.genericSendCmd(args, cmd)
+
+	return err
+}
+
+func (c *VirtLauncherClient) DeleteDomain(vmi *v1.VirtualMachineInstance) error {
+	cmd := "Launcher.Delete"
 
 	args := &Args{
 		VMI: vmi,

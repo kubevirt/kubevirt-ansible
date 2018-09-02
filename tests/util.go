@@ -16,6 +16,7 @@ import (
 )
 
 type Result struct {
+    cmd           string
 	verb          string
 	resourceType  string
 	resourceName  string
@@ -80,7 +81,7 @@ func RemoveNamespaces() {
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
 	By(fmt.Sprintf("Overriding the template from %s to %s", srcFilePath, dstFilePath))
-	out := execute(Result{verb: "process", filePath: srcFilePath, params: params})
+    out := execute(Result{cmd: "oc", verb: "process", filePath: srcFilePath, params: params})
 	filePath, err := writeJson(dstFilePath, out)
 	Expect(err).ToNot(HaveOccurred())
 	return filePath
@@ -88,22 +89,22 @@ func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...st
 
 func CreateResourceWithFilePathTestNamespace(filePath string) {
 	By("Creating resource from the json file with the oc-create command")
-	execute(Result{verb: "create", filePath: filePath, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "create", filePath: filePath, nameSpace: NamespaceTestDefault})
 }
 
 func DeleteResourceWithLabelTestNamespace(resourceType, resourceLabel string) {
 	By(fmt.Sprintf("Deleting %s:%s from the json file with the oc-delete command", resourceType, resourceLabel))
-	execute(Result{verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel, nameSpace: NamespaceTestDefault})
 }
 
 func WaitUntilResourceReadyByNameTestNamespace(resourceType, resourceName, query, expectOut string) {
 	By(fmt.Sprintf("Wait until %s with name %s ready", resourceType, resourceName))
-	execute(Result{verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
 }
 
 func WaitUntilResourceReadyByLabelTestNamespace(resourceType, label, query, expectOut string) {
 	By(fmt.Sprintf("Wait until resource %s with label=%s ready", resourceType, label))
-	execute(Result{verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
 }
 
 func execute(r Result) string {
@@ -140,12 +141,12 @@ func execute(r Result) string {
 	}
 	if r.expectOut != "" {
 		Eventually(func() bool {
-			r.actualOut, err = ktests.RunOcCommand(cmd...)
+			r.actualOut, err = ktests.RunCommand(r.cmd, cmd...)
 			Expect(err).ToNot(HaveOccurred())
 			return strings.Contains(r.actualOut, r.expectOut)
 		}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
 	} else {
-		r.actualOut, err = ktests.RunOcCommand(cmd...)
+		r.actualOut, err = ktests.RunCommand(r.cmd, cmd...)
 		Expect(err).ToNot(HaveOccurred())
 	}
 	return r.actualOut
