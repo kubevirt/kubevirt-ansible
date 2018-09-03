@@ -65,7 +65,7 @@ metadata:
     tier: node
     app: multus
 data:
-  70-multus.conf: {{ cni_config }}
+  00-multus.conf: {{ cni_config }}
 ---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
@@ -92,6 +92,7 @@ spec:
       serviceAccountName: multus
       containers:
       - name: kube-multus
+        args: ["--multus-conf-file","/usr/src/multus-cni/images/00-multus.conf"]
         image: {{ multus_provisioner_repo }}:{{ multus_provisioner_release }}
         resources:
           requests:
@@ -119,4 +120,3 @@ spec:
       - name: multus-cfg
         configMap:
           name: multus-cni-config
----

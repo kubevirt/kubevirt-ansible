@@ -40,4 +40,3 @@ spec:
       - name: cnibin
         hostPath:
           path: /opt/cni/bin
----

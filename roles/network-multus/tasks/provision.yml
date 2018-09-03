@@ -64,14 +64,14 @@
     shell: "{{ cluster_command }} apply -f /tmp/l2-bridge.yml"
 
   - name: Wait until multus is running
-    shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ item }} | awk \'{ if ($2 == $3) print \"0\"; else print \"1\"}\'"
+    shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ item }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
     loop:
     - kube-multus-ds-amd64
     - kube-l2-bridge-ds-amd64
     - kube-cni-plugins-ds-amd64
     register: result
     until: result.stdout == "0"
-    retries: 10
-    delay: 2
+    retries: 20
+    delay: 5
 
   when: crd.stdout=="0"

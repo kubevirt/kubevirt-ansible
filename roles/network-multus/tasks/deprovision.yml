@@ -20,7 +20,7 @@
 - name: Render cni plugins deployment yaml
   template:
     src: cni-plugins.yml
-    dest: /tmp/cni-plugins.yml -ignore-not-found
+    dest: /tmp/cni-plugins.yml
 
 - name: Delete cni plugins Resources
   command: kubectl delete -f /tmp/cni-plugins.yml --ignore-not-found

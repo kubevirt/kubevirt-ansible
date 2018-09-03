@@ -28,10 +28,14 @@ kubernetes_cni_config: |
   '{
     "name": "multus-cni-network",
     "type": "multus",
-    "delegates": [{
-      "type": "flannel",
-      "delegate": {
-        "isDefaultGateway": true
-    }],
+    "delegates": [
+     {
+       "type": "flannel",
+       "name": "flannel.1",
+       "delegate": {
+         "isDefaultGateway": true
+       }
+     }
+    ],
     "kubeconfig": "/etc/cni/net.d/multus.d/multus.kubeconfig"
   }'

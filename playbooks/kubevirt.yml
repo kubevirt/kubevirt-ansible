@@ -7,7 +7,7 @@
   environment:
     http_proxy: ""
   roles:
-    - { role: "network-multus", when: network_role == 'network-multus'}
+    - { role: "network-multus", when: network_role == 'network_multus'}
 
 - hosts: masters[0]
   connection: local
