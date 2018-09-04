@@ -25,7 +25,7 @@
 package grpclb
 
 import (
-	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"sync"
@@ -59,7 +59,7 @@ var (
 	defaultBackoffConfig = backoff.Exponential{
 		MaxDelay: 120 * time.Second,
 	}
-	errServerTerminatedConnection = errors.New("grpclb: failed to recv server list: server terminated connection")
+	errServerTerminatedConnection = fmt.Errorf("grpclb: failed to recv server list: server terminated connection")
 )
 
 func convertDuration(d *durationpb.Duration) time.Duration {
