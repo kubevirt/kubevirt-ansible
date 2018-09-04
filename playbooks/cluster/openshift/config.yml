@@ -52,22 +52,21 @@
         - ansible_distribution in ["CentOS","RedHat"]
 
     - name: Install openshift requirements
-      package:
-        name: "{{ item }}"
-      with_items:
-        - python-yaml
-        - python-ipaddress
-        - wget
-        - git
-        - net-tools
-        - bind-utils
-        - iptables-services
-        - bridge-utils
-        - bash-completion
-        - kexec-tools
-        - sos
-        - psacct
-        - NetworkManager
+      yum:
+        name:
+          - python-yaml
+          - python-ipaddress
+          - wget
+          - git
+          - net-tools
+          - bind-utils
+          - iptables-services
+          - bridge-utils
+          - bash-completion
+          - kexec-tools
+          - sos
+          - psacct
+          - NetworkManager
 
     - name: Enable and start NetworkManager service
       service:
