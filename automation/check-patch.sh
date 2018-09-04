@@ -26,6 +26,7 @@ on_exit() {
     collect_lago_log "$run_path" "$ARTIFACTS_PATH"
     collect_logs_from_vms "$run_path" "${VMS_LOGS_PATH}/on_exit"
     collect_ansible_log "$ARTIFACTS_PATH"
+    kill_make_tests
 
     if "$skip_cleanup"; then
         echo "Skipping cleanup"
@@ -131,6 +132,17 @@ is_code_changed() {
     return $?
 }
 
+kill_make_tests() {
+    local my_pid="$$"
+    local make_tests_pid="$MAKE_TESTS_PID"
+    local make_tests_ppid
+
+    [[ "$make_tests_pid" ]] || return
+    make_tests_ppid="$(ps -o ppid= "$make_tests_pid" || echo -1)"
+
+    [[ "$my_pid" -eq "$make_tests_ppid" ]] && kill -9 "$make_tests_pid"
+}
+
 run() {
     local run_path="${1:?}"
     local cluster="${2:?}"
@@ -181,6 +193,10 @@ run() {
         "openshift_playbook_path=$openshift_playbook_path"
 	"storage_role=$storage_role"
     )
+
+    make generate-tests &> "${ARTIFACTS_PATH}/generate-tests.log" &
+    readonly MAKE_TESTS_PID="$!"
+
     ansible-playbook \
         -u root \
         -i "$inventory_file" \
@@ -189,6 +205,11 @@ run() {
         playbooks/automation/check-patch.yml
 
     # Run integration tests
+    wait "$MAKE_TESTS_PID" || {
+        local ret="$?"
+        echo "Error: Failed to compile tests"
+        exit "$ret"
+    }
     http_proxy="" make test
 
     collect_logs_from_vms "$run_path" "${VMS_LOGS_PATH}/post_tests"
