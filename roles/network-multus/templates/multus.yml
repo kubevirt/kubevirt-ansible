@@ -92,7 +92,8 @@ spec:
       serviceAccountName: multus
       containers:
       - name: kube-multus
-        args: ["--multus-conf-file","/usr/src/multus-cni/images/00-multus.conf"]
+        command: ["/entrypoint.sh"]
+        args: ["--multus-conf-file=/usr/src/multus-cni/images/00-multus.conf"]
         image: {{ multus_provisioner_repo }}:{{ multus_provisioner_release }}
         resources:
           requests:

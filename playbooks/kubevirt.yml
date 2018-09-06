@@ -1,13 +1,14 @@
 ---
 - hosts: masters[0]
+  connection: local
   gather_facts: False
   vars:
-    network_role: network_multus
+    network_role: network-multus
   # unset http_proxy. required for running in the CI
   environment:
     http_proxy: ""
   roles:
-    - { role: "network-multus", when: network_role == 'network_multus'}
+    - { role: "network-multus", when: network_role == 'network-multus'}
 
 - hosts: masters[0]
   connection: local
