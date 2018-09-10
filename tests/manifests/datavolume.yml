@@ -1,0 +1,27 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: cdi-test
+objects:
+- apiVersion: cdi.kubevirt.io/v1alpha1
+  kind: DataVolume
+  metadata:
+    name: ${RESOURCE_NAME}
+    labels:
+      test: cdi-manifests
+  spec:
+    source:
+        http:
+           url: "${EP_URL}"
+    pvc:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 500Mi
+parameters:
+- name: RESOURCE_NAME
+- name: EP_URL
+

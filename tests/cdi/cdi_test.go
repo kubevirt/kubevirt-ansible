@@ -2,51 +2,93 @@ package cdi_test
 
 import (
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/extensions/table"
+
 	"kubevirt.io/kubevirt-ansible/tests"
+	ktests "kubevirt.io/kubevirt/tests"
 )
 
-var _ = Describe("Importing and starting a VM using CDI", func() {
-	var dstPVCFilePath, dstVMFilePath, newPVCName, url string
-
-	BeforeEach(func() {
-		var ok bool
-		dstPVCFilePath = "/tmp/test-pvc.json"
-		dstVMFilePath = "/tmp/test-vm.json"
-		newPVCName = pvcName
-		url, ok = os.LookupEnv("STREAM_IMAGE_URL")
-		if !ok {
-			url = pvcEPHTTPNOAUTHURL
+var _ = Describe("Importing and starting a VMI using CDI", func() {
+	prepareCDIResource := func(manifest, url string) string {
+		t, err := tests.NewTestRandom()
+		Expect(err).ToNot(HaveOccurred())
+		defer t.CleanUp()
+		envURL, ok := os.LookupEnv("STREAM_IMAGE_URL")
+		if ok {
+			url = envURL
 		}
+		tests.ProcessTemplateWithParameters(manifest, t.ABSPath(), "RESOURCE_NAME="+t.Name(), "EP_URL="+url)
+		tests.CreateResourceWithFilePath(t.ABSPath(), "")
+		return t.Name()
+	}
+
+	waitForImporterPodWriteImg := func(phase, resourceName string) {
+		switch phase {
+		case "Succeeded":
+			tests.WaitUntilResourceReadyByName("pvc", resourceName, "-o=jsonpath='{.metadata.annotations}'", "pv.kubernetes.io/bind-completed:yes", "")
+			tests.WaitUntilResourceReadyByLabel("pod", tests.CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Succeeded", "")
+		case "Failed":
+			tests.WaitUntilResourceReadyByLabel("pod", tests.CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Failed", "")
+		case "NOExist":
+			Consistently(func() bool {
+				args := []string{"get", "pods", "-l", tests.CDI_LABEL_SELECTOR, "-n", tests.NamespaceTestDefault}
+				out, err := ktests.RunCommand("oc", args...)
+				Expect(err).ToNot(HaveOccurred())
+				return out == "No resources found.\n"
+			}, time.Duration(10)*time.Second).Should(BeTrue())
+		}
+	}
+
+	startVMIConnectToCDIStorage := func(resourceName string) {
+		t, err := tests.NewTestRandom()
+		Expect(err).ToNot(HaveOccurred())
+		tests.ProcessTemplateWithParameters(rawVMFilePath, t.ABSPath(), "VM_NAME="+t.Name(), "PVC_NAME="+resourceName, "VM_APIVERSION="+vmAPIVersion)
+		tests.CreateResourceWithFilePath(t.ABSPath(), "")
+		tests.WaitUntilResourceReadyByName("vmi", t.Name(), "-o=jsonpath='{.status.phase}'", "Running", "")
+		defer t.CleanUp()
+	}
+
+	AfterEach(func() {
+		By("Deleting all pvc with the oc-delete command")
+		args := []string{"delete", "pvc", "-l", tests.CDI_TEST_LABEL_SELECTOR, "-n", tests.NamespaceTestDefault}
+		_, err := ktests.RunCommand("oc", args...)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Deleting all datavolumes with the oc-delete command")
+		args = []string{"delete", "datavolumes.cdi.kubevirt.io", "-l", tests.CDI_TEST_LABEL_SELECTOR, "-n", tests.NamespaceTestDefault}
+		_, err = ktests.RunCommand("oc", args...)
+		Expect(err).ToNot(HaveOccurred())
+
+		By("Deleting all vmi with the oc-delete command")
+		args = []string{"delete", "vmi", "-l", tests.CDI_TEST_LABEL_SELECTOR, "-n", tests.NamespaceTestDefault}
+		_, err = ktests.RunCommand("oc", args...)
+		Expect(err).ToNot(HaveOccurred())
+
+		//clean up resources after each Entry
+		tests.DeleteResourceWithLabel("pod", tests.CDI_LABEL_SELECTOR, "")
 	})
 
-	JustBeforeEach(func() {
-		tests.ProcessTemplateWithParameters(rawPVCFilePath, dstPVCFilePath, "PVC_NAME="+newPVCName, "EP_URL="+url)
-		tests.CreateResourceWithFilePathTestNamespace(dstPVCFilePath)
-	})
-
-	Context("PVC with valid image url", func() {
-
-		It("will succeed", func() {
-			tests.WaitUntilResourceReadyByNameTestNamespace("pvc", pvcName, "-o=jsonpath='{.metadata.annotations}'", "pv.kubernetes.io/bind-completed:yes")
-			tests.WaitUntilResourceReadyByLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Succeeded")
-			tests.DeleteResourceWithLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR)
-			tests.ProcessTemplateWithParameters(rawVMFilePath, dstVMFilePath, "VM_NAME="+vmName, "PVC_NAME="+pvcName, "VM_APIVERSION="+vmAPIVersion)
-			tests.CreateResourceWithFilePathTestNamespace(dstVMFilePath)
-			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmName, "-o=jsonpath='{.status.phase}'", "Running")
-		})
-	})
-
-	Context("PVC with invalid image url", func() {
-		BeforeEach(func() {
-			newPVCName = pvcName1
-			url = invalidPVCURL
-		})
-
-		It("will be failed because the PVC should become failed", func() {
-			tests.WaitUntilResourceReadyByLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Failed")
-		})
-	})
-
+	table.DescribeTable("with different cases:", func(manifest, url string) {
+		resourceName := prepareCDIResource(manifest, url)
+		switch url {
+		case invalidURL:
+			waitForImporterPodWriteImg("Failed", resourceName)
+		case emptyURL:
+			waitForImporterPodWriteImg("NoExist", resourceName)
+		default:
+			waitForImporterPodWriteImg("Succeeded", resourceName)
+			startVMIConnectToCDIStorage(resourceName)
+		}
+	},
+		table.Entry("PVC with valid image url will succeed", rawPVCFilePath, cirrosURL),
+		table.Entry("PVC with invalid image url will be failed", rawPVCFilePath, invalidURL),
+		table.Entry("PVC with empty image url will be failed", rawPVCFilePath, emptyURL),
+		table.Entry("DataVolume with valid image url will succeed", rawDataVolumePath, cirrosURL),
+		table.Entry("DataVolume with invalid image url will be failed", rawDataVolumePath, invalidURL),
+		table.Entry("DataVolume with empty image url will be failed", rawDataVolumePath, emptyURL),
+	)
 })
