@@ -10,6 +10,9 @@ This role deploys the CDI controller.
 | apb_action | provision |<ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
 | cdi_repo_tag | kubevirt | |CDI docker hub repo tag.|
 | cdi_release_tag | v1.1.1 | |CDI docker hub release tag.|
+| cdi_controller_image | cdi-controller | Name of CDI controller docker image. |
+| cdi_importer_image | cdi-importer | Name of CDI importer docker image. |
+| cdi_cloner_image | cdi-cloner | Name of CDI cloner docker image. |
 
 ### Usage
 
