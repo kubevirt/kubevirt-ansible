@@ -3,6 +3,8 @@ package tests
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -11,6 +13,7 @@ import (
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	ktests "kubevirt.io/kubevirt/tests"
 )
@@ -29,17 +32,47 @@ type Result struct {
 	params        []string
 }
 
+type TestRandom struct {
+	testDir         string
+	generateName    string
+	generateABSPath string
+}
+
+func (t *TestRandom) Generate() error {
+	var err error
+	t.testDir, err = ioutil.TempDir("", TestDir)
+	if err != nil {
+		return err
+	}
+	t.generateName = "generate-" + rand.String(10)
+	t.generateABSPath = filepath.Join(t.testDir, t.generateName+".json")
+	return nil
+}
+
+func (t *TestRandom) Name() string {
+	return t.generateName
+}
+
+func (t *TestRandom) ABSPath() string {
+	return t.generateABSPath
+}
+
+func (t *TestRandom) CleanUp() error {
+	return os.RemoveAll(t.testDir)
+}
+
 var KubeVirtOcPath = ""
 
 const (
-	CDI_LABEL_KEY        = "app"
-	CDI_LABEL_VALUE      = "containerized-data-importer"
-	CDI_LABEL_SELECTOR   = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
-	CDI_TEST_LABEL_KEY   = "test"
-	CDI_TEST_LABEL_VALUE = "cdi-manifests"
+	CDI_LABEL_KEY           = "app"
+	CDI_LABEL_VALUE         = "containerized-data-importer"
+	CDI_LABEL_SELECTOR      = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
+	CDI_TEST_LABEL_KEY      = "test"
+	CDI_TEST_LABEL_VALUE    = "cdi-manifests"
 	CDI_TEST_LABEL_SELECTOR = CDI_TEST_LABEL_KEY + "=" + CDI_TEST_LABEL_VALUE
-	NamespaceTestDefault = "kubevirt-test-default"
-	paramFlag            = "-p"
+	NamespaceTestDefault    = "kubevirt-test-default"
+	paramFlag               = "-p"
+	TestDir                 = "kubevirt-ansible-test"
 )
 
 func CreateNamespaces() {

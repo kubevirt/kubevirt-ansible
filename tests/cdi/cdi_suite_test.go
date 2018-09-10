@@ -25,10 +25,6 @@ const (
 	rawVMFilePath     = "tests/manifests/test-vm.yml"
 )
 
-const (
-	tmpTestDir = "/tmp/kubevirt-ansible-test/"
-)
-
 func TestCDI(t *testing.T) {
 	RegisterFailHandler(Fail)
 	reporters := make([]Reporter, 0)

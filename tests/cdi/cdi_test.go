@@ -2,30 +2,28 @@ package cdi_test
 
 import (
 	"os"
-	"path/filepath"
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/ginkgo/extensions/table"
 
-	"k8s.io/apimachinery/pkg/util/rand"
 	"kubevirt.io/kubevirt-ansible/tests"
 	ktests "kubevirt.io/kubevirt/tests"
 )
 
 var _ = Describe("Importing and starting a VMI using CDI", func() {
 	prepareCDIResource := func(manifest, url string) string {
-		dstFilePath := filepath.Join(tmpTestDir, "test-prepare-file-"+rand.String(5)+".json")
-		resourceName := "test-resrouce-" + rand.String(10)
-
+		t := new(tests.TestRandom)
+		defer t.CleanUp()
+		Expect(t.Generate()).ToNot(HaveOccurred())
 		envURL, ok := os.LookupEnv("STREAM_IMAGE_URL")
 		if ok {
 			url = envURL
 		}
-		tests.ProcessTemplateWithParameters(manifest, dstFilePath, "RESOURCE_NAME="+resourceName, "EP_URL="+url)
-		tests.CreateResourceWithFilePath(dstFilePath, "")
-		return resourceName
+		tests.ProcessTemplateWithParameters(manifest, t.ABSPath(), "RESOURCE_NAME="+t.Name(), "EP_URL="+url)
+		tests.CreateResourceWithFilePath(t.ABSPath(), "")
+		return t.Name()
 	}
 
 	waitForImporterPodWriteImg := func(phase, resourceName string) {
@@ -46,17 +44,13 @@ var _ = Describe("Importing and starting a VMI using CDI", func() {
 	}
 
 	startVMIConnectToCDIStorage := func(resourceName string) {
-		vmiName := "testvmi" + rand.String(10)
-		dstVMFilePath := tmpTestDir + "test-vm-" + rand.String(5) + ".json"
-		tests.ProcessTemplateWithParameters(rawVMFilePath, dstVMFilePath, "VM_NAME="+vmiName, "PVC_NAME="+resourceName, "VM_APIVERSION="+vmAPIVersion)
-		tests.CreateResourceWithFilePath(dstVMFilePath, "")
-		tests.WaitUntilResourceReadyByName("vmi", vmiName, "-o=jsonpath='{.status.phase}'", "Running", "")
+		t := new(tests.TestRandom)
+		defer t.CleanUp()
+		Expect(t.Generate()).ToNot(HaveOccurred())
+		tests.ProcessTemplateWithParameters(rawVMFilePath, t.ABSPath(), "VM_NAME="+t.Name(), "PVC_NAME="+resourceName, "VM_APIVERSION="+vmAPIVersion)
+		tests.CreateResourceWithFilePath(t.ABSPath(), "")
+		tests.WaitUntilResourceReadyByName("vmi", t.Name(), "-o=jsonpath='{.status.phase}'", "Running", "")
 	}
-
-	BeforeEach(func() {
-		err := os.MkdirAll(tmpTestDir, 0755)
-		Expect(err).ToNot(HaveOccurred())
-	})
 
 	AfterEach(func() {
 		By("Deleting all pvc with the oc-delete command")
@@ -76,10 +70,6 @@ var _ = Describe("Importing and starting a VMI using CDI", func() {
 
 		//clean up resources after each Entry
 		tests.DeleteResourceWithLabel("pod", tests.CDI_LABEL_SELECTOR, "")
-
-		By("Deleting tmp test dir: " + tmpTestDir)
-		err = os.RemoveAll(tmpTestDir)
-		Expect(err).ToNot(HaveOccurred())
 	})
 
 	table.DescribeTable("with different cases:", func(manifest, url string) {
