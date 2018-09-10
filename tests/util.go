@@ -38,15 +38,16 @@ type TestRandom struct {
 	generateABSPath string
 }
 
-func (t *TestRandom) Generate() error {
+func NewTestRandom() (*TestRandom, error) {
 	var err error
+	t := new(TestRandom)
 	t.testDir, err = ioutil.TempDir("", TestDir)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	t.generateName = "generate-" + rand.String(10)
 	t.generateABSPath = filepath.Join(t.testDir, t.generateName+".json")
-	return nil
+	return t, nil
 }
 
 func (t *TestRandom) Name() string {
@@ -58,7 +59,11 @@ func (t *TestRandom) ABSPath() string {
 }
 
 func (t *TestRandom) CleanUp() error {
-	return os.RemoveAll(t.testDir)
+	if t.testDir != "" {
+		return os.RemoveAll(t.testDir)
+	} else {
+		return fmt.Errorf("testDir is empty")
+	}
 }
 
 var KubeVirtOcPath = ""

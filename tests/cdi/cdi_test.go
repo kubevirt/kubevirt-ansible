@@ -14,9 +14,9 @@ import (
 
 var _ = Describe("Importing and starting a VMI using CDI", func() {
 	prepareCDIResource := func(manifest, url string) string {
-		t := new(tests.TestRandom)
+		t, err := tests.NewTestRandom()
+		Expect(err).ToNot(HaveOccurred())
 		defer t.CleanUp()
-		Expect(t.Generate()).ToNot(HaveOccurred())
 		envURL, ok := os.LookupEnv("STREAM_IMAGE_URL")
 		if ok {
 			url = envURL
@@ -44,12 +44,12 @@ var _ = Describe("Importing and starting a VMI using CDI", func() {
 	}
 
 	startVMIConnectToCDIStorage := func(resourceName string) {
-		t := new(tests.TestRandom)
-		defer t.CleanUp()
-		Expect(t.Generate()).ToNot(HaveOccurred())
+		t, err := tests.NewTestRandom()
+		Expect(err).ToNot(HaveOccurred())
 		tests.ProcessTemplateWithParameters(rawVMFilePath, t.ABSPath(), "VM_NAME="+t.Name(), "PVC_NAME="+resourceName, "VM_APIVERSION="+vmAPIVersion)
 		tests.CreateResourceWithFilePath(t.ABSPath(), "")
 		tests.WaitUntilResourceReadyByName("vmi", t.Name(), "-o=jsonpath='{.status.phase}'", "Running", "")
+		defer t.CleanUp()
 	}
 
 	AfterEach(func() {
