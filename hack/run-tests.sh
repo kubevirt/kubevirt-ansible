@@ -12,4 +12,3 @@ KUBECTL_PATH=$(which kubectl)
 VIRTCTL_PATH=$(which virtctl)
 
 ${TESTS_OUT_DIR}/tests.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -oc-path=${OC_PATH} -kubectl-path=${KUBECTL_PATH} -virtctl-path=${VIRTCTL_PATH} ${FUNC_TEST_ARGS}
-${TESTS_OUT_DIR}/cdi.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -oc-path=${OC_PATH} -kubectl-path=${KUBECTL_PATH} -virtctl-path=${VIRTCTL_PATH} ${CDI_TEST_ARGS}

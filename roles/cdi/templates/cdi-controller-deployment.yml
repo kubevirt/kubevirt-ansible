@@ -10,6 +10,7 @@ kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: cdi
+  namespace: {{ cdi_namespace }}
   labels:
     cdi.kubevirt.io: ""
 rules:
@@ -26,6 +27,9 @@ rules:
   resources: ["pods"]
   verbs: ["get", "list", "watch", "create", "delete"]
 - apiGroups: [""]
+  resources: ["pods/finalizers"]
+  verbs: ["update"]
+- apiGroups: [""]
   resources: ["secrets"]
   verbs: ["get", "list", "watch", "create"]
 - apiGroups: ["cdi.kubevirt.io"]
@@ -38,6 +42,7 @@ apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
   name: cdi-sa
+  namespace: {{ cdi_namespace }}
   labels:
     cdi.kubevirt.io: ""
 roleRef:
@@ -53,6 +58,7 @@ apiVersion: apps/v1beta2
 kind: Deployment
 metadata:
   name: cdi-deployment
+  namespace: {{ cdi_namespace }}
   labels:
     cdi.kubevirt.io: ""
     app: containerized-data-importer
@@ -69,14 +75,14 @@ spec:
       serviceAccountName: cdi-sa
       containers:
       - name: cdi-controller
-        image: {{ repo_tag }}/cdi-controller:{{ release_tag }}
+        image: {{ repo_tag }}/{{ controller_image }}:{{ release_tag }}
         imagePullPolicy: IfNotPresent
         args: ["-v=1"] # default verbosity; change to 2 or 3 for more detailed logging
         env:
         - name: IMPORTER_IMAGE
-          value: {{ repo_tag }}/cdi-importer:{{ release_tag }}
+          value: {{ repo_tag }}/{{ importer_image }}:{{ release_tag }}
         - name: CLONER_IMAGE
-          value: {{ repo_tag }}/cdi-cloner:{{ release_tag }}
+          value: {{ repo_tag }}/{{ cloner_image }}:{{ release_tag }}
         - name: PULL_POLICY
           value: IfNotPresent
 ---
