@@ -16,7 +16,7 @@ import (
 )
 
 type Result struct {
-    cmd           string
+	cmd           string
 	verb          string
 	resourceType  string
 	resourceName  string
@@ -29,14 +29,13 @@ type Result struct {
 	params        []string
 }
 
-var KubeVirtOcPath = ""
+const NamespaceTestDefault = "kubevirt-test-default"
 
 const (
-	CDI_LABEL_KEY        = "app"
-	CDI_LABEL_VALUE      = "containerized-data-importer"
-	CDI_LABEL_SELECTOR   = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
-	NamespaceTestDefault = "kubevirt-test-default"
-	paramFlag            = "-p"
+	CDI_LABEL_KEY      = "app"
+	CDI_LABEL_VALUE    = "containerized-data-importer"
+	CDI_LABEL_SELECTOR = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
+	paramFlag          = "-p"
 )
 
 func CreateNamespaces() {
@@ -81,7 +80,7 @@ func RemoveNamespaces() {
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
 	By(fmt.Sprintf("Overriding the template from %s to %s", srcFilePath, dstFilePath))
-    out := execute(Result{cmd: "oc", verb: "process", filePath: srcFilePath, params: params})
+	out := execute(Result{cmd: "oc", verb: "process", filePath: srcFilePath, params: params})
 	filePath, err := writeJson(dstFilePath, out)
 	Expect(err).ToNot(HaveOccurred())
 	return filePath
