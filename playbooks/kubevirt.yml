@@ -20,6 +20,7 @@
     - role: kubevirt
 
 - hosts: masters[0]
+  connection: local
   environment:
     http_proxy: ""
   roles:
