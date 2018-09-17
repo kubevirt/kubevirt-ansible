@@ -10,6 +10,8 @@
 - hosts: localhost
   connection: local
   gather_facts: False
+  vars_files:
+    - "{{ playbook_dir }}/defaults/main.yml"
   tasks:
     - name: Set prefix
       set_fact:
@@ -23,7 +25,7 @@
 
     - name: Init Lago env
       command:
-        lago init "{{ prefix }}" "{{ lago_init_file }}"
+        lago init --template-repo-path "{{ lago_template_repo }}" "{{ prefix }}" "{{ lago_init_file }}"
       args:
         creates: "{{ prefix }}/default/uuid"
 

@@ -1,12 +1,12 @@
 package tests_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"testing"
-
-	"kubevirt.io/kubevirt/tests"
+	"kubevirt.io/kubevirt-ansible/tests"
 	"kubevirt.io/qe-tools/pkg/ginkgo-reporters"
 )
 
@@ -23,9 +23,9 @@ func TestTests(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	tests.BeforeTestSuitSetup()
+	tests.CreateNamespaces()
 })
 
 var _ = AfterSuite(func() {
-	tests.AfterTestSuitCleanup()
+	tests.RemoveNamespaces()
 })
