@@ -1,1 +1,3 @@
 inventory_file: "inventory"
+lago_vm_image: el7.5-base
+lago_template_repo: https://templates.ovirt.org/repo/repo.metadata
