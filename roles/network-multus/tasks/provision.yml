@@ -55,19 +55,11 @@
   - name: Create cni plugins Resources
     shell: "{{ cluster_command }} apply -f /tmp/cni-plugins.yml"
 
-  - name: Render L2 plugin deployment yaml
-    template:
-      src: l2-bridge.yml
-      dest: /tmp/l2-bridge.yml
-
-  - name: Create L2 plugin Resources
-    shell: "{{ cluster_command }} apply -f /tmp/l2-bridge.yml"
 
   - name: Wait until multus is running
     shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ item }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
     loop:
     - kube-multus-ds-amd64
-    - kube-l2-bridge-ds-amd64
     - kube-cni-plugins-ds-amd64
     register: result
     until: result.stdout == "0"

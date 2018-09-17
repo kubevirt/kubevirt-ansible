@@ -3,7 +3,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: kube-cni-plugins-ds-amd64
-  namespace: {{namespace}}
+  namespace: {{ namespace }}
   labels:
     tier: node
     app: cni-plugins
@@ -23,7 +23,7 @@ spec:
         effect: NoSchedule
       containers:
       - name: cni-plugins
-        image: {{cni_provisioner_repo}}:{{cni_provisioner_release}}
+        image: {{ cni_provisioner_repo }}:{{ cni_provisioner_release }}
         resources:
           requests:
             cpu: "100m"

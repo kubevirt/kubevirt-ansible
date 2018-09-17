@@ -146,6 +146,8 @@ create the StorageClass.
 **network-multus**
 Deploy additional multus cni plugin.
 
+***Note***  This is a dev preview, not OpenShift officially supported. 
+
 ***Note***  For a kubernetes cluster if you are using a network plugin different than flannel you need to edit the `kubernetes_cni_config` variable inside the file:         
 ```
 roles/network-multus/defaults/main.yml

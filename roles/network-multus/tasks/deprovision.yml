@@ -24,11 +24,3 @@
 
 - name: Delete cni plugins Resources
   command: kubectl delete -f /tmp/cni-plugins.yml --ignore-not-found
-
-- name: Render L2 plugin deployment yaml
-  template:
-    src: l2-bridge.yml
-    dest: /tmp/l2-bridge.yml
-
-- name: Delete L2 plugin Resources
-  command: kubectl delete -f /tmp/l2-bridge.yml --ignore-not-found

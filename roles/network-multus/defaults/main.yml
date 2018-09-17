@@ -8,10 +8,6 @@ multus_provisioner_release: "latest"
 cni_provisioner_repo: "quay.io/schseba/cni-plugins"
 cni_provisioner_release: "latest"
 
-l2_cni_plugin_repo : "quay.io/schseba/l2-bridge-cni-plugin"
-l2_cni_plugin_release: "latest"
-
-
 openshift_cni_config: |
   '{
     "name": "multus-cni-network",
