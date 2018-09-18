@@ -29,11 +29,14 @@ type Result struct {
 	params        []string
 }
 
-var KubeVirtOcPath = ""
-
 const (
 	TemplateNS           = "openshift"
 	NamespaceTestDefault = "kubevirt-test-default"
+)
+
+const (
+	DefaultTimeoutForVMReady = 10 * time.Minute
+	DefaultPollInterval      = 2 * time.Second
 )
 
 const (
