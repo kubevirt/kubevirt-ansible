@@ -21,6 +21,7 @@
   get_url:
     url: "{{ release_manifest_url }}/v{{ version }}/demo-content.yaml"
     dest: "{{ kubevirt_template_dir }}/demo-content.yaml"
+    force: yes
   when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
 
 - name: Copy BYO Demo Content to /tmp
@@ -48,6 +49,7 @@
   get_url:
     url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
     dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+    force: yes
   when: (kubevirt_template.stat.exists == False) and (byo_template.stat.exists == False)
 
 - name: Render KubeVirt template
