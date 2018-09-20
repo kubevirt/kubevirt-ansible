@@ -20,7 +20,7 @@ host-settings: &nodes-settings
 {% endif %}
     memory: 2047
     disks:
-      - template_name: el7.5-base
+      - template_name: {{ lago_vm_image }}
         type: template
         name: root
         dev: sda
@@ -53,7 +53,7 @@ domains:
       - ip: 192.168.200.2
         net: lago-management-network
     disks:
-      - template_name: el7.5-base
+      - template_name: {{ lago_vm_image }}
         type: template
         name: root
         dev: sda
