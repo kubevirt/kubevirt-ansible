@@ -1,0 +1,69 @@
+---
+- name: oc Command
+  set_fact:
+    cluster_command: oc
+  when: cluster=="openshift"
+
+- name: kubectl Command
+  set_fact:
+    cluster_command: kubectl
+  when: cluster=="kubernetes"
+
+- name: Login As Super User
+  shell: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+  when: cluster=="openshift"
+    and admin_user is defined
+    and admin_password is defined
+
+- name: Check if namespace "{{ namespace }}" exists
+  shell: "{{ cluster_command }} get ns | grep -w {{ namespace }} | awk \'{ print $1 }\'"
+  register: ns
+
+- name: Create {{ namespace }} namespace
+  shell: kubectl create namespace {{ namespace }}
+  when: ns.stdout != namespace
+
+- name: check if the CRD is already deployed
+  shell: "{{ cluster_command }} get crd --no-headers | grep network-attachment-definitions.k8s.cni.cncf.io | wc -l"
+  register: crd
+
+- name: Deploy Multus
+  block:
+  - name: openshift cni config
+    set_fact:
+      cni_config: "{{ openshift_cni_config }}"
+    when: cluster=="openshift"
+
+  - name: kubernetes cni config
+    set_fact:
+      cni_config: "{{ kubernetes_cni_config }}"
+    when: cluster=="kubernetes"
+
+  - name: Render multus deployment yaml
+    template:
+      src: multus.yml
+      dest: /tmp/multus.yml
+
+  - name: Create multus Resources
+    shell: "{{ cluster_command }} apply -f /tmp/multus.yml"
+
+  - name: Render cni plugins deployment yaml
+    template:
+      src: cni-plugins.yml
+      dest: /tmp/cni-plugins.yml
+
+  - name: Create cni plugins Resources
+    shell: "{{ cluster_command }} apply -f /tmp/cni-plugins.yml"
+
+
+  - name: Wait until multus is running
+    shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ item }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+    loop:
+    - kube-multus-ds-amd64
+    - kube-cni-plugins-ds-amd64
+    register: result
+    until: result.stdout == "0"
+    retries: 20
+    delay: 5
+
+  when: crd.stdout=="0"
