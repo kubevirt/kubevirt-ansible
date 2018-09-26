@@ -29,7 +29,10 @@ type Result struct {
 	params        []string
 }
 
-const NamespaceTestDefault = "kubevirt-test-default"
+const (
+	NamespaceTestDefault  = "kubevirt-test-default"
+	NamespaceTestTemplate = "openshift"
+)
 
 const (
 	CDI_LABEL_KEY      = "app"
