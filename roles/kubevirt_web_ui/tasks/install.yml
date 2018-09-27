@@ -1,0 +1,91 @@
+---
+- name: Check if kubevirt-web-ui project exists
+  shell: "{{ openshift_client_binary }} projects -q | grep -w kubevirt-web-ui | awk '{ print $1 }'"
+  register: ns
+
+- name: Create kubevirt-web-ui project
+  shell: "{{ openshift_client_binary }} new-project kubevirt-web-ui"
+  when: ns.stdout != "kubevirt-web-ui"
+
+- name: Make temp directory for console templates
+  command: mktemp -d /tmp/console-ansible-XXXXXX
+  register: mktemp
+  changed_when: False
+
+- name: Copy admin client config
+  command: >
+    cp {{ openshift.common.config_base }}/master/admin.kubeconfig {{ mktemp.stdout }}/admin.kubeconfig
+  become: true
+  changed_when: false
+
+- name: Copy console templates to temp directory
+  copy:
+    src: "{{ item }}"
+    dest: "{{ mktemp.stdout }}/{{ item }}"
+  with_items:
+  - "{{ __console_template_file }}"
+  - "{{ __console_config_file }}"
+
+# kubevirt-ansible: oc_configmap from lib_openshift (openshift-ansible) is not present, so rewritten
+# Check if an existing console-config config map exists. If so, use those
+# contents so we don't overwrite changes.
+
+- name: Read the existing console config map
+  shell: "{{ openshift_client_binary }} get configmap console-config -n kubevirt-web-ui -o jsonpath='{.data}' | true"
+  register: console_config_map
+
+- set_fact:
+    existing_config_map_data: "{{ console_config_map.stdout | default({}) }}"
+
+- name: Copy the existing web console config to temp directory
+  copy:
+    content: "{{ existing_config_map_data['console-config.yaml'] }}"
+    dest: "{{ mktemp.stdout }}/{{ __console_config_file }}"
+  when: existing_config_map_data['console-config.yaml'] is defined
+
+- set_fact:
+    # Must have a trailing slash
+    console_picker_developer_console_public_url: "{{ openshift.master.public_console_url }}/"
+  when: (openshift_web_console_enable_context_selector | default(true) | bool) and (openshift_web_console_install | default(true) | bool)
+
+- set_fact: console_cert={{ lookup('file', kubevirt_web_ui_cert) }}
+  when: kubevirt_web_ui_cert is exists
+  changed_when: false
+
+- set_fact: console_key={{ lookup('file', kubevirt_web_ui_key) }}
+  when: kubevirt_web_ui_key is exists
+  changed_when: false
+
+- set_fact: console_ca_cert={{ lookup('file', kubevirt_web_ui_ca) }}
+  when: kubevirt_web_ui_ca is exists
+  changed_when: false
+
+# Generate a new config when a config map is not defined.
+- include_tasks: console-config.yml
+
+- slurp:
+    src: "{{ mktemp.stdout }}/{{ __console_config_file }}"
+  register: updated_console_config
+
+- name: Apply the console template file
+  become: true
+  shell: >
+    {{ openshift_client_binary }} process -f "{{ mktemp.stdout }}/{{ __console_template_file }}"
+    --param IMAGE="{{ kubevirt_web_ui_image_name }}"
+    --param NODE_SELECTOR={{ kubevirt_web_ui_nodeselector | to_json | quote }}
+    --param SERVER_CONFIG="{{ updated_console_config['content'] | b64decode }}"
+    --param REPLICA_COUNT="{{ kubevirt_web_ui_replica_count }}"
+    --param CONSOLE_HOSTNAME="{{ kubevirt_web_ui_hostname }}"
+    --param TLS_CERT="{{ console_cert | default('') }}"
+    --param TLS_KEY="{{ console_key | default('') }}"
+    --param TLS_CA_CERT="{{ console_ca_cert | default('') }}"
+    --config={{ mktemp.stdout }}/admin.kubeconfig
+    | {{ openshift_client_binary }} apply --config={{ mktemp.stdout }}/admin.kubeconfig -f -
+
+- name: Remove temp directory
+  file:
+    state: absent
+    name: "{{ mktemp.stdout }}"
+  changed_when: False
+
+- include_tasks: start.yml

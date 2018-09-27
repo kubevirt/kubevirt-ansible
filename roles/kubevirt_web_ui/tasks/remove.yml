@@ -1,0 +1,7 @@
+---
+- name: Remove kubevirt-web-ui project
+  oc_project:
+    name: kubevirt-web-ui
+    state: absent
+
+# TODO: Remove OAuthClient
