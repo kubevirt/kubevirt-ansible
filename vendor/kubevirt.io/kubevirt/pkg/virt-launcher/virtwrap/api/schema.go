@@ -85,6 +85,8 @@ const (
 	ReasonPausedStartingUp     StateChangeReason = "StartingUp"
 	ReasonPausedPostcopy       StateChangeReason = "Postcopy"
 	ReasonPausedPostcopyFailed StateChangeReason = "PostcopyFailed"
+
+	UserAliasPrefix = "ua-"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -249,6 +251,7 @@ type Devices struct {
 	Serials     []Serial     `xml:"serial"`
 	Consoles    []Console    `xml:"console"`
 	Watchdog    *Watchdog    `xml:"watchdog,omitempty"`
+	Rng         *Rng         `xml:"rng,omitempty"`
 }
 
 // BEGIN Controller -----------------------------
@@ -426,6 +429,25 @@ type Alias struct {
 	Name string `xml:"name,attr"`
 }
 
+type UserAlias Alias
+
+func (alias Alias) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	userAlias := UserAlias(alias)
+	userAlias.Name = UserAliasPrefix + userAlias.Name
+	return e.EncodeElement(userAlias, start)
+}
+
+func (alias *Alias) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+	var userAlias UserAlias
+	err := d.DecodeElement(&userAlias, &start)
+	if err != nil {
+		return err
+	}
+	*alias = Alias(userAlias)
+	alias.Name = alias.Name[len(UserAliasPrefix):]
+	return nil
+}
+
 // END Inteface -----------------------------
 //BEGIN OS --------------------
 
@@ -573,16 +595,37 @@ type Ballooning struct {
 	Model string `xml:"model,attr"`
 }
 
-type RandomGenerator struct {
-}
-
 type Watchdog struct {
 	Model  string `xml:"model,attr"`
 	Action string `xml:"action,attr"`
 	Alias  *Alias `xml:"alias,omitempty"`
 }
 
-// TODO ballooning, rng, cpu ...
+// Rng represents the source of entropy from host to VM
+type Rng struct {
+	// Model attribute specifies what type of RNG device is provided
+	Model string `xml:"model,attr"`
+	// Backend specifies the source of entropy to be used
+	Backend *RngBackend `xml:"backend,omitempty"`
+}
+
+// RngRate sets the limiting factor how to read from entropy source
+type RngRate struct {
+	// Period define how long is the read period
+	Period uint32 `xml:"period,attr"`
+	// Bytes define how many bytes can guest read from entropy source
+	Bytes uint32 `xml:"bytes,attr"`
+}
+
+// RngBackend is the backend device used
+type RngBackend struct {
+	// Model is source model
+	Model string `xml:"model,attr"`
+	// specifies the source of entropy to be used
+	Source string `xml:",chardata"`
+}
+
+// TODO ballooning, cpu ...
 
 type SecretUsage struct {
 	Type   string `xml:"type,attr"`
@@ -608,6 +651,16 @@ func NewMinimalDomainSpec(vmiName string) *DomainSpec {
 
 func NewMinimalDomain(name string) *Domain {
 	return NewMinimalDomainWithNS(kubev1.NamespaceDefault, name)
+}
+
+func NewMinimalDomainWithUUID(name string, uuid types.UID) *Domain {
+	domain := NewMinimalDomainWithNS(kubev1.NamespaceDefault, name)
+	domain.Spec.Metadata = Metadata{
+		KubeVirt: KubeVirtMetadata{
+			UID: uuid,
+		},
+	}
+	return domain
 }
 
 func NewMinimalDomainWithNS(namespace string, name string) *Domain {

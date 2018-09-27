@@ -5,7 +5,7 @@ set -e
 source hack/common.sh
 
 prefix=${DOCKER_PREFIX:-kubevirt}
-tag=${DOCKER_TAG:-v0.8.0-alpha.1}
+tag=${DOCKER_TAG:-v0.8.0}
 kubeconfig=${KUBECONFIG:-~/.kube/config}
 [ -z "$OC_PATH" ] && OC_PATH=$(command -v oc)
 [ -z "$KUBECTL_PATH" ] && KUBECTL_PATH=$(which kubectl)

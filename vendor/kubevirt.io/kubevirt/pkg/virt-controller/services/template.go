@@ -43,6 +43,8 @@ const ImagePullPolicyKey = "dev.imagePullPolicy"
 const KvmDevice = "devices.kubevirt.io/kvm"
 const TunDevice = "devices.kubevirt.io/tun"
 
+const CAP_NET_ADMIN = "NET_ADMIN"
+
 type TemplateService interface {
 	RenderLaunchManifest(*v1.VirtualMachineInstance) (*k8sv1.Pod, error)
 }
@@ -149,6 +151,17 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		if volume.RegistryDisk != nil && volume.RegistryDisk.ImagePullSecret != "" {
 			imagePullSecrets = appendUniqueImagePullSecret(imagePullSecrets, k8sv1.LocalObjectReference{
 				Name: volume.RegistryDisk.ImagePullSecret,
+			})
+		}
+		if volume.DataVolume != nil {
+			volumesMounts = append(volumesMounts, volumeMount)
+			volumes = append(volumes, k8sv1.Volume{
+				Name: volume.Name,
+				VolumeSource: k8sv1.VolumeSource{
+					PersistentVolumeClaim: &k8sv1.PersistentVolumeClaimVolumeSource{
+						ClaimName: volume.DataVolume.Name,
+					},
+				},
 			})
 		}
 	}
@@ -276,13 +289,11 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		resources.Limits = make(k8sv1.ResourceList)
 	}
 
-	// TODO: This can be hardcoded in the current model, but will need to be revisted
-	// once dynamic network device allocation is added
-	resources.Limits[TunDevice] = resource.MustParse("1")
+	extraResources := getRequiredResources(vmi)
+	for key, val := range extraResources {
+		resources.Limits[key] = val
+	}
 
-	// FIXME: decision point: allow emulation means "it's ok to skip hw acceleration if not present"
-	// but if the KVM resource is not requested then it's guaranteed to be not present
-	// This code works for now, but the semantics are wrong. revisit this.
 	if useEmulation {
 		command = append(command, "--use-emulation")
 	} else {
@@ -291,6 +302,8 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 
 	// Add ports from interfaces to the pod manifest
 	ports := getPortsFromVMI(vmi)
+
+	capabilities := getRequiredCapabilities(vmi)
 
 	// VirtualMachineInstance target container
 	container := k8sv1.Container{
@@ -302,8 +315,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			// Privileged mode is disabled.
 			Privileged: &privileged,
 			Capabilities: &k8sv1.Capabilities{
-				// NET_ADMIN is needed to set up networking for the VM
-				Add: []k8sv1.Capability{"NET_ADMIN"},
+				Add: capabilities,
 			},
 		},
 		Command:      command,
@@ -377,15 +389,22 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 
 	hostName := dns.SanitizeHostname(vmi)
 
+	annotationsList := map[string]string{
+		v1.DomainAnnotation:  domain,
+		v1.OwnedByAnnotation: "virt-controller",
+	}
+
+	multusNetworks := getMultusInterfaceList(vmi)
+	if len(multusNetworks) > 0 {
+		annotationsList["k8s.v1.cni.cncf.io/networks"] = multusNetworks
+	}
+
 	// TODO use constants for podLabels
 	pod := k8sv1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "virt-launcher-" + domain + "-",
 			Labels:       podLabels,
-			Annotations: map[string]string{
-				v1.DomainAnnotation:  domain,
-				v1.OwnedByAnnotation: "virt-controller",
-			},
+			Annotations:  annotationsList,
 		},
 		Spec: k8sv1.PodSpec{
 			Hostname:  hostName,
@@ -428,6 +447,24 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		}
 	}
 	return &pod, nil
+}
+
+func getRequiredCapabilities(vmi *v1.VirtualMachineInstance) []k8sv1.Capability {
+	res := []k8sv1.Capability{}
+	if (len(vmi.Spec.Domain.Devices.Interfaces) > 0) ||
+		(vmi.Spec.Domain.Devices.AutoattachPodInterface == nil) ||
+		(*vmi.Spec.Domain.Devices.AutoattachPodInterface == true) {
+		res = append(res, CAP_NET_ADMIN)
+	}
+	return res
+}
+
+func getRequiredResources(vmi *v1.VirtualMachineInstance) k8sv1.ResourceList {
+	res := k8sv1.ResourceList{}
+	if (vmi.Spec.Domain.Devices.AutoattachPodInterface == nil) || (*vmi.Spec.Domain.Devices.AutoattachPodInterface == true) {
+		res[TunDevice] = resource.MustParse("1")
+	}
+	return res
 }
 
 func appendUniqueImagePullSecret(secrets []k8sv1.LocalObjectReference, newsecret k8sv1.LocalObjectReference) []k8sv1.LocalObjectReference {
@@ -501,6 +538,18 @@ func getPortsFromVMI(vmi *v1.VirtualMachineInstance) []k8sv1.ContainerPort {
 	}
 
 	return ports
+}
+
+func getMultusInterfaceList(vmi *v1.VirtualMachineInstance) string {
+	ifaceList := make([]string, 0)
+
+	for _, network := range vmi.Spec.Networks {
+		if network.Multus != nil {
+			ifaceList = append(ifaceList, network.Multus.NetworkName)
+		}
+	}
+
+	return strings.Join(ifaceList, ",")
 }
 
 func NewTemplateService(launcherImage string, virtShareDir string, imagePullSecret string, configMapCache cache.Store) TemplateService {

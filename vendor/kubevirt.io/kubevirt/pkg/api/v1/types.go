@@ -43,6 +43,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"kubevirt.io/kubevirt/pkg/precond"
+
+	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/datavolumecontroller/v1alpha1"
 )
 
 // GroupName is the group name use in this package
@@ -415,6 +417,12 @@ func NewVMIReferenceFromNameWithNS(namespace string, name string) *VirtualMachin
 	return vmi
 }
 
+func NewVMIReferenceWithUUID(namespace string, name string, uuid types.UID) *VirtualMachineInstance {
+	vmi := NewVMIReferenceFromNameWithNS(namespace, name)
+	vmi.UID = uuid
+	return vmi
+}
+
 type VMISelector struct {
 	// Name of the VirtualMachineInstance to migrate
 	Name string `json:"name" valid:"required"`
@@ -721,6 +729,10 @@ type VirtualMachineSpec struct {
 
 	// Template is the direct specification of VirtualMachineInstance
 	Template *VirtualMachineInstanceTemplateSpec `json:"template"`
+
+	// dataVolumeTemplates is a list of dataVolumes that the VirtualMachineInstance template can reference.
+	// DataVolumes in this list are dynamically created for the VirtualMachine and are tied to the VirtualMachine's life-cycle.
+	DataVolumeTemplates []cdiv1.DataVolume `json:"dataVolumeTemplates,omitempty"`
 }
 
 // VirtualMachineStatus represents the status returned by the
