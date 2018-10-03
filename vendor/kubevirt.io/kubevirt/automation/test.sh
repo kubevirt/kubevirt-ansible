@@ -29,15 +29,20 @@
 set -ex
 
 export WORKSPACE="${WORKSPACE:-$PWD}"
+readonly ARTIFACTS_PATH="$WORKSPACE/exported-artifacts"
 
 if [[ $TARGET =~ openshift-.* ]]; then
   if [[ $TARGET =~ .*-crio-.* ]]; then
     export KUBEVIRT_PROVIDER="os-3.10.0-crio"
+  elif [[ $TARGET =~ .*-multus-.* ]]; then
+    export KUBEVIRT_PROVIDER="os-3.10.0-multus"
   else
     export KUBEVIRT_PROVIDER="os-3.10.0"
   fi
 elif [[ $TARGET =~ .*-1.10.4-.* ]]; then
   export KUBEVIRT_PROVIDER="k8s-1.10.4"
+elif [[ $TARGET =~ .*-multus-1.11.1-.* ]]; then
+  export KUBEVIRT_PROVIDER="k8s-multus-1.11.1"
 else
   export KUBEVIRT_PROVIDER="k8s-1.11.0"
 fi
@@ -152,7 +157,9 @@ done
 
 kubectl version
 
-ginko_params="--ginkgo.noColor --junit-output=$WORKSPACE/junit.xml"
+mkdir -p "$ARTIFACTS_PATH"
+
+ginko_params="--ginkgo.noColor --junit-output=$ARTIFACTS_PATH/tests.junit.xml"
 
 # Prepare PV for windows testing
 if [[ $TARGET =~ windows.* ]]; then
