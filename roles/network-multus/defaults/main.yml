@@ -26,11 +26,9 @@ kubernetes_cni_config: |
     "type": "multus",
     "delegates": [
      {
-       "type": "flannel",
-       "name": "flannel.1",
-       "delegate": {
-         "isDefaultGateway": true
-       }
+       "type": "weave-net",
+       "name": "weave-net.1",
+       "hairpinMode": true
      }
     ],
     "kubeconfig": "/etc/cni/net.d/multus.d/multus.kubeconfig"
