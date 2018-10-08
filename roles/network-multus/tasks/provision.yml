@@ -71,23 +71,19 @@
 
   - name: Deploy ovs-vsctl template
     block:
-    - name: check if ovs is installed
-      yum:
-        list="openvswitch"
-      register: ovs_pkgs
-
-    - name: fail if ovs is installed
-      fail:
-        msg: "Cannot deploy OVS plugin where ovs is already installed"
-      when:
-        ovs_pkgs.results | selectattr("yumstate", "match", "installed") | list | length > 0
-
-    - name: Render ovs-vsctl deployment yaml
-      template:
-        src: ovs-vsctl.yml
-        dest: /tmp/ovs-vsctl.yml
-    - name: Create ovs-vsctl resources
-      shell: "{{ cluster_command }} apply -f /tmp/ovs-vsctl.yml"
+    - name: check if ovs-vsctl exists
+      stat:
+        path: /usr/bin/ovs-vsctl
+      register: stat_result
+    - name: Render and create ovs-vsctl
+      block:
+      - name: Render ovs-vsctl deployment yaml
+        template:
+          src: ovs-vsctl.yml
+          dest: /tmp/ovs-vsctl.yml
+      - name: Create ovs-vsctl resources
+        shell: "{{ cluster_command }} apply -f /tmp/ovs-vsctl.yml"
+      when: stat_result.stat.exists == False
     when: cluster == "openshift"
 
   - name: enable ovs
