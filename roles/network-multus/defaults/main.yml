@@ -1,0 +1,37 @@
+namespace: "kube-system"
+cluster: "openshift"
+apb_action: "provision"
+
+multus_provisioner_repo: "docker.io/nfvpe/multus"
+multus_provisioner_release: "latest"
+
+cni_provisioner_repo: "quay.io/schseba/cni-plugins"
+cni_provisioner_release: "latest"
+
+openshift_cni_config: |
+  '{
+    "name": "multus-cni-network",
+    "type": "multus",
+    "delegates": [{
+      "type": "openshift-sdn",
+      "name": "openshift.1",
+      "masterplugin": true
+    }],
+    "kubeconfig": "/etc/cni/net.d/multus.d/multus.kubeconfig"
+  }'
+
+kubernetes_cni_config: |
+  '{
+    "name": "multus-cni-network",
+    "type": "multus",
+    "delegates": [
+     {
+       "type": "flannel",
+       "name": "flannel.1",
+       "delegate": {
+         "isDefaultGateway": true
+       }
+     }
+    ],
+    "kubeconfig": "/etc/cni/net.d/multus.d/multus.kubeconfig"
+  }'

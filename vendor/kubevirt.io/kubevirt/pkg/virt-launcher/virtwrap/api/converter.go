@@ -150,6 +150,10 @@ func Convert_v1_Volume_To_api_Disk(source *v1.Volume, disk *Disk, c *ConverterCo
 		return Convert_v1_FilesystemVolumeSource_To_api_Disk(source.Name, disk, c)
 	}
 
+	if source.DataVolume != nil {
+		return Convert_v1_FilesystemVolumeSource_To_api_Disk(source.Name, disk, c)
+	}
+
 	if source.Ephemeral != nil {
 		return Convert_v1_EphemeralVolumeSource_To_api_Disk(source.Name, source.Ephemeral, disk, c)
 	}
@@ -240,6 +244,22 @@ func Convert_v1_Watchdog_To_api_Watchdog(source *v1.Watchdog, watchdog *Watchdog
 		return nil
 	}
 	return fmt.Errorf("watchdog %s can't be mapped, no watchdog type specified", source.Name)
+}
+
+func Convert_v1_Rng_To_api_Rng(source *v1.Rng, rng *Rng, _ *ConverterContext) error {
+
+	// default rng model for KVM/QEMU virtualization
+	rng.Model = "virtio"
+
+	// default backend model, random
+	rng.Backend = &RngBackend{
+		Model: "random",
+	}
+
+	// the default source for rng is dev urandom
+	rng.Backend.Source = "/dev/urandom"
+
+	return nil
 }
 
 func Convert_v1_Clock_To_api_Clock(source *v1.Clock, clock *Clock, c *ConverterContext) error {
@@ -435,6 +455,15 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		domain.Spec.Devices.Watchdog = newWatchdog
 	}
 
+	if vmi.Spec.Domain.Devices.Rng != nil {
+		newRng := &Rng{}
+		err := Convert_v1_Rng_To_api_Rng(vmi.Spec.Domain.Devices.Rng, newRng, c)
+		if err != nil {
+			return err
+		}
+		domain.Spec.Devices.Rng = newRng
+	}
+
 	if vmi.Spec.Domain.Clock != nil {
 		clock := vmi.Spec.Domain.Clock
 		newClock := &Clock{}
@@ -552,18 +581,24 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 	}
 
 	networks := map[string]*v1.Network{}
+	multusNetworks := map[string]int{}
 	for _, network := range vmi.Spec.Networks {
+		if network.Multus == nil && network.Pod == nil {
+			return fmt.Errorf("fail network %s must have a network type", network.Name)
+		}
+		if network.Multus != nil && network.Pod != nil {
+			return fmt.Errorf("fail network %s must have only one network type", network.Name)
+		}
 		networks[network.Name] = network.DeepCopy()
+		if network.Multus != nil {
+			multusNetworks[network.Name] = len(multusNetworks) + 1
+		}
 	}
 
 	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
 		net, isExist := networks[iface.Name]
 		if !isExist {
 			return fmt.Errorf("failed to find network %s", iface.Name)
-		}
-
-		if net.Pod == nil {
-			return fmt.Errorf("network interface type not supported for %s", iface.Name)
 		}
 
 		domainIface := Interface{
@@ -594,9 +629,16 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 			// TODO:(ihar) consider abstracting interface type conversion /
 			// detection into drivers
 			domainIface.Type = "bridge"
-			domainIface.Source = InterfaceSource{
-				Bridge: DefaultBridgeName,
+			if value, ok := multusNetworks[iface.Name]; ok {
+				domainIface.Source = InterfaceSource{
+					Bridge: fmt.Sprintf("k6t-net%d", value),
+				}
+			} else {
+				domainIface.Source = InterfaceSource{
+					Bridge: DefaultBridgeName,
+				}
 			}
+
 			if iface.BootOrder != nil {
 				domainIface.BootOrder = &BootOrder{Order: *iface.BootOrder}
 			}

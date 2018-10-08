@@ -188,6 +188,9 @@ type Devices struct {
 	// Wheater to attach the default graphics device or not.
 	// VNC will not be available if set to false. Defaults to true.
 	AutoattachGraphicsDevice *bool `json:"autoattachGraphicsDevice,omitempty"`
+	// Whether to have random number generator from host
+	// +optional
+	Rng *Rng `json:"rng,omitempty"`
 }
 
 // ---
@@ -329,6 +332,17 @@ type VolumeSource struct {
 	// More info: https://kubevirt.gitbooks.io/user-guide/disks-and-volumes.html
 	// +optional
 	EmptyDisk *EmptyDiskSource `json:"emptyDisk,omitempty"`
+	// DataVolume represents the dynamic creation a PVC for this volume as well as
+	// the process of populating that PVC with a disk image.
+	// +optional
+	DataVolume *DataVolumeSource `json:"dataVolume,omitempty"`
+}
+
+// ---
+// +k8s:openapi-gen=true
+type DataVolumeSource struct {
+	// Name represents the name of the DataVolume in the same namespace
+	Name string `json:"name"`
 }
 
 // ---
@@ -769,7 +783,8 @@ type Network struct {
 // ---
 // +k8s:openapi-gen=true
 type NetworkSource struct {
-	Pod *PodNetwork `json:"pod,omitempty"`
+	Pod    *PodNetwork    `json:"pod,omitempty"`
+	Multus *MultusNetwork `json:"multus,omitempty"`
 }
 
 // Represents the stock pod network interface.
@@ -779,4 +794,18 @@ type PodNetwork struct {
 	// CIDR for vm network.
 	// Default 10.0.2.0/24 if not specified.
 	VMNetworkCIDR string `json:"vmNetworkCIDR,omitempty"`
+}
+
+// Rng represents the random device passed from host
+// ---
+// +k8s:openapi-gen=true
+type Rng struct {
+}
+
+// Represents the multus cni network.
+// ---
+// +k8s:openapi-gen=true
+type MultusNetwork struct {
+	// References to a NetworkAttachmentDefinition CRD object in the same namespace.
+	NetworkName string `json:"networkName"`
 }

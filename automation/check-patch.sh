@@ -8,7 +8,7 @@ readonly VMS_LOGS_PATH="${ARTIFACTS_PATH}/vm_logs"
 get_run_path() {
     # if above ram_threshold KBs are available in /dev/shm, run there
     local suffix="${1:-lago}"
-    local ram_threshold=15000000
+    local ram_threshold=30000000
     local avail_shm=$(df --output=avail /dev/shm | sed 1d)
 
     [[ "$avail_shm" -ge "$ram_threshold" ]] && \
@@ -23,6 +23,7 @@ on_exit() {
     local run_path="${1:?}"
     local skip_cleanup="${2:-false}"
 
+    print_resources_usage "$run_path"
     collect_lago_log "$run_path" "$ARTIFACTS_PATH"
     collect_logs_from_vms "$run_path" "${VMS_LOGS_PATH}/on_exit"
     collect_ansible_log "$ARTIFACTS_PATH"
@@ -33,6 +34,22 @@ on_exit() {
     else
         cleanup "$run_path"
     fi
+}
+
+print_resources_usage() {
+    local run_path="${1:?}"
+
+    echo "FS info:"
+    df -h
+
+    echo "RAM info:"
+    free -h
+
+    echo "Prefix size:"
+    du -h -d 1 "${run_path}/default" || echo "Failed to get Prefix size"
+
+    echo "Images Size:"
+    ls -lhs "${run_path}/default/images" || echo "Failed to get image dir size"
 }
 
 collect_ansible_log() {

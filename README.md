@@ -45,6 +45,14 @@ make generate-tests
 make test
 ```
 
+If you'd like to run specific tests only, you can leverage `ginkgo`
+command line options as follows (run a specified suite):
+
+```
+FUNC_TEST_ARGS='-ginkgo.focus=sanity_test -ginkgo.regexScansFilePath' make test
+```
+
+
 or you can pass it to tests via:
 ```
 ./_out/tests/<name>.test -kubeconfig=your_kubeconfig -tag=kubevirt_images_tag -prefix=kubevirt -test.timeout 60m

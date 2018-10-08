@@ -1,0 +1,26 @@
+---
+- name: openshift cni config
+  set_fact:
+    cni_config: "{{ openshift_cni_config }}"
+  when: cluster=="openshift"
+
+- name: kubernetes cni config
+  set_fact:
+    cni_config: "{{ kubernetes_cni_config }}"
+  when: cluster=="kubernetes"
+
+- name: Render multus deployment yaml
+  template:
+    src: multus.yml
+    dest: /tmp/multus.yml
+
+- name: Delete multus Resources
+  command: kubectl delete -f /tmp/multus.yml --ignore-not-found
+
+- name: Render cni plugins deployment yaml
+  template:
+    src: cni-plugins.yml
+    dest: /tmp/cni-plugins.yml
+
+- name: Delete cni plugins Resources
+  command: kubectl delete -f /tmp/cni-plugins.yml --ignore-not-found

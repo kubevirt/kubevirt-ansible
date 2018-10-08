@@ -136,6 +136,7 @@ spec:
                                 required:
                                 - name
                               type: array
+                            rng: {}
                             watchdog:
                               properties:
                                 i6300esb:
@@ -233,6 +234,12 @@ spec:
                     networks:
                       items:
                         properties:
+                          multus:
+                            properties:
+                              networkName:
+                                type: string
+                            required:
+                            - networkName
                           name:
                             type: string
                           pod:
@@ -262,6 +269,12 @@ spec:
                                 type: string
                               userDataBase64:
                                 type: string
+                          dataVolume:
+                            properties:
+                              name:
+                                type: string
+                            required:
+                            - name
                           emptyDisk:
                             properties:
                               capacity: {}

@@ -1,5 +1,5 @@
-hash: e1a2ecbf0c538268fbbbe1359e06c18a2198a3528827479f6576803fa6c47af4
-updated: 2018-08-29T15:13:27.992328698+02:00
+hash: d270c6741bc0f7843361fa571c903dc499388871aafca5c3c20db6c5898ee66a
+updated: 2018-09-27T11:47:44.164629668+02:00
 imports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
@@ -28,16 +28,20 @@ imports:
 - name: github.com/go-openapi/spec
   version: f1468acb3b29cdd5c5f6fa29435d2d2d6e6c9ff1
 - name: github.com/go-openapi/swag
-  version: 0dc164b7900e799f72456fa00bbdfbd362deed9b
+  version: dd0dad036e67ae93c27dc64337b3f76296f3a5f0
 - name: github.com/go-stack/stack
   version: 2fee6af1a9795aafbe0253a0cfbdf668e1fb8a9a
 - name: github.com/gogo/protobuf
-  version: 3e657e582e841bf7cabdb3e28280e90b350b94f1
+  version: 61dbc136cf5d2f08d68a011382652244990a53a9
   subpackages:
   - proto
   - sortkeys
 - name: github.com/golang/glog
   version: 23def4e6c14b4da8ac2ed8007337bc5eb5007998
+- name: github.com/golang/groupcache
+  version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
+  subpackages:
+  - lru
 - name: github.com/golang/mock
   version: 600781dde9cca80734169b9e969d9054ccc57937
   subpackages:
@@ -58,6 +62,8 @@ imports:
   version: 70e1c263818522aa1ecbdd34d7e143639d447ced
   subpackages:
   - term
+- name: github.com/google/uuid
+  version: 9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8
 - name: github.com/googleapis/gnostic
   version: 0c5108395e2debce0d731cf0287ddf7242066aba
   subpackages:
@@ -125,7 +131,7 @@ imports:
   - matchers/support/goraph/util
   - types
 - name: github.com/pborman/uuid
-  version: 4c1ecd6722e83620ffa3e3dd51f961d3c445d9d6
+  version: 8b1b92947f46224e3b97bb1a3a5b0382be00d31e
 - name: github.com/PuerkitoBio/purell
   version: 8a290539e2e8629dbc4e6bad948158f790ec31f4
 - name: github.com/PuerkitoBio/urlesc
@@ -293,17 +299,20 @@ imports:
   - pkg/util/httpstream/spdy
   - pkg/util/intstr
   - pkg/util/json
+  - pkg/util/mergepatch
   - pkg/util/net
   - pkg/util/rand
   - pkg/util/remotecommand
   - pkg/util/runtime
   - pkg/util/sets
+  - pkg/util/strategicpatch
   - pkg/util/validation
   - pkg/util/validation/field
   - pkg/util/wait
   - pkg/util/yaml
   - pkg/version
   - pkg/watch
+  - third_party/forked/golang/json
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
@@ -348,12 +357,14 @@ imports:
   - rest/watch
   - tools/auth
   - tools/cache
+  - tools/cache/testing
   - tools/clientcmd
   - tools/clientcmd/api
   - tools/clientcmd/api/latest
   - tools/clientcmd/api/v1
   - tools/metrics
   - tools/pager
+  - tools/record
   - tools/reference
   - tools/remotecommand
   - transport
@@ -367,11 +378,26 @@ imports:
   - util/retry
   - util/workqueue
 - name: k8s.io/kube-openapi
-  version: e3762e86a74c878ffed47484592986685639c2cd
+  version: 39cb288412c48cb533ba4be5d6c28620b9a0c1b4
   subpackages:
   - pkg/common
+  - pkg/util/proto
+- name: kubevirt.io/containerized-data-importer
+  version: e6093ee9aa1e0763e797aaf08468844e3c26466a
+  repo: https://github.com/kubevirt/containerized-data-importer.git
+  subpackages:
+  - pkg/apis/datavolumecontroller
+  - pkg/apis/datavolumecontroller/v1alpha1
+  - pkg/client/clientset/versioned
+  - pkg/client/clientset/versioned/scheme
+  - pkg/client/clientset/versioned/typed/datavolumecontroller/v1alpha1
+  - pkg/client/informers/externalversions
+  - pkg/client/informers/externalversions/datavolumecontroller
+  - pkg/client/informers/externalversions/datavolumecontroller/v1alpha1
+  - pkg/client/informers/externalversions/internalinterfaces
+  - pkg/client/listers/datavolumecontroller/v1alpha1
 - name: kubevirt.io/kubevirt
-  version: 6136939f92c3332ca7433543e73098e4dcc7824a
+  version: 6165ead7201d8b96946fdfcfb026e44b86d3d980
   repo: https://github.com/kubevirt/kubevirt.git
   subpackages:
   - pkg/api/v1
@@ -387,8 +413,11 @@ imports:
   - pkg/log
   - pkg/precond
   - pkg/registry-disk
+  - pkg/rest
+  - pkg/testutils
   - pkg/util
   - pkg/util/net/dns
+  - pkg/util/subresources
   - pkg/version
   - pkg/virt-controller/services
   - pkg/virt-launcher/virtwrap/api
