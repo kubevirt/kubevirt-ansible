@@ -25,27 +25,27 @@ type VirtualMachine struct {
 }
 
 func (vm VirtualMachine) Create() (string, error) {
-	args := []string{"create", "-n", NamespaceTestDefault, "-f", vm.Manifest}
+	args := []string{"create", "-n", ktests.NamespaceTestDefault, "-f", vm.Manifest}
 	return ktests.RunCommand("oc", args...)
 }
 
 func (vm VirtualMachine) Start() (string, error) {
-	args := []string{"start", "-n", NamespaceTestDefault, vm.Name}
+	args := []string{"start", "-n", ktests.NamespaceTestDefault, vm.Name}
 	return ktests.RunCommand("virtctl", args...)
 }
 
 func (vm VirtualMachine) Stop() (string, error) {
-	args := []string{"stop", "-n", NamespaceTestDefault, vm.Name}
+	args := []string{"stop", "-n", ktests.NamespaceTestDefault, vm.Name}
 	return ktests.RunCommand("virtctl", args...)
 }
 
 func (vm VirtualMachine) Delete() (string, error) {
-	args := []string{"delete", "-n", NamespaceTestDefault, vm.Type, vm.Name}
+	args := []string{"delete", "-n", ktests.NamespaceTestDefault, vm.Type, vm.Name}
 	return ktests.RunCommand("oc", args...)
 }
 
 func (vm VirtualMachine) IsRunning() (bool, error) {
-	args := []string{"get", "-n", NamespaceTestDefault, "vmi", vm.Name, "--template", "{{.status.phase}}"}
+	args := []string{"get", "-n", ktests.NamespaceTestDefault, "vmi", vm.Name, "--template", "{{.status.phase}}"}
 	output, err := ktests.RunCommand("oc", args...)
 	if err != nil {
 		return false, err
@@ -58,7 +58,7 @@ func (vm VirtualMachine) IsRunning() (bool, error) {
 }
 
 func (vm VirtualMachine) GetVMInfo(spec string) (string, error) {
-	args := []string{"get", "-n", NamespaceTestDefault, vm.Type, vm.Name, "--template", spec}
+	args := []string{"get", "-n", ktests.NamespaceTestDefault, vm.Type, vm.Name, "--template", spec}
 	return ktests.RunCommand("oc", args...)
 }
 
