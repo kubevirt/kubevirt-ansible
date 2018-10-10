@@ -69,35 +69,15 @@
   - name: Create ovs Resources
     shell: "{{ cluster_command }} apply -f /tmp/ovs-cni.yml"
 
-  - name: Deploy ovs-vsctl template
+  - name: Render and create ovs-vsctl
     block:
-    - name: check if ovs-vsctl exists
-      stat:
-        path: /usr/bin/ovs-vsctl
-      register: stat_result
-    - name: Render and create ovs-vsctl
-      block:
-      - name: Render ovs-vsctl deployment yaml
-        template:
-          src: ovs-vsctl.yml
-          dest: /tmp/ovs-vsctl.yml
-      - name: Create ovs-vsctl resources
-        shell: "{{ cluster_command }} apply -f /tmp/ovs-vsctl.yml"
-      when: stat_result.stat.exists == False
+    - name: Render ovs-vsctl deployment yaml
+      template:
+        src: ovs-vsctl.yml
+        dest: /tmp/ovs-vsctl.yml
+    - name: Create ovs-vsctl resources
+      shell: "{{ cluster_command }} apply -f /tmp/ovs-vsctl.yml"
     when: cluster == "openshift"
-
-  - name: enable ovs
-    block:
-    - name: install ovs
-      yum:
-        name: openvswitch
-        state: installed
-    - name: start ovs
-      service:
-        name: openvswitch
-        enabled: true
-        state: started
-    when: cluster == "kubernetes"
   when: deploy_ovs_plugin
 
 - name: Wait until multus is running

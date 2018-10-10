@@ -2,4 +2,3 @@
 
 - name: deploy host as kubernetes node
   command: "{{ hostvars[groups['masters'][0]]['joincommand'] }}"
-
