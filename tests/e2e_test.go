@@ -1,9 +1,10 @@
-package tests
+package tests_test
 
 import (
 	"os"
 
 	. "github.com/onsi/ginkgo"
+	"kubevirt.io/kubevirt-ansible/tests"
 )
 
 // template parameters
@@ -33,19 +34,19 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 	})
 
 	JustBeforeEach(func() {
-		ProcessTemplateWithParameters(rawPVCFilePath, dstPVCFilePath, "PVC_NAME="+newPVCName, "EP_URL="+url)
-		CreateResourceWithFilePathTestNamespace(dstPVCFilePath)
+		tests.ProcessTemplateWithParameters(rawPVCFilePath, dstPVCFilePath, "PVC_NAME="+newPVCName, "EP_URL="+url)
+		tests.CreateResourceWithFilePathTestNamespace(dstPVCFilePath)
 	})
 
 	Context("PVC with valid image url", func() {
 
 		It("will succeed", func() {
-			WaitUntilResourceReadyByNameTestNamespace("pvc", pvcName, "-o=jsonpath='{.metadata.annotations}'", "pv.kubernetes.io/bind-completed:yes")
-			WaitUntilResourceReadyByLabelTestNamespace("pod", CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Succeeded")
-			DeleteResourceWithLabelTestNamespace("pod", CDI_LABEL_SELECTOR)
-			ProcessTemplateWithParameters(rawVMFilePath, dstVMFilePath, "VM_NAME="+vmName, "PVC_NAME="+pvcName, "VM_APIVERSION="+vmAPIVersion)
-			CreateResourceWithFilePathTestNamespace(dstVMFilePath)
-			WaitUntilResourceReadyByNameTestNamespace("vmi", vmName, "-o=jsonpath='{.status.phase}'", "Running")
+			tests.WaitUntilResourceReadyByNameTestNamespace("pvc", pvcName, "-o=jsonpath='{.metadata.annotations}'", "pv.kubernetes.io/bind-completed:yes")
+			tests.WaitUntilResourceReadyByLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Succeeded")
+			tests.DeleteResourceWithLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR)
+			tests.ProcessTemplateWithParameters(rawVMFilePath, dstVMFilePath, "VM_NAME="+vmName, "PVC_NAME="+pvcName, "VM_APIVERSION="+vmAPIVersion)
+			tests.CreateResourceWithFilePathTestNamespace(dstVMFilePath)
+			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
 	})
 
@@ -56,7 +57,7 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 		})
 
 		It("will be failed because the PVC should become failed", func() {
-			WaitUntilResourceReadyByLabelTestNamespace("pod", CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Failed")
+			tests.WaitUntilResourceReadyByLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR, "-o=jsonpath='{.items[*].status.phase}'", "Failed")
 		})
 	})
 
