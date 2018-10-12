@@ -14,7 +14,7 @@ type VMManifest struct {
 	Manifest string
 }
 
-// VirtualMachine can be a vm, vmi, vmirs.
+// VirtualMachine can be a vm, vmi, vmirs, vmiPreset.
 type VirtualMachine struct {
 	Name              string
 	Type              string
@@ -45,8 +45,7 @@ func (vm VirtualMachine) Delete() (string, error) {
 }
 
 func (vm VirtualMachine) IsRunning() (bool, error) {
-	args := []string{"get", "-n", ktests.NamespaceTestDefault, "vmi", vm.Name, "--template", "{{.status.phase}}"}
-	output, err := ktests.RunCommand("oc", args...)
+	output, err := vm.GetVMInfo("{{.status.phase}}")
 	if err != nil {
 		return false, err
 	}
