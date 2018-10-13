@@ -54,6 +54,31 @@ func OpenConsole(virtCli kubecli.KubevirtClient, vmiName string, vmiNamespace st
 	}, timeout, opts...)
 }
 
+//TODO: consolidate two loggedInXXXExpecter
+func LoggedInAlpineExpecter(vmiName string, vmiNamespace string, timeout int64) (expect.Expecter, error) {
+	virtClient, err := kubecli.GetKubevirtClient()
+	ktests.PanicOnError(err)
+	vmi, err := virtClient.VirtualMachineInstance(vmiNamespace).Get(vmiName, &metav1.GetOptions{})
+	ktests.PanicOnError(err)
+	expecter, _, err := ktests.NewConsoleExpecter(virtClient, vmi, 10*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	b := append([]expect.Batcher{
+		&expect.BSnd{S: "\n"},
+		&expect.BSnd{S: "\n"},
+		&expect.BExp{R: "localhost login:"},
+		&expect.BSnd{S: "root\n"},
+		&expect.BExp{R: "localhost:~#"}})
+	res, err := expecter.ExpectBatch(b, 180*time.Second)
+	if err != nil {
+		log.DefaultLogger().Object(vmi).Infof("Login: %v", res)
+		expecter.Close()
+		return nil, err
+	}
+	return expecter, err
+}
+
 func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) (expect.Expecter, error) {
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)

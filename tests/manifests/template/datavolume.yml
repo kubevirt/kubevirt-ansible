@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: datavolume-integration-template
+objects:
+- apiVersion: cdi.kubevirt.io/v1alpha1
+  kind: DataVolume
+  metadata:
+    name: ${DATAVOLUME_NAME}
+  spec:
+    source:
+        http:
+           url: ${IMG_URL}
+    pvc:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 500Mi
+parameters:
+- name: IMG_URL
+- name: DATAVOLUME_NAME
