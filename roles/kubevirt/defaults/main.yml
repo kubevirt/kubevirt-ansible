@@ -8,6 +8,7 @@ release_manifest_url: "https://github.com/kubevirt/kubevirt/releases/download"
 kubevirt_template_dir: "{{ role_path }}/templates"
 version: 0.6.2
 docker_tag: "v{{ version }}"
+image_pull_policy: IfNotPresent
 
 offline_template_dir: "/opt/apb/kubevirt-templates"
 
