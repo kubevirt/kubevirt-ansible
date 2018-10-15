@@ -211,7 +211,10 @@ run() {
 	"storage_role=$storage_role"
     )
 
-    make generate-tests &> "${ARTIFACTS_PATH}/generate-tests.log" &
+    timeout \
+        --kill-after 5m \
+        20m \
+        make generate-tests &> "${ARTIFACTS_PATH}/generate-tests.log" &
     readonly MAKE_TESTS_PID="$!"
 
     ansible-playbook \
