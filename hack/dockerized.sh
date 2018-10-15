@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -ex
 
 source $(dirname "$0")/common.sh
 
@@ -56,7 +56,7 @@ _rsync() {
 }
 
 # Copy kubevirt into the persistent docker volume
-_rsync --delete --exclude _out ${KUBEVIRT_ANSIBLE_DIR}/ "rsync://root@127.0.0.1:${RSYNCD_PORT}/build"
+_rsync --delete --exclude _out --exclude deployment-openshift ${KUBEVIRT_ANSIBLE_DIR}/ "rsync://root@127.0.0.1:${RSYNCD_PORT}/build"
 
 # Run the command
 test -t 1 && USE_TTY="-it"
