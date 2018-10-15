@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/ginkgo"
 	"kubevirt.io/kubevirt/pkg/kubecli"
-	"kubevirt.io/kubevirt-ansible/tests"
+	tests "kubevirt.io/kubevirt-ansible/tests/framework"
 	ktests "kubevirt.io/kubevirt/tests"
 
 )
@@ -41,8 +41,8 @@ var _ = Describe("High performance vm test", func() {
 
 		It("Create headless VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, headlessDstVMFilePath, "VM_NAME="+headlesstestVMName, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
-			tests.CreateResourceWithFilePathTestNamespace(headlessDstVMFilePath)
-			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", headlesstestVMName, "-o=jsonpath='{.status.phase}'", "Running")			
+			tests.CreateResourceWithFilePath(headlessDstVMFilePath, "")
+			tests.WaitUntilResourceReadyByName("vmi", headlesstestVMName, "-o=jsonpath='{.status.phase}'", "Running", "")
 		})
 
 		It("Check VM settings with 'oc describe'", func() {
@@ -61,8 +61,8 @@ var _ = Describe("High performance vm test", func() {
 	
 		It("Create memoryOvercommit VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
-			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
-			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running")
+			tests.CreateResourceWithFilePath(memoryOvercommitDstVMFilePath, "")
+			tests.WaitUntilResourceReadyByName("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running", "")
 		})
 		It("Check VM settings with 'oc describe'", func() {
 			res := tests.RunOcDescribeCommand("vmis", memoryOvercommitVMName)
@@ -76,8 +76,8 @@ var _ = Describe("High performance vm test", func() {
 
 		It("Create headless and memory over commit VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath,	"VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "AUTO_GRAPHIC_DEVICE="+headless,	"IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
-			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
-			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running")
+			tests.CreateResourceWithFilePath(memoryOvercommitDstVMFilePath, "")
+			tests.WaitUntilResourceReadyByName("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running", "")
 		})
 		It("Check VM settings with 'oc describe'", func() {
 			res := tests.RunOcDescribeCommand("vmis", memoryOvercommitVMName)

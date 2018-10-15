@@ -1,9 +1,10 @@
-package tests
+package framework
 
 import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -30,20 +31,8 @@ type Result struct {
 	expectOut     string
 	actualOut     string
 	params        []string
+	waitTimeOut   time.Duration
 }
-
-const (
-	UsernameTestUser     = "kubevirt-test-user"
-	NamespaceTestDefault = "kubevirt-test-default"
-	UsernameAdminUser    = "test_admin"
-)
-
-const (
-	CDI_LABEL_KEY      = "app"
-	CDI_LABEL_VALUE    = "containerized-data-importer"
-	CDI_LABEL_SELECTOR = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
-	paramFlag          = "-p"
-)
 
 func CreateNamespaces() {
 	virtCli, err := kubecli.GetKubevirtClient()
@@ -64,6 +53,14 @@ func CreateNamespaces() {
 	}
 }
 
+func ReplaceImageURL(originalURL string) string {
+	envURL, ok := os.LookupEnv("STREAM_IMAGE_URL")
+	if ok {
+		return envURL
+	}
+	return originalURL
+}
+
 func RemoveNamespaces() {
 	virtCli, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
@@ -77,7 +74,6 @@ func RemoveNamespaces() {
 		}
 	}
 	// Wait until the namespaces are terminated
-	fmt.Println("")
 	for _, namespace := range testNamespaces {
 		fmt.Printf("Removing the %s namespace. It can take some time...\n", namespace)
 		Eventually(func() bool { return errors.IsNotFound(virtCli.CoreV1().Namespaces().Delete(namespace, nil)) }, 180*time.Second, 1*time.Second).
@@ -93,24 +89,52 @@ func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...st
 	return filePath
 }
 
-func CreateResourceWithFilePathTestNamespace(filePath string) {
+func CreateResourceWithFilePath(filePath, namespace string) {
+	if namespace == "" {
+		namespace = ktests.NamespaceTestDefault
+	}
 	By("Creating resource from the json file with the oc-create command")
-	execute(Result{cmd: "oc", verb: "create", filePath: filePath, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "create", filePath: filePath, nameSpace: namespace})
 }
 
-func DeleteResourceWithLabelTestNamespace(resourceType, resourceLabel string) {
+func DeleteResourceWithLabel(resourceType, resourceLabel, namespace string) {
+	if namespace == "" {
+		namespace = ktests.NamespaceTestDefault
+	}
 	By(fmt.Sprintf("Deleting %s:%s from the json file with the oc-delete command", resourceType, resourceLabel))
-	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel, nameSpace: namespace})
 }
 
-func WaitUntilResourceReadyByNameTestNamespace(resourceType, resourceName, query, expectOut string) {
+func WaitUntilResourceReadyByName(resourceType, resourceName, query, expectOut, namespace string) {
+	if namespace == "" {
+		namespace = ktests.NamespaceTestDefault
+	}
 	By(fmt.Sprintf("Wait until %s with name %s ready", resourceType, resourceName))
-	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut, nameSpace: namespace, waitTimeOut:3*time.Minute})
 }
 
-func WaitUntilResourceReadyByLabelTestNamespace(resourceType, label, query, expectOut string) {
+func WaitUntilResourceReadyByLabel(resourceType, label, query, expectOut, namespace string) {
+	if namespace == "" {
+		namespace = ktests.NamespaceTestDefault
+	}
 	By(fmt.Sprintf("Wait until resource %s with label=%s ready", resourceType, label))
-	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: namespace, waitTimeOut:3*time.Minute})
+}
+
+func WaitUntilResourceReadyByNameTimeOut(resourceType, resourceName, query, expectOut, namespace string, timeout time.Duration) {
+	if namespace == "" {
+		namespace = ktests.NamespaceTestDefault
+	}
+	By(fmt.Sprintf("Wait until %s with name %s ready", resourceType, resourceName))
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut, nameSpace: namespace, waitTimeOut:timeout})
+}
+
+func WaitUntilResourceReadyByLabelTimeOut(resourceType, label, query, expectOut, namespace string, timeout time.Duration) {
+	if namespace == "" {
+		namespace = ktests.NamespaceTestDefault
+	}
+	By(fmt.Sprintf("Wait until resource %s with label=%s ready", resourceType, label))
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: namespace, waitTimeOut:timeout})
 }
 
 func CreateUser(username string) {
@@ -205,7 +229,7 @@ func execute(r Result) string {
 			r.actualOut, err = ktests.RunCommand(r.cmd, cmd...)
 			Expect(err).ToNot(HaveOccurred())
 			return strings.Contains(r.actualOut, r.expectOut)
-		}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
+		}, r.waitTimeOut).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
 	} else {
 		r.actualOut, err = ktests.RunCommand(r.cmd, cmd...)
 		Expect(err).ToNot(HaveOccurred())

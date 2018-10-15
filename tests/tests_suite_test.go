@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"kubevirt.io/kubevirt-ansible/tests"
+	f "kubevirt.io/kubevirt-ansible/tests/framework"
 	"kubevirt.io/qe-tools/pkg/ginkgo-reporters"
 	ktests "kubevirt.io/kubevirt/tests"
 )
@@ -24,9 +24,9 @@ func TestTests(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	tests.CreateNamespaces()
+	f.CreateNamespaces()
 })
 
 var _ = AfterSuite(func() {
-	tests.RemoveNamespaces()
+	f.RemoveNamespaces()
 })

@@ -2,10 +2,11 @@ package tests_test
 
 import (
 	"os"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-	"kubevirt.io/kubevirt-ansible/tests"
+	f "kubevirt.io/kubevirt-ansible/tests/framework"
 )
 
 // template parameters
@@ -44,7 +45,7 @@ var _ = Describe("Importing VMs using V2V", func() {
 	Context("Create ServiceInstance of import-vm-apb", func() {
 		DescribeTable("v2v import with apb Plan",
 			func(apbPlanName, verifyStr, verifyStatus string) {
-				tests.ProcessTemplateWithParameters(v2vServiceInstance, dstv2vServiceInstance,
+				f.ProcessTemplateWithParameters(v2vServiceInstance, dstv2vServiceInstance,
 					"APB_PLAN_NAME="+apbPlanName,
 					"OCP_ID="+v2vEnvVars["ocpID"],
 					"OCP_PASS="+v2vEnvVars["ocpPass"],
@@ -52,8 +53,8 @@ var _ = Describe("Importing VMs using V2V", func() {
 					"VM_NAME="+v2vEnvVars["VMName"],
 					"VMWARE_ID="+v2vEnvVars["VMWareID"],
 					"VMWARE_PASS="+v2vEnvVars["VMWarePass"])
-				tests.CreateResourceWithFilePathTestNamespace(dstv2vServiceInstance)
-				tests.WaitUntilResourceReadyByNameTestNamespace("vm", v2vEnvVars["VMName"], "-o=jsonpath='"+verifyStr+"'", verifyStatus)
+				f.CreateResourceWithFilePath(dstv2vServiceInstance, "")
+				f.WaitUntilResourceReadyByNameTimeOut("vm", v2vEnvVars["VMName"], "-o=jsonpath='"+verifyStr+"'", verifyStatus, "", 5*time.Minute)
 			},
 			Entry("vmware", "vmware", "{.status.created}", "true"),
 			Entry("vmware-template", "vmware-template", "{.metadata.name}", v2vEnvVars["VMName"]),
