@@ -1,0 +1,13 @@
+---
+- name: openshift cni config
+  set_fact:
+    cni_config: "{{ openshift_cni_config }}"
+  when: cluster=="openshift"
+
+- name: kubernetes cni config
+  set_fact:
+    cni_config: "{{ kubernetes_cni_config }}"
+  when: cluster=="kubernetes"
+
+- name: Deploy skydive
+  shell: "{{ cluster_command }} delete ns {{ namespace }}"

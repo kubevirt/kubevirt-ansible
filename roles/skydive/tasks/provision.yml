@@ -1,0 +1,53 @@
+---
+- name: oc Command
+  set_fact:
+    cluster_command: oc
+  when: cluster=="openshift"
+
+- name: kubectl Command
+  set_fact:
+    cluster_command: kubectl
+  when: cluster=="kubernetes"
+
+- name: Login As Super User
+  shell: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+  when: cluster=="openshift"
+    and admin_user is defined
+    and admin_password is defined
+
+- name: Check if namespace "{{ namespace }}" exists
+  shell: "{{ cluster_command }} get ns | grep -w {{ namespace }} | awk \'{ print $1 }\'"
+  register: ns
+
+- name: Create {{ namespace }} namespace on the kubernetes cluster
+  shell: kubectl create namespace {{ namespace }}
+  when: ns.stdout != namespace
+    and cluster=="kubernetes"
+
+- name: Create {{ namespace }} project on the openshift cluster
+  shell: oc new-project {{ namespace }}
+  when: ns.stdout != namespace
+    and cluster=="openshift"
+
+- name: Render skydive deployment yaml for kubernetes
+  template:
+    src: kubernetes-skydive.yaml
+    dest: /tmp/skydive.yaml
+  when: cluster=="kubernetes"
+
+- name: Render skydive deployment yaml for openshift
+  template:
+    src: openshift-skydive.yaml
+    dest: /tmp/skydive.yaml
+  when: cluster=="openshift"
+
+- name: Deploy skydive
+  shell: "{{ cluster_command }} -n {{ namespace }} apply -f /tmp/skydive.yaml"
+
+- name: Add privilage for openshift cluster
+  shell: "{{ cluster_command }} adm policy add-scc-to-user privileged system:serviceaccount:{{ namespace }}:default"
+  when: cluster=="openshift"
+
+- name: Create app from openshift teamplate
+  shell: "{{ cluster_command }} -n {{ namespace }} new-app --template=skydive"
+  when: cluster=="openshift"
