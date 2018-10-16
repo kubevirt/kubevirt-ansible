@@ -42,7 +42,7 @@
         "operationId": "GetItem",
         "parameters": [
           {
-             "$ref": "#/parameters/itemParameter"
+             "$ref": "#/parameters/itemParameter" 
           }
         ],
         "responses": {

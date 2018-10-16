@@ -37,6 +37,6 @@ It("should work", func() {
 Custom fields
 
 Name | Supported Values
---- | ---
+--- | --- 
 caseimportance | critical, high, medium, low
 caseposneg | positive, negative

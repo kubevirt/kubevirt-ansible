@@ -20,7 +20,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: my-chap-secret
-type: "kubernetes.io/iscsi-chap"
+type: "kubernetes.io/iscsi-chap"  
 data:
   node.session.auth.username: $(echo "myUsername" | base64 -w0)
   node.session.auth.password: $(echo "mySuperSecretPassword" | base64 -w0)
@@ -71,5 +71,5 @@ kubectl create -f my-chap-secret.yaml
 kubectl create -f my-vm.yaml
 ```
 
-From there, the password and username fields in the k8s secret will automatically be mapped to a libvirt secret when the VMI is scheduled to a node allowing the iscsi auth to work without any further configuration.
+From there, the password and username fields in the k8s secret will automatically be mapped to a libvirt secret when the VMI is scheduled to a node allowing the iscsi auth to work without any further configuration. 
 

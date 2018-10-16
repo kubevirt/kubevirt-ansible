@@ -13,7 +13,7 @@ securityDefinitions:
     in: header
 security:
   - key: []
-consumes:
+consumes: 
   - application/json
 produces:
   - application/json

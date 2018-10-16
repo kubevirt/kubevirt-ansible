@@ -1,6 +1,6 @@
 Protocol Buffers for Go with Gadgets
 
-GoGoProtobuf http://github.com/gogo/protobuf extends
+GoGoProtobuf http://github.com/gogo/protobuf extends 
 GoProtobuf http://github.com/golang/protobuf
 
 Copyright (c) 2013, The GoGo Authors. All rights reserved.
@@ -169,9 +169,9 @@ Consider file test.proto, containing
 ```proto
 	syntax = "proto2";
 	package example;
-
+	
 	enum FOO { X = 17; };
-
+	
 	message Test {
 	  required string label = 1;
 	  optional int32 type = 2 [default=77];
