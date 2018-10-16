@@ -37,6 +37,7 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/cloud-init"
+	"kubevirt.io/kubevirt/pkg/config"
 	"kubevirt.io/kubevirt/pkg/emptydisk"
 	"kubevirt.io/kubevirt/pkg/ephemeral-disk"
 	"kubevirt.io/kubevirt/pkg/log"
@@ -48,12 +49,15 @@ import (
 const (
 	CPUModeHostPassthrough = "host-passthrough"
 	CPUModeHostModel       = "host-model"
+	defaultIOThread        = uint(1)
 )
 
 type ConverterContext struct {
 	UseEmulation   bool
 	Secrets        map[string]*k8sv1.Secret
 	VirtualMachine *v1.VirtualMachineInstance
+	CPUSet         []int
+	IsBlockPVC     map[string]bool
 }
 
 func Convert_v1_Disk_To_api_Disk(diskDevice *v1.Disk, disk *Disk, devicePerBus map[string]int) error {
@@ -63,6 +67,7 @@ func Convert_v1_Disk_To_api_Disk(diskDevice *v1.Disk, disk *Disk, devicePerBus m
 		disk.Target.Bus = diskDevice.Disk.Bus
 		disk.Target.Device = makeDeviceName(diskDevice.Disk.Bus, devicePerBus)
 		disk.ReadOnly = toApiReadOnly(diskDevice.Disk.ReadOnly)
+		disk.Serial = diskDevice.Serial
 	} else if diskDevice.LUN != nil {
 		disk.Device = "lun"
 		disk.Target.Bus = diskDevice.LUN.Bus
@@ -146,8 +151,12 @@ func Convert_v1_Volume_To_api_Disk(source *v1.Volume, disk *Disk, c *ConverterCo
 		return Convert_v1_CloudInitNoCloudSource_To_api_Disk(source.CloudInitNoCloud, disk, c)
 	}
 
+	if source.HostDisk != nil {
+		return Convert_v1_HostDisk_To_api_Disk(source.HostDisk.Path, disk, c)
+	}
+
 	if source.PersistentVolumeClaim != nil {
-		return Convert_v1_FilesystemVolumeSource_To_api_Disk(source.Name, disk, c)
+		return Convert_v1_PersistentVolumeClaim_To_api_Disk(source.Name, disk, c)
 	}
 
 	if source.DataVolume != nil {
@@ -160,20 +169,67 @@ func Convert_v1_Volume_To_api_Disk(source *v1.Volume, disk *Disk, c *ConverterCo
 	if source.EmptyDisk != nil {
 		return Convert_v1_EmptyDiskSource_To_api_Disk(source.Name, source.EmptyDisk, disk, c)
 	}
+	if source.ConfigMap != nil {
+		return Convert_v1_Config_To_api_Disk(source.Name, disk, config.ConfigMap)
+	}
+	if source.Secret != nil {
+		return Convert_v1_Config_To_api_Disk(source.Name, disk, config.Secret)
+	}
 
 	return fmt.Errorf("disk %s references an unsupported source", disk.Alias.Name)
 }
 
-// Convert_v1_FilesystemVolumeSource_To_api_Disk takes a FS source and builds the KVM Disk representation
-func Convert_v1_FilesystemVolumeSource_To_api_Disk(volumeName string, disk *Disk, c *ConverterContext) error {
-
+func Convert_v1_Config_To_api_Disk(volumeName string, disk *Disk, configType config.Type) error {
 	disk.Type = "file"
 	disk.Driver.Type = "raw"
-	disk.Source.File = filepath.Join(
-		"/var/run/kubevirt-private",
-		"vmi-disks",
-		volumeName,
-		"disk.img")
+	switch configType {
+	case config.ConfigMap:
+		disk.Source.File = config.GetConfigMapDiskPath(volumeName)
+		break
+	case config.Secret:
+		disk.Source.File = config.GetSecretDiskPath(volumeName)
+		break
+	default:
+		return fmt.Errorf("Cannot convert config '%s' to disk, unrecognized type", configType)
+	}
+
+	return nil
+}
+
+func GetFilesystemVolumePath(volumeName string) string {
+	return filepath.Join(string(filepath.Separator), "var", "run", "kubevirt-private", "vmi-disks", volumeName, "disk.img")
+}
+
+func GetBlockDeviceVolumePath(volumeName string) string {
+	return filepath.Join(string(filepath.Separator), "dev", volumeName)
+}
+
+func Convert_v1_PersistentVolumeClaim_To_api_Disk(name string, disk *Disk, c *ConverterContext) error {
+	if c.IsBlockPVC[name] {
+		return Convert_v1_BlockVolumeSource_To_api_Disk(name, disk, c)
+	}
+	return Convert_v1_FilesystemVolumeSource_To_api_Disk(name, disk, c)
+}
+
+// Convert_v1_FilesystemVolumeSource_To_api_Disk takes a FS source and builds the KVM Disk representation
+func Convert_v1_FilesystemVolumeSource_To_api_Disk(volumeName string, disk *Disk, c *ConverterContext) error {
+	disk.Type = "file"
+	disk.Driver.Type = "raw"
+	disk.Source.File = GetFilesystemVolumePath(volumeName)
+	return nil
+}
+
+func Convert_v1_BlockVolumeSource_To_api_Disk(volumeName string, disk *Disk, c *ConverterContext) error {
+	disk.Type = "block"
+	disk.Driver.Type = "raw"
+	disk.Source.Dev = GetBlockDeviceVolumePath(volumeName)
+	return nil
+}
+
+func Convert_v1_HostDisk_To_api_Disk(path string, disk *Disk, c *ConverterContext) error {
+	disk.Type = "file"
+	disk.Driver.Type = "raw"
+	disk.Source.File = path
 	return nil
 }
 
@@ -427,6 +483,57 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		volumes[volume.Name] = volume.DeepCopy()
 	}
 
+	dedicatedThreads := 0
+	autoThreads := 0
+	useIOThreads := false
+	threadPoolLimit := 1
+
+	if vmi.Spec.Domain.IOThreadsPolicy != nil {
+		useIOThreads = true
+
+		if (*vmi.Spec.Domain.IOThreadsPolicy) == v1.IOThreadsPolicyAuto {
+			numCPUs := 1
+			// Requested CPU's is guaranteed to be no greater than the limit
+			if cpuRequests, ok := vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceCPU]; ok {
+				numCPUs = int(cpuRequests.Value())
+			} else if cpuLimit, ok := vmi.Spec.Domain.Resources.Limits[k8sv1.ResourceCPU]; ok {
+				numCPUs = int(cpuLimit.Value())
+			}
+
+			threadPoolLimit = numCPUs * 2
+		}
+	}
+	for _, diskDevice := range vmi.Spec.Domain.Devices.Disks {
+		dedicatedThread := false
+		if diskDevice.DedicatedIOThread != nil {
+			dedicatedThread = *diskDevice.DedicatedIOThread
+		}
+		if dedicatedThread {
+			useIOThreads = true
+			dedicatedThreads += 1
+		} else {
+			autoThreads += 1
+		}
+	}
+
+	if (autoThreads + dedicatedThreads) > threadPoolLimit {
+		autoThreads = threadPoolLimit - dedicatedThreads
+		// We need at least one shared thread
+		if autoThreads < 1 {
+			autoThreads = 1
+		}
+	}
+
+	ioThreadCount := (autoThreads + dedicatedThreads)
+	if ioThreadCount != 0 {
+		if domain.Spec.IOThreads == nil {
+			domain.Spec.IOThreads = &IOThreads{}
+		}
+		domain.Spec.IOThreads.IOThreads = uint(ioThreadCount)
+	}
+
+	currentAutoThread := defaultIOThread
+	currentDedicatedThread := uint(autoThreads + 1)
 	devicePerBus := make(map[string]int)
 	for _, disk := range vmi.Spec.Domain.Devices.Disks {
 		newDisk := Disk{}
@@ -443,6 +550,26 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		if err != nil {
 			return err
 		}
+
+		if useIOThreads {
+			ioThreadId := defaultIOThread
+			dedicatedThread := false
+			if disk.DedicatedIOThread != nil {
+				dedicatedThread = *disk.DedicatedIOThread
+			}
+
+			if dedicatedThread {
+				ioThreadId = currentDedicatedThread
+				currentDedicatedThread += 1
+			} else {
+				ioThreadId = currentAutoThread
+				// increment the threadId to be used next but wrap around at the thread limit
+				// the odd math here is because thread ID's start at 1, not 0
+				currentAutoThread = (currentAutoThread % uint(autoThreads)) + 1
+			}
+			newDisk.Driver.IOThread = &ioThreadId
+		}
+
 		domain.Spec.Devices.Disks = append(domain.Spec.Devices.Disks, newDisk)
 	}
 
@@ -514,6 +641,14 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 
 	if vmi.Spec.Domain.CPU == nil || vmi.Spec.Domain.CPU.Model == "" {
 		domain.Spec.CPU.Mode = CPUModeHostModel
+	}
+
+	// Adjust guest vcpu config. Currenty will handle vCPUs to pCPUs pinning
+	if vmi.IsCPUDedicated() {
+		if err := formatDomainCPUTune(vmi, domain, c); err != nil {
+			log.Log.Reason(err).Error("failed to format domain cputune.")
+			return err
+		}
 	}
 
 	// Add mandatory console device
@@ -664,6 +799,22 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		domain.Spec.Devices.Interfaces = append(domain.Spec.Devices.Interfaces, domainIface)
 	}
 
+	return nil
+}
+
+func formatDomainCPUTune(vmi *v1.VirtualMachineInstance, domain *Domain, c *ConverterContext) error {
+	if len(c.CPUSet) == 0 {
+		return fmt.Errorf("failed for get pods pinned cpus")
+	}
+
+	cpuTune := CPUTune{}
+	for idx := 0; idx < int(vmi.Spec.Domain.CPU.Cores); idx++ {
+		vcpupin := CPUTuneVCPUPin{}
+		vcpupin.VCPU = uint(idx)
+		vcpupin.CPUSet = strconv.Itoa(c.CPUSet[idx])
+		cpuTune.VCPUPin = append(cpuTune.VCPUPin, vcpupin)
+	}
+	domain.Spec.CPUTune = &cpuTune
 	return nil
 }
 

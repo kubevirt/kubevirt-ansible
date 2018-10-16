@@ -3090,8 +3090,7 @@
     "description": "APIGroup contains the name, the supported versions, and the preferred version of a group.",
     "required": [
      "name",
-     "versions",
-     "serverAddressByClientCIDRs"
+     "versions"
     ],
     "properties": {
      "apiVersion": {
@@ -3274,6 +3273,10 @@
       "description": "Cores specifies the number of cores inside the vmi.\nMust be a value greater or equal 1.",
       "type": "integer"
      },
+     "dedicatedCpuPlacement": {
+      "description": "DedicatedCPUPlacement requests the scheduler to place the VirtualMachineInstance on a node\nwith enough dedicated pCPUs and pin the vCPUs to it.\n+optional",
+      "type": "boolean"
+     },
      "model": {
       "description": "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\nIt is possible to specify special cases like \"host-passthrough\" to get the same CPU as the node\nand \"host-model\" to get CPU closest to the node one.\nFor more information see https://libvirt.org/formatdomain.html#elementsCPU.\nDefaults to host-model.\n+optional",
       "type": "string"
@@ -3328,6 +3331,19 @@
      }
     }
    },
+   "v1.ConfigMapVolumeSource": {
+    "description": "ConfigMapVolumeSource adapts a ConfigMap into a volume.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes/#configmap",
+    "properties": {
+     "name": {
+      "description": "Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
+      "type": "string"
+     },
+     "optional": {
+      "description": "Specify whether the ConfigMap or it's keys must be defined\n+optional",
+      "type": "boolean"
+     }
+    }
+   },
    "v1.DataVolumeSource": {
     "required": [
      "name"
@@ -3373,7 +3389,7 @@
    "v1.Devices": {
     "properties": {
      "autoattachGraphicsDevice": {
-      "description": "Wheater to attach the default graphics device or not.\nVNC will not be available if set to false. Defaults to true.",
+      "description": "Whether to attach the default graphics device or not.\nVNC will not be available if set to false. Defaults to true.",
       "type": "boolean"
      },
      "autoattachPodInterface": {
@@ -3388,7 +3404,7 @@
       }
      },
      "interfaces": {
-      "description": "Interfaces describe network interfaces which are added to the vm.",
+      "description": "Interfaces describe network interfaces which are added to the vmi.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.Interface"
@@ -3418,6 +3434,10 @@
      "cdrom": {
       "description": "Attach a volume as a cdrom to the vmi.",
       "$ref": "#/definitions/v1.CDRomTarget"
+     },
+     "dedicatedIOThread": {
+      "description": "dedicatedIOThread indicates this disk should have an exclusive IO Thread.\nEnabling this implies useIOThreads = true.\nDefaults to false.\n+optional",
+      "type": "boolean"
      },
      "disk": {
       "description": "Attach a volume as a disk to the vmi.",
@@ -3457,42 +3477,6 @@
      }
     }
    },
-   "v1.DomainPresetSpec": {
-    "properties": {
-     "clock": {
-      "description": "Clock sets the clock and timers of the vmi.\n+optional",
-      "$ref": "#/definitions/v1.Clock"
-     },
-     "cpu": {
-      "description": "CPU allow specified the detailed CPU topology inside the vmi.\n+optional",
-      "$ref": "#/definitions/v1.CPU"
-     },
-     "devices": {
-      "description": "Devices allows adding disks, network interfaces, ...\n+optional",
-      "$ref": "#/definitions/v1.Devices"
-     },
-     "features": {
-      "description": "Features like acpi, apic, hyperv.\n+optional",
-      "$ref": "#/definitions/v1.Features"
-     },
-     "firmware": {
-      "description": "Firmware.\n+optional",
-      "$ref": "#/definitions/v1.Firmware"
-     },
-     "machine": {
-      "description": "Machine type.\n+optional",
-      "$ref": "#/definitions/v1.Machine"
-     },
-     "memory": {
-      "description": "Memory allow specifying the VMI memory features.\n+optional",
-      "$ref": "#/definitions/v1.Memory"
-     },
-     "resources": {
-      "description": "Resources describes the Compute Resources required by this vmi.",
-      "$ref": "#/definitions/v1.ResourceRequirements"
-     }
-    }
-   },
    "v1.DomainSpec": {
     "required": [
      "devices"
@@ -3517,6 +3501,10 @@
      "firmware": {
       "description": "Firmware.\n+optional",
       "$ref": "#/definitions/v1.Firmware"
+     },
+     "ioThreadsPolicy": {
+      "description": "Controls whether or not disks will share IOThreads.\nOmitting IOThreadsPolicy disables use of IOThreads.\nOne of: shared, auto\n+optional",
+      "$ref": "#/definitions/v1.IOThreadsPolicy"
      },
      "machine": {
       "description": "Machine type.\n+optional",
@@ -3703,6 +3691,27 @@
      }
     }
    },
+   "v1.HostDisk": {
+    "description": "Represents a disk created on the cluster level",
+    "required": [
+     "path",
+     "type"
+    ],
+    "properties": {
+     "capacity": {
+      "description": "Capacity of the sparse disk\n+optional",
+      "type": "string"
+     },
+     "path": {
+      "description": "The path to HostDisk image located on the cluster",
+      "type": "string"
+     },
+     "type": {
+      "description": "Contains information if disk.img exists or should be created\nallowed options are 'Disk' and 'DiskOrCreate'",
+      "type": "string"
+     }
+    }
+   },
    "v1.Hugepages": {
     "description": "Hugepages allow to use hugepages for the VirtualMachineInstance instead of regular memory.",
     "properties": {
@@ -3729,6 +3738,7 @@
      }
     }
    },
+   "v1.IOThreadsPolicy": {},
    "v1.Initializer": {
     "description": "Initializer is information about an initializer that has not yet completed.",
     "required": [
@@ -3999,13 +4009,17 @@
     }
    },
    "v1.NodeSelectorTerm": {
-    "description": "A null or empty node selector term matches no objects.",
-    "required": [
-     "matchExpressions"
-    ],
+    "description": "A null or empty node selector term matches no objects. The requirements of them are ANDed. The TopologySelectorTerm type implements a subset of the NodeSelectorTerm.",
     "properties": {
      "matchExpressions": {
-      "description": "Required. A list of node selector requirements. The requirements are ANDed.",
+      "description": "A list of node selector requirements by node's labels.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.NodeSelectorRequirement"
+      }
+     },
+     "matchFields": {
+      "description": "A list of node selector requirements by node's fields.",
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.NodeSelectorRequirement"
@@ -4359,6 +4373,19 @@
    "v1.Rng": {
     "description": "Rng represents the random device passed from host"
    },
+   "v1.SecretVolumeSource": {
+    "description": "SecretVolumeSource adapts a Secret into a volume.",
+    "properties": {
+     "optional": {
+      "description": "Specify whether the Secret or it's keys must be defined\n+optional",
+      "type": "boolean"
+     },
+     "secretName": {
+      "description": "Name of the secret in the pod's namespace to use.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#secret\n+optional",
+      "type": "string"
+     }
+    }
+   },
    "v1.ServerAddressByClientCIDR": {
     "description": "ServerAddressByClientCIDR helps the client to determine the server address that they should use, depending on the clientCIDR that they match.",
     "required": [
@@ -4704,7 +4731,7 @@
     "properties": {
      "domain": {
       "description": "Domain is the same object type as contained in VirtualMachineInstanceSpec",
-      "$ref": "#/definitions/v1.DomainPresetSpec"
+      "$ref": "#/definitions/v1.DomainSpec"
      },
      "selector": {
       "description": "Selector is a label query over a set of VMIs.\nRequired.",
@@ -4910,6 +4937,10 @@
      "phase": {
       "description": "Phase is the status of the VirtualMachineInstance in kubernetes world. It is not the VirtualMachineInstance status, but partially correlates to it.",
       "type": "string"
+     },
+     "reason": {
+      "description": "A brief CamelCase message indicating details about why the VMI is in this state. e.g. 'NodeUnresponsive'\n+optional",
+      "type": "string"
      }
     }
    },
@@ -5005,6 +5036,10 @@
       "description": "CloudInitNoCloud represents a cloud-init NoCloud user-data source.\nThe NoCloud data will be added as a disk to the vmi. A proper cloud-init installation is required inside the guest.\nMore info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html\n+optional",
       "$ref": "#/definitions/v1.CloudInitNoCloudSource"
      },
+     "configMap": {
+      "description": "ConfigMapSource represents a reference to a ConfigMap in the same namespace.\nMore info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/\n+optional",
+      "$ref": "#/definitions/v1.ConfigMapVolumeSource"
+     },
      "dataVolume": {
       "description": "DataVolume represents the dynamic creation a PVC for this volume as well as\nthe process of populating that PVC with a disk image.\n+optional",
       "$ref": "#/definitions/v1.DataVolumeSource"
@@ -5017,6 +5052,10 @@
       "description": "Ephemeral is a special volume source that \"wraps\" specified source and provides copy-on-write image on top of it.\n+optional",
       "$ref": "#/definitions/v1.EphemeralVolumeSource"
      },
+     "hostDisk": {
+      "description": "HostDisk represents a disk created on the cluster level\n+optional",
+      "$ref": "#/definitions/v1.HostDisk"
+     },
      "name": {
       "description": "Volume's name.\nMust be a DNS_LABEL and unique within the vmi.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
       "type": "string"
@@ -5028,6 +5067,10 @@
      "registryDisk": {
       "description": "RegistryDisk references a docker image, embedding a qcow or raw disk.\nMore info: https://kubevirt.gitbooks.io/user-guide/registry-disk.html\n+optional",
       "$ref": "#/definitions/v1.RegistryDiskSource"
+     },
+     "secret": {
+      "description": "SecretVolumeSource represents a reference to a secret data in the same namespace.\nMore info: https://kubernetes.io/docs/concepts/configuration/secret/\n+optional",
+      "$ref": "#/definitions/v1.SecretVolumeSource"
      }
     }
    },
@@ -5109,6 +5152,9 @@
      "http": {
       "$ref": "#/definitions/v1alpha1.DataVolumeSourceHTTP"
      },
+     "pvc": {
+      "$ref": "#/definitions/v1alpha1.DataVolumeSourcePVC"
+     },
      "s3": {
       "$ref": "#/definitions/v1alpha1.DataVolumeSourceS3"
      }
@@ -5116,7 +5162,20 @@
    },
    "v1alpha1.DataVolumeSourceHTTP": {
     "properties": {
+     "secretRef": {
+      "type": "string"
+     },
      "url": {
+      "type": "string"
+     }
+    }
+   },
+   "v1alpha1.DataVolumeSourcePVC": {
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "namespace": {
       "type": "string"
      }
     }

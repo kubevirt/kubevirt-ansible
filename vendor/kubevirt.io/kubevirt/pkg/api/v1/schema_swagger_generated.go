@@ -2,6 +2,30 @@
 
 package v1
 
+func (HostDisk) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"":         "Represents a disk created on the cluster level",
+		"path":     "The path to HostDisk image located on the cluster",
+		"type":     "Contains information if disk.img exists or should be created\nallowed options are 'Disk' and 'DiskOrCreate'",
+		"capacity": "Capacity of the sparse disk\n+optional",
+	}
+}
+
+func (ConfigMapVolumeSource) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"":         "ConfigMapVolumeSource adapts a ConfigMap into a volume.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes/#configmap",
+		"optional": "Specify whether the ConfigMap or it's keys must be defined\n+optional",
+	}
+}
+
+func (SecretVolumeSource) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"":           "SecretVolumeSource adapts a Secret into a volume.",
+		"secretName": "Name of the secret in the pod's namespace to use.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes#secret\n+optional",
+		"optional":   "Specify whether the Secret or it's keys must be defined\n+optional",
+	}
+}
+
 func (CloudInitNoCloudSource) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":               "Represents a cloud-init nocloud user data source.\nMore info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html",
@@ -13,27 +37,15 @@ func (CloudInitNoCloudSource) SwaggerDoc() map[string]string {
 
 func (DomainSpec) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"resources": "Resources describes the Compute Resources required by this vmi.",
-		"cpu":       "CPU allow specified the detailed CPU topology inside the vmi.\n+optional",
-		"memory":    "Memory allow specifying the VMI memory features.\n+optional",
-		"machine":   "Machine type.\n+optional",
-		"firmware":  "Firmware.\n+optional",
-		"clock":     "Clock sets the clock and timers of the vmi.\n+optional",
-		"features":  "Features like acpi, apic, hyperv.\n+optional",
-		"devices":   "Devices allows adding disks, network interfaces, ...",
-	}
-}
-
-func (DomainPresetSpec) SwaggerDoc() map[string]string {
-	return map[string]string{
-		"resources": "Resources describes the Compute Resources required by this vmi.",
-		"cpu":       "CPU allow specified the detailed CPU topology inside the vmi.\n+optional",
-		"memory":    "Memory allow specifying the VMI memory features.\n+optional",
-		"machine":   "Machine type.\n+optional",
-		"firmware":  "Firmware.\n+optional",
-		"clock":     "Clock sets the clock and timers of the vmi.\n+optional",
-		"features":  "Features like acpi, apic, hyperv.\n+optional",
-		"devices":   "Devices allows adding disks, network interfaces, ...\n+optional",
+		"resources":       "Resources describes the Compute Resources required by this vmi.",
+		"cpu":             "CPU allow specified the detailed CPU topology inside the vmi.\n+optional",
+		"memory":          "Memory allow specifying the VMI memory features.\n+optional",
+		"machine":         "Machine type.\n+optional",
+		"firmware":        "Firmware.\n+optional",
+		"clock":           "Clock sets the clock and timers of the vmi.\n+optional",
+		"features":        "Features like acpi, apic, hyperv.\n+optional",
+		"devices":         "Devices allows adding disks, network interfaces, ...",
+		"ioThreadsPolicy": "Controls whether or not disks will share IOThreads.\nOmitting IOThreadsPolicy disables use of IOThreads.\nOne of: shared, auto\n+optional",
 	}
 }
 
@@ -47,9 +59,10 @@ func (ResourceRequirements) SwaggerDoc() map[string]string {
 
 func (CPU) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"":      "CPU allows specifying the CPU topology.",
-		"cores": "Cores specifies the number of cores inside the vmi.\nMust be a value greater or equal 1.",
-		"model": "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\nIt is possible to specify special cases like \"host-passthrough\" to get the same CPU as the node\nand \"host-model\" to get CPU closest to the node one.\nFor more information see https://libvirt.org/formatdomain.html#elementsCPU.\nDefaults to host-model.\n+optional",
+		"":                      "CPU allows specifying the CPU topology.",
+		"cores":                 "Cores specifies the number of cores inside the vmi.\nMust be a value greater or equal 1.",
+		"model":                 "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\nIt is possible to specify special cases like \"host-passthrough\" to get the same CPU as the node\nand \"host-model\" to get CPU closest to the node one.\nFor more information see https://libvirt.org/formatdomain.html#elementsCPU.\nDefaults to host-model.\n+optional",
+		"dedicatedCpuPlacement": "DedicatedCPUPlacement requests the scheduler to place the VirtualMachineInstance on a node\nwith enough dedicated pCPUs and pin the vCPUs to it.\n+optional",
 	}
 }
 
@@ -84,19 +97,20 @@ func (Devices) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"disks":                    "Disks describes disks, cdroms, floppy and luns which are connected to the vmi.",
 		"watchdog":                 "Watchdog describes a watchdog device which can be added to the vmi.",
-		"interfaces":               "Interfaces describe network interfaces which are added to the vm.",
+		"interfaces":               "Interfaces describe network interfaces which are added to the vmi.",
 		"autoattachPodInterface":   "Whether to attach a pod network interface. Defaults to true.",
-		"autoattachGraphicsDevice": "Wheater to attach the default graphics device or not.\nVNC will not be available if set to false. Defaults to true.",
+		"autoattachGraphicsDevice": "Whether to attach the default graphics device or not.\nVNC will not be available if set to false. Defaults to true.",
 		"rng": "Whether to have random number generator from host\n+optional",
 	}
 }
 
 func (Disk) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"name":       "Name is the device name",
-		"volumeName": "Name of the volume which is referenced.\nMust match the Name of a Volume.",
-		"bootOrder":  "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach disk or interface that has a boot order must have a unique value.\nDisks without a boot order are not tried if a disk with a boot order exists.\n+optional",
-		"serial":     "Serial provides the ability to specify a serial number for the disk device.\n+optional",
+		"name":              "Name is the device name",
+		"volumeName":        "Name of the volume which is referenced.\nMust match the Name of a Volume.",
+		"bootOrder":         "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach disk or interface that has a boot order must have a unique value.\nDisks without a boot order are not tried if a disk with a boot order exists.\n+optional",
+		"serial":            "Serial provides the ability to specify a serial number for the disk device.\n+optional",
+		"dedicatedIOThread": "dedicatedIOThread indicates this disk should have an exclusive IO Thread.\nEnabling this implies useIOThreads = true.\nDefaults to false.\n+optional",
 	}
 }
 
@@ -148,13 +162,16 @@ func (Volume) SwaggerDoc() map[string]string {
 
 func (VolumeSource) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"": "Represents the source of a volume to mount.\nOnly one of its members may be specified.",
+		"":                      "Represents the source of a volume to mount.\nOnly one of its members may be specified.",
+		"hostDisk":              "HostDisk represents a disk created on the cluster level\n+optional",
 		"persistentVolumeClaim": "PersistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace.\nDirectly attached to the vmi via qemu.\nMore info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims\n+optional",
 		"cloudInitNoCloud":      "CloudInitNoCloud represents a cloud-init NoCloud user-data source.\nThe NoCloud data will be added as a disk to the vmi. A proper cloud-init installation is required inside the guest.\nMore info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html\n+optional",
 		"registryDisk":          "RegistryDisk references a docker image, embedding a qcow or raw disk.\nMore info: https://kubevirt.gitbooks.io/user-guide/registry-disk.html\n+optional",
 		"ephemeral":             "Ephemeral is a special volume source that \"wraps\" specified source and provides copy-on-write image on top of it.\n+optional",
 		"emptyDisk":             "EmptyDisk represents a temporary disk which shares the vmis lifecycle.\nMore info: https://kubevirt.gitbooks.io/user-guide/disks-and-volumes.html\n+optional",
 		"dataVolume":            "DataVolume represents the dynamic creation a PVC for this volume as well as\nthe process of populating that PVC with a disk image.\n+optional",
+		"configMap":             "ConfigMapSource represents a reference to a ConfigMap in the same namespace.\nMore info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/\n+optional",
+		"secret":                "SecretVolumeSource represents a reference to a secret data in the same namespace.\nMore info: https://kubernetes.io/docs/concepts/configuration/secret/\n+optional",
 	}
 }
 
