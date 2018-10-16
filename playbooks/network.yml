@@ -1,4 +1,22 @@
 ---
+- hosts: nodes masters
+  remote_user: root
+  vars:
+    network_role: network-multus
+  tasks:
+    - name: make sure OVS is installed & enabled
+      block:
+      - name: make sure ovs is installed
+        package:
+          name: openvswitch
+          state: installed
+      - name: enable and start OVS
+        service:
+          state: started
+          enabled: yes
+          name: openvswitch
+      when: network_role == 'network-multus' and deploy_ovs_plugin and cluster == "kubernetes"
+
 - hosts: masters[0]
   connection: local
   gather_facts: False

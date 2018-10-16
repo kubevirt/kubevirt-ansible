@@ -1,6 +1,6 @@
 # Network Multus cni plugin
 
-This role deploys the network attachment CRD multus daemonset, cni plugins and a L2 plugin.
+This role deploys the network attachment CRD multus daemonset and additional network CNI plugins.
 
 ### Kubernetes Usage
 For a kubernetes cluster if you are using a network plugin different than flannel you need to edit the `kubernetes_cni_config` variable
