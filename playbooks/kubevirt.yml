@@ -9,6 +9,7 @@
     http_proxy: ""
   roles:
     - { role: "network-multus", when: network_role == 'network-multus'}
+    - { role: "skydive", when: deploy_skydive == 'True'}
 
 - hosts: masters[0]
   connection: local

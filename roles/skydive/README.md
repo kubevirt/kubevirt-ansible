@@ -5,7 +5,7 @@ This role deploys the [skydive-project](http://skydive.network/)
 ### Role Variables
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-|namespace | skydive |  |Namespace into which the skydive components should be installed.|
+|skydive_namespace | skydive |  |Namespace into which the skydive components should be installed.|
 |cluster|openshift|<ul><li>openshift</li><li>kubernetes</li></ul> |Cluster type.|
 
 
