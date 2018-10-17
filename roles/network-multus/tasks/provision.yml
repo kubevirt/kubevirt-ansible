@@ -47,14 +47,16 @@
   - name: Create multus Resources
     shell: "{{ cluster_command }} apply -f /tmp/multus.yml"
 
-  - name: Render cni plugins deployment yaml
-    template:
-      src: cni-plugins.yml
-      dest: /tmp/cni-plugins.yml
+  - name: Deploy cni plugins
+    when: network_multus_deploy_cni_plugins
+    block:
+      - name: Render cni plugins deployment yaml
+        template:
+          src: cni-plugins.yml
+          dest: /tmp/cni-plugins.yml
 
-  - name: Create cni plugins Resources
-    shell: "{{ cluster_command }} apply -f /tmp/cni-plugins.yml"
-
+      - name: Create cni plugins Resources
+        shell: "{{ cluster_command }} apply -f /tmp/cni-plugins.yml"
 
   - name: Wait until multus is running
     shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ item }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"

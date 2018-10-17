@@ -7,6 +7,7 @@ multus_provisioner_release: "latest"
 
 cni_provisioner_repo: "quay.io/schseba/cni-plugins"
 cni_provisioner_release: "latest"
+network_multus_deploy_cni_plugins: true
 
 openshift_cni_config: |
   '{
