@@ -1,3 +1,4 @@
-namespace: "skydive"
+skydive_namespace: "skydive"
 cluster: "openshift"
 apb_action: "provision"
+deploy_skydive: False
