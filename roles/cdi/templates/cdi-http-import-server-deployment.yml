@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cdi-http-import-server
+  namespace: kube-system
+  labels:
+    kubevirt.io: "cdi-http-import-server"
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+  selector:
+    kubevirt.io: cdi-http-import-server
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cdi-http-import-server
+  namespace: kube-system
+  labels:
+    kubevirt.io: "cdi-http-import-server"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        kubevirt.io: cdi-http-import-server
+    spec:
+      containers:
+        - name: cdi-http-import-server
+          image: {{ repo_tag }}/kubevirt/cdi-http-import-server:devel
+          imagePullPolicy: IfNotPresent
+          command:
+              - "/usr/sbin/nginx"
+          ports:
+            - containerPort: 80
+              name: "http"
+              protocol: "TCP"
+          readinessProbe:
+            tcpSocket:
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10

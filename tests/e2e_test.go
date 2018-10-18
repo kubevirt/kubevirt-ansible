@@ -10,9 +10,10 @@ import (
 // template parameters
 const (
 	pvcEPHTTPNOAUTHURL = "https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img"
+	alpineURL         = "http://cdi-http-import-server.kube-system/images/alpine.iso"
 	invalidPVCURL      = "https://noneexist.com"
 	pvcName            = "golden-pvc"
-	pvcName1            = "golden-pvc1"
+	pvcName1           = "golden-pvc1"
 	vmName             = "test-vm"
 	vmAPIVersion       = "kubevirt.io/v1alpha2"
 	rawPVCFilePath     = "tests/manifests/golden-pvc.yml"
@@ -29,7 +30,7 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 		newPVCName = pvcName
 		url, ok = os.LookupEnv("STREAM_IMAGE_URL")
 		if !ok {
-			url = pvcEPHTTPNOAUTHURL
+			url = alpineURL
 		}
 	})
 

@@ -7,6 +7,9 @@
 - name: Delete {{ cdi_namespace }} ResourceQuota
   command: kubectl delete -f /tmp/cdi-deprovision-resourcequota.yml -n {{ cdi_namespace }} --ignore-not-found
 
+- name: Delete {{ cdi_namespace }} CDI http import server
+  command: kubectl delete -f /tmp/cdi-http-import-server-deployment.yml --ignore-not-found
+
 - name: Render CDI deprovision yaml
   template:
     src:  cdi-controller-deployment.yml

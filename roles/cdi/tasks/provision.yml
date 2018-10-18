@@ -34,5 +34,13 @@
 - name: Create CDI deployment
   command: "kubectl apply -f /tmp/cdi-provision.yml -n {{ cdi_namespace }}"
 
+- name: Render CDI HTTP import server deployment yaml
+  template:
+    src:  cdi-http-import-server-deployment.yml
+    dest: /tmp/cdi-http-import-server-deployment.yml
+
+- name: Create CDI HTTP import server deployment
+  command: "kubectl apply -f /tmp/cdi-http-import-server-deployment.yml"
+
 - name: Enable privileged containers in the security context
   command: "oc adm policy add-scc-to-user privileged -z cdi-sa -n {{ cdi_namespace }}"
