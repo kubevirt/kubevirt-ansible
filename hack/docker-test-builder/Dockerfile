@@ -14,7 +14,8 @@ ADD rsyncd.conf /etc/rsyncd.conf
 RUN \
     mkdir -p /go && \
     source /etc/profile.d/gimme.sh && \
-    go get -u github.com/onsi/ginkgo/ginkgo
+    go get -u github.com/onsi/ginkgo/ginkgo && \
+    go get -u github.com/Masterminds/glide
 
 ADD entrypoint.sh /entrypoint.sh
 
