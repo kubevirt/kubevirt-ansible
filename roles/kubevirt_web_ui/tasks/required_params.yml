@@ -1,0 +1,38 @@
+---
+# TODO: gather automatically
+# - openshift_master_default_subdomain
+
+#### Verify required variables
+
+- name: Verify required kubevirt_web_ui_image_name variable is set
+  fail:
+    msg: kubevirt_web_ui_image_name must be set to deploy kubevirt-web-ui
+  when: kubevirt_web_ui_image_name is not defined
+
+- name: Verify required openshift_master_default_subdomain variable is set
+  fail:
+    msg: openshift_master_default_subdomain must be set to deploy kubevirt-web-ui
+  when: openshift_master_default_subdomain is not defined
+
+#### Autodiscovery of missing variables
+
+# set public_master_hostname, assumptions:
+# - console's namespace is hardcoded to "openshift-console" (as done in openshift-ansible)
+# - the openshift console is mandatory part of OKD installation
+- name: Discover public_master_hostname from openshift console deployment
+  shell: "{{ openshift_client_binary }} get configmap console-config -n openshift-console -o jsonpath='{.data}' | grep 'masterPublicURL:' | sed 's/^.*masterPublicURL: *http.*:\\/\\///g'"
+  register: parsedConfigMap
+  when: public_master_hostname | default("") | string == ""
+
+- set_fact: public_master_hostname="{{ parsedConfigMap.stdout }}"
+  when: public_master_hostname | default("") | string == ""
+
+#### Set derived constants
+
+- set_fact: kubevirt_web_ui_hostname="kubevirt-web-ui.{{openshift_master_default_subdomain}}"
+
+# Mimic openshift-ansible
+- set_fact: openshift_master_public_console_url="https://{{ public_master_hostname }}/console" # Example: https://master.mycluster.com:8443/console
+- set_fact: openshift_master_public_api_url="https://{{ public_master_hostname }}"
+- set_fact: openshift_master_logout_url="" # TODO: not needed so far
+
