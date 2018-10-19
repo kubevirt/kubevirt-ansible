@@ -12,6 +12,7 @@ The playbook is based on [opensift-ansible](https://github.com/openshift/openshi
 - `openshift_master_default_subdomain`
   - example: `router.default.svc.cluster.local`
   - Used for composition of web-ui's public URL
+  - If not set, the default is retrieved from openshift-ansible deployment
 - `public_master_hostname`
   - example: `master:8443`
   - Public URL of your first master node, used for composition of public `console` URL for redirects

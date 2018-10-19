@@ -1,7 +1,4 @@
 ---
-# TODO: gather automatically
-# - openshift_master_default_subdomain
-
 #### Verify required variables
 
 - name: Verify required kubevirt_web_ui_image_name variable is set
@@ -9,23 +6,26 @@
     msg: kubevirt_web_ui_image_name must be set to deploy kubevirt-web-ui
   when: kubevirt_web_ui_image_name is not defined
 
-- name: Verify required openshift_master_default_subdomain variable is set
-  fail:
-    msg: openshift_master_default_subdomain must be set to deploy kubevirt-web-ui
-  when: openshift_master_default_subdomain is not defined
-
 #### Autodiscovery of missing variables
-
-# set public_master_hostname, assumptions:
+# Assumptions for autodiscovery:
 # - console's namespace is hardcoded to "openshift-console" (as done in openshift-ansible)
 # - the openshift console is mandatory part of OKD installation
+
 - name: Discover public_master_hostname from openshift console deployment
   shell: "{{ openshift_client_binary }} get configmap console-config -n openshift-console -o jsonpath='{.data}' | grep 'masterPublicURL:' | sed 's/^.*masterPublicURL: *http.*:\\/\\///g'"
-  register: parsedConfigMap
+  register: parsedMasterPublicURL
   when: public_master_hostname | default("") | string == ""
 
-- set_fact: public_master_hostname="{{ parsedConfigMap.stdout }}"
-  when: public_master_hostname | default("") | string == ""
+- set_fact: public_master_hostname="{{ parsedMasterPublicURL.stdout }}"
+  when: public_master_hostname | default("") | string == "" and parsedMasterPublicURL.stdout != ""
+
+- name: Discover openshift_master_default_subdomain from openshift console deployment
+  shell: "{{ openshift_client_binary }} get configmap console-config -n openshift-console -o jsonpath='{.data}' | grep 'consoleBaseAddress:' | sed 's/^.*consoleBaseAddress: *http.*:\\/\\/console\\.//g'"
+  register: parsedBaseAddress
+  when: openshift_master_default_subdomain | default("") | string == ""
+
+- set_fact: openshift_master_default_subdomain="{{ parsedBaseAddress.stdout }}"
+  when: openshift_master_default_subdomain | default("") | string == "" and parsedBaseAddress.stdout != ""
 
 #### Set derived constants
 
