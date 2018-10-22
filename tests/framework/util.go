@@ -35,9 +35,19 @@ func DeleteResourceWithLabelTestNamespace(resourceType, resourceLabel string) {
 	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel})
 }
 
+func CreateResourceWithFilePath(filePath string) {
+	By("Creating resource from the json file with the oc-create command")
+	execute(Result{cmd: "oc", verb: "create", filePath: filePath})
+}
+
 func WaitUntilResourceReadyByNameTestNamespace(resourceType, resourceName, query, expectOut string) {
 	By(fmt.Sprintf("Wait until %s with name %s ready", resourceType, resourceName))
 	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut})
+}
+
+func WaitUntilResourceReadyByName(resourceType, resourceName, nameSpace, query, expectOut string) {
+	By(fmt.Sprintf("Wait until %s with name %s ready", resourceType, resourceName))
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, nameSpace: nameSpace, query: query, expectOut: expectOut})
 }
 
 func WaitUntilResourceReadyByLabelTestNamespace(resourceType, label, query, expectOut string) {
