@@ -26,13 +26,37 @@
 - name: Create {{ cdi_namespace }} ResourceQuota
   command: "kubectl apply -f /tmp/cdi-provision-resourcequota.yml -n {{ cdi_namespace }}"
 
+- name: Check for cdi-controller.yaml.j2 template in {{ cdi_template_dir }}
+  stat:
+    path: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
+  register: byo_template
+
+- name: Check for cdi-controller.yaml.j2 version v{{ version }} in {{ cdi_offline_template_dir }}
+  stat:
+    path: "{{ cdi_offline_template_dir }}/v{{ version }}/cdi-controller.yaml.j2"
+  register: offline_templates
+  when: byo_template.stat.exists == False
+
+- name: Download CDI Template
+  get_url:
+    url: "{{ cdi_release_manifest_url }}/{{ docker_tag }}/cdi-controller.yaml.j2"
+    dest: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
+  when: byo_template.stat.exists == False and offline_templates.stat.exists == False
+
+- name: Render offline template
+  template:
+    src: "{{ cdi_offline_template_dir }}/v{{ version }}/cdi-controller.yaml.j2"
+    dest: "/tmp/cdi-provision.yaml"
+  when: (offline_templates is not skipped) and (offline_templates.stat.exists == True)
+
 - name: Render CDI deployment yaml
   template:
-    src:  cdi-controller-deployment.yml
-    dest: /tmp/cdi-provision.yml
+    src: "cdi-controller.yaml.j2"
+    dest: "/tmp/cdi-provision.yml"
+  when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
 
 - name: Create CDI deployment
-  command: "kubectl apply -f /tmp/cdi-provision.yml -n {{ cdi_namespace }}"
+  command: "kubectl apply -f /tmp/cdi-provision.yml"
 
 - name: Enable privileged containers in the security context
   command: "oc adm policy add-scc-to-user privileged -z cdi-sa -n {{ cdi_namespace }}"
