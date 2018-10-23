@@ -22,7 +22,7 @@ The playbook is based on [opensift-ansible](https://github.com/openshift/openshi
 ### Prerequisities
 To run the playbook, an ansible's inventory file including the required variables as stated above is required.
 
-From the hosts, just the master node is reuquired.
+From the hosts, just the master node is required.
 
 Please check `playbooks/kubevirt-web-ui/inventory_example.ini` for an example.
 
