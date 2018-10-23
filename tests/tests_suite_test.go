@@ -11,8 +11,13 @@ import (
 	"kubevirt.io/qe-tools/pkg/ginkgo-reporters"
 )
 
+func CustomFailHandler(message string, callerSkip ...int) {
+	tests.CollectObjDescUsingTestDesc(CurrentGinkgoTestDescription())
+	ktests.KubevirtFailHandler(message, callerSkip...)
+}
+
 func TestTests(t *testing.T) {
-	RegisterFailHandler(ktests.KubevirtFailHandler)
+	RegisterFailHandler(CustomFailHandler)
 	reporters := make([]Reporter, 0)
 	if ginkgo_reporters.Polarion.Run {
 		reporters = append(reporters, &ginkgo_reporters.Polarion)
