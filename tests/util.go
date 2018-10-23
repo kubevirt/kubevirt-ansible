@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/goexpect"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	k8sv1 "k8s.io/api/core/v1"
@@ -13,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	ktests "kubevirt.io/kubevirt/tests"
+	"kubevirt.io/kubevirt/pkg/log"
 )
 
 type Result struct {
@@ -157,4 +159,31 @@ func writeJson(jsonFile string, json string) (string, error) {
 		return "", fmt.Errorf("failed to write the json file %s", jsonFile)
 	}
 	return jsonFile, nil
+}
+
+func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) (expect.Expecter, error) {
+	virtClient, err := kubecli.GetKubevirtClient()
+	ktests.PanicOnError(err)
+	vmi, err := virtClient.VirtualMachineInstance(vmiNamespace).Get(vmiName, &metav1.GetOptions{})
+	ktests.PanicOnError(err)
+	expecter, _, err := ktests.NewConsoleExpecter(virtClient, vmi, 30*time.Second)
+    if err != nil {
+		return nil, err
+	}
+	b := append([]expect.Batcher{
+		&expect.BSnd{S: "\n"},
+		&expect.BSnd{S: "\n"},
+		&expect.BExp{R: "login:"},
+		&expect.BSnd{S: "fedora\n"},
+		&expect.BExp{R: "Password:"},
+		&expect.BSnd{S: "fedora\n"},
+		&expect.BExp{R: "]$"}})
+	res, err := expecter.ExpectBatch(b, time.Duration(timeout)*time.Second)
+	if err != nil {
+		log.DefaultLogger().Object(vmi).Infof("Login: %v", res)
+		By(fmt.Sprintf("Login: %v", res))
+		expecter.Close()
+		return nil, err
+	}
+	return expecter, err
 }
