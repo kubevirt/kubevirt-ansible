@@ -1,7 +1,7 @@
 ---
 - name: Remove kubevirt-web-ui project
-  oc_project:
-    name: kubevirt-web-ui
-    state: absent
+  shell: "{{ openshift_client_binary }} delete project kubevirt-web-ui"
 
-# TODO: Remove OAuthClient
+- name: Remove Kubevirt Web UI OAuth client
+  shell: "{{ openshift_client_binary }} delete oauthclient kubevirt-web-ui"
+
