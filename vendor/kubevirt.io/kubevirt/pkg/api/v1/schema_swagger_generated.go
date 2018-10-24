@@ -26,6 +26,13 @@ func (SecretVolumeSource) SwaggerDoc() map[string]string {
 	}
 }
 
+func (ServiceAccountVolumeSource) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"":                   "ServiceAccountVolumeSource adapts a ServiceAccount into a volume.",
+		"serviceAccountName": "Name of the service account in the pod's namespace to use.\nMore info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
+	}
+}
+
 func (CloudInitNoCloudSource) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":               "Represents a cloud-init nocloud user data source.\nMore info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html",
@@ -100,7 +107,9 @@ func (Devices) SwaggerDoc() map[string]string {
 		"interfaces":               "Interfaces describe network interfaces which are added to the vmi.",
 		"autoattachPodInterface":   "Whether to attach a pod network interface. Defaults to true.",
 		"autoattachGraphicsDevice": "Whether to attach the default graphics device or not.\nVNC will not be available if set to false. Defaults to true.",
-		"rng": "Whether to have random number generator from host\n+optional",
+		"rng":                        "Whether to have random number generator from host\n+optional",
+		"blockMultiQueue":            "Whether or not to enable virtio multi-queue for block devices\n+optional",
+		"networkInterfaceMultiqueue": "If specified, virtual network interfaces configured with a virtio bus will also enable the vhost multiqueue feature\n+optional",
 	}
 }
 
@@ -111,6 +120,7 @@ func (Disk) SwaggerDoc() map[string]string {
 		"bootOrder":         "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach disk or interface that has a boot order must have a unique value.\nDisks without a boot order are not tried if a disk with a boot order exists.\n+optional",
 		"serial":            "Serial provides the ability to specify a serial number for the disk device.\n+optional",
 		"dedicatedIOThread": "dedicatedIOThread indicates this disk should have an exclusive IO Thread.\nEnabling this implies useIOThreads = true.\nDefaults to false.\n+optional",
+		"cache":             "Cache specifies which kvm disk cache mode should be used\n+optional",
 	}
 }
 
@@ -126,8 +136,9 @@ func (DiskDevice) SwaggerDoc() map[string]string {
 
 func (DiskTarget) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"bus":      "Bus indicates the type of disk device to emulate.\nsupported values: virtio, sata, scsi, ide.",
-		"readonly": "ReadOnly.\nDefaults to false.",
+		"bus":        "Bus indicates the type of disk device to emulate.\nsupported values: virtio, sata, scsi, ide.",
+		"readonly":   "ReadOnly.\nDefaults to false.",
+		"pciAddress": "If specified, the virtual disk will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10\n+optional",
 	}
 }
 
@@ -172,6 +183,7 @@ func (VolumeSource) SwaggerDoc() map[string]string {
 		"dataVolume":            "DataVolume represents the dynamic creation a PVC for this volume as well as\nthe process of populating that PVC with a disk image.\n+optional",
 		"configMap":             "ConfigMapSource represents a reference to a ConfigMap in the same namespace.\nMore info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/\n+optional",
 		"secret":                "SecretVolumeSource represents a reference to a secret data in the same namespace.\nMore info: https://kubernetes.io/docs/concepts/configuration/secret/\n+optional",
+		"serviceAccount":        "ServiceAccountVolumeSource represents a reference to a service account.\nThere can only be one volume of this type!\nMore info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/\n+optional",
 	}
 }
 
@@ -401,9 +413,9 @@ func (Rng) SwaggerDoc() map[string]string {
 	}
 }
 
-func (MultusNetwork) SwaggerDoc() map[string]string {
+func (CniNetwork) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"":            "Represents the multus cni network.",
-		"networkName": "References to a NetworkAttachmentDefinition CRD object in the same namespace.",
+		"":            "Represents the cni network.",
+		"networkName": "References to a NetworkAttachmentDefinition CRD object in the same namespace.\nIn case of genie, it references the CNI plugin name.",
 	}
 }

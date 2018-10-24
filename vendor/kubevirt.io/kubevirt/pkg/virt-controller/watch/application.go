@@ -38,16 +38,14 @@ import (
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
 
-	"kubevirt.io/kubevirt/pkg/util"
-
 	"kubevirt.io/kubevirt/pkg/certificates"
-
 	"kubevirt.io/kubevirt/pkg/controller"
 	"kubevirt.io/kubevirt/pkg/feature-gates"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/registry-disk"
 	"kubevirt.io/kubevirt/pkg/service"
+	"kubevirt.io/kubevirt/pkg/util"
 	"kubevirt.io/kubevirt/pkg/virt-controller/leaderelectionconfig"
 	"kubevirt.io/kubevirt/pkg/virt-controller/rest"
 	"kubevirt.io/kubevirt/pkg/virt-controller/services"
@@ -64,7 +62,7 @@ const (
 
 	virtShareDir = "/var/run/kubevirt"
 
-	ephemeralDiskDir = "/var/run/libvirt/kubevirt-ephemeral-disk"
+	ephemeralDiskDir = virtShareDir + "-ephemeral-disks"
 
 	controllerThreads = 3
 )
@@ -100,13 +98,17 @@ type VirtControllerApp struct {
 
 	dataVolumeInformer cache.SharedIndexInformer
 
+	migrationController *MigrationController
+	migrationInformer   cache.SharedIndexInformer
+
 	LeaderElection leaderelectionconfig.Configuration
 
-	launcherImage    string
-	imagePullSecret  string
-	virtShareDir     string
-	ephemeralDiskDir string
-	readyChan        chan bool
+	launcherImage     string
+	imagePullSecret   string
+	virtShareDir      string
+	ephemeralDiskDir  string
+	readyChan         chan bool
+	kubevirtNamespace string
 }
 
 var _ service.Service = &VirtControllerApp{}
@@ -115,11 +117,11 @@ func Execute() {
 	var err error
 	var app VirtControllerApp = VirtControllerApp{}
 
-	featuregates.ParseFeatureGatesFromConfigMap()
-
 	app.LeaderElection = leaderelectionconfig.DefaultLeaderElectionConfiguration()
 
 	service.Setup(&app)
+
+	featuregates.ParseFeatureGatesFromConfigMap()
 
 	app.readyChan = make(chan bool, 1)
 
@@ -138,8 +140,11 @@ func Execute() {
 	restful.Add(webService)
 
 	// Bootstrapping. From here on the initialization order is important
-
-	app.informerFactory = controller.NewKubeInformerFactory(app.restClient, app.clientSet)
+	app.kubevirtNamespace, err = util.GetNamespace()
+	if err != nil {
+		golog.Fatalf("Error searching for namespace: %v", err)
+	}
+	app.informerFactory = controller.NewKubeInformerFactory(app.restClient, app.clientSet, app.kubevirtNamespace)
 
 	app.vmiInformer = app.informerFactory.VMI()
 	app.podInformer = app.informerFactory.KubeVirtPod()
@@ -157,6 +162,8 @@ func Execute() {
 	app.persistentVolumeClaimCache = app.persistentVolumeClaimInformer.GetStore()
 
 	app.vmInformer = app.informerFactory.VirtualMachine()
+
+	app.migrationInformer = app.informerFactory.VirtualMachineInstanceMigration()
 
 	if featuregates.DataVolumesEnabled() {
 		app.dataVolumeInformer = app.informerFactory.DataVolume()
@@ -183,11 +190,8 @@ func (vca *VirtControllerApp) Run() {
 		panic(err)
 	}
 	defer os.RemoveAll(certsDirectory)
-	namespace, err := util.GetNamespace()
-	if err != nil {
-		golog.Fatalf("Error searching for namespace: %v", err)
-	}
-	certStore, err := certificates.GenerateSelfSignedCert(certsDirectory, "virt-controller", namespace)
+
+	certStore, err := certificates.GenerateSelfSignedCert(certsDirectory, "virt-controller", vca.kubevirtNamespace)
 	if err != nil {
 		glog.Fatalf("unable to generate certificates: %v", err)
 	}
@@ -210,7 +214,7 @@ func (vca *VirtControllerApp) Run() {
 	}
 
 	rl, err := resourcelock.New(vca.LeaderElection.ResourceLock,
-		namespace,
+		vca.kubevirtNamespace,
 		leaderelectionconfig.DefaultEndpointName,
 		vca.clientSet.CoreV1(),
 		resourcelock.ResourceLockConfig{
@@ -234,6 +238,7 @@ func (vca *VirtControllerApp) Run() {
 					go vca.vmiController.Run(controllerThreads, stop)
 					go vca.rsController.Run(controllerThreads, stop)
 					go vca.vmController.Run(controllerThreads, stop)
+					go vca.migrationController.Run(controllerThreads, stop)
 					cache.WaitForCacheSync(stopCh, vca.persistentVolumeClaimInformer.HasSynced)
 					close(vca.readyChan)
 				},
@@ -263,10 +268,17 @@ func (vca *VirtControllerApp) initCommon() {
 	if err != nil {
 		golog.Fatal(err)
 	}
-	vca.templateService = services.NewTemplateService(vca.launcherImage, vca.virtShareDir, vca.imagePullSecret, vca.configMapCache, vca.persistentVolumeClaimCache)
+	vca.templateService = services.NewTemplateService(vca.launcherImage,
+		vca.virtShareDir,
+		vca.ephemeralDiskDir,
+		vca.imagePullSecret,
+		vca.configMapCache,
+		vca.persistentVolumeClaimCache)
+
 	vca.vmiController = NewVMIController(vca.templateService, vca.vmiInformer, vca.podInformer, vca.vmiRecorder, vca.clientSet, vca.configMapInformer, vca.dataVolumeInformer)
 	recorder := vca.getNewRecorder(k8sv1.NamespaceAll, "node-controller")
 	vca.nodeController = NewNodeController(vca.clientSet, vca.nodeInformer, vca.vmiInformer, recorder)
+	vca.migrationController = NewMigrationController(vca.templateService, vca.vmiInformer, vca.podInformer, vca.migrationInformer, vca.vmiRecorder, vca.clientSet)
 }
 
 func (vca *VirtControllerApp) initReplicaSet() {

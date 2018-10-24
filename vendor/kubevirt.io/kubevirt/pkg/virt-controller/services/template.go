@@ -36,15 +36,17 @@ import (
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/precond"
 	"kubevirt.io/kubevirt/pkg/registry-disk"
+	"kubevirt.io/kubevirt/pkg/util"
 	"kubevirt.io/kubevirt/pkg/util/net/dns"
 	"kubevirt.io/kubevirt/pkg/util/types"
 )
 
-const configMapName = "kube-system/kubevirt-config"
+const configMapName = "kubevirt-config"
 const UseEmulationKey = "debug.useEmulation"
 const ImagePullPolicyKey = "dev.imagePullPolicy"
 const KvmDevice = "devices.kubevirt.io/kvm"
 const TunDevice = "devices.kubevirt.io/tun"
+const VhostNetDevice = "devices.kubevirt.io/vhost-net"
 
 const CAP_NET_ADMIN = "NET_ADMIN"
 const CAP_SYS_NICE = "SYS_NICE"
@@ -56,6 +58,7 @@ type TemplateService interface {
 type templateService struct {
 	launcherImage              string
 	virtShareDir               string
+	ephemeralDiskDir           string
 	imagePullSecret            string
 	configMapStore             cache.Store
 	persistentVolumeClaimStore cache.Store
@@ -65,7 +68,12 @@ type PvcNotFoundError error
 
 func getConfigMapEntry(store cache.Store, key string) (string, error) {
 
-	if obj, exists, err := store.GetByKey(configMapName); err != nil {
+	namespace, err := util.GetNamespace()
+	if err != nil {
+		return "", err
+	}
+
+	if obj, exists, err := store.GetByKey(namespace + "/" + configMapName); err != nil {
 		return "", err
 	} else if !exists {
 		return "", nil
@@ -127,13 +135,22 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	}
 
 	volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
+		Name:      "ephemeral-disks",
+		MountPath: t.ephemeralDiskDir,
+	})
+
+	volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
 		Name:      "virt-share-dir",
 		MountPath: t.virtShareDir,
 	})
+
 	volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
 		Name:      "libvirt-runtime",
 		MountPath: "/var/run/libvirt",
 	})
+
+	serviceAccountName := ""
+
 	for _, volume := range vmi.Spec.Volumes {
 		volumeMount := k8sv1.VolumeMount{
 			Name:      volume.Name,
@@ -249,6 +266,10 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 					},
 				},
 			})
+		}
+
+		if volume.ServiceAccount != nil {
+			serviceAccountName = volume.ServiceAccount.ServiceAccountName
 		}
 	}
 
@@ -380,6 +401,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		"--uid", string(vmi.UID),
 		"--namespace", namespace,
 		"--kubevirt-share-dir", t.virtShareDir,
+		"--ephemeral-disk-dir", t.ephemeralDiskDir,
 		"--readiness-file", "/tmp/healthy",
 		"--grace-period-seconds", strconv.Itoa(int(gracePeriodSeconds)),
 		"--hook-sidecars", strconv.Itoa(len(requestedHookSidecarList)),
@@ -399,7 +421,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		resources.Limits = make(k8sv1.ResourceList)
 	}
 
-	extraResources := getRequiredResources(vmi)
+	extraResources := getRequiredResources(vmi, useEmulation)
 	for key, val := range extraResources {
 		resources.Limits[key] = val
 	}
@@ -449,7 +471,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		Resources: resources,
 		Ports:     ports,
 	}
-	containers := registrydisk.GenerateContainers(vmi, "libvirt-runtime", "/var/run/libvirt")
+	containers := registrydisk.GenerateContainers(vmi, "ephemeral-disks", t.ephemeralDiskDir)
 
 	volumes = append(volumes, k8sv1.Volume{
 		Name: "virt-share-dir",
@@ -461,6 +483,12 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	})
 	volumes = append(volumes, k8sv1.Volume{
 		Name: "libvirt-runtime",
+		VolumeSource: k8sv1.VolumeSource{
+			EmptyDir: &k8sv1.EmptyDirVolumeSource{},
+		},
+	})
+	volumes = append(volumes, k8sv1.Volume{
+		Name: "ephemeral-disks",
 		VolumeSource: k8sv1.VolumeSource{
 			EmptyDir: &k8sv1.EmptyDirVolumeSource{},
 		},
@@ -512,9 +540,9 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		v1.OwnedByAnnotation: "virt-controller",
 	}
 
-	multusNetworks := getMultusInterfaceList(vmi)
-	if len(multusNetworks) > 0 {
-		annotationsList["k8s.v1.cni.cncf.io/networks"] = multusNetworks
+	cniNetworks, cniAnnotation := getCniInterfaceList(vmi)
+	if len(cniNetworks) > 0 {
+		annotationsList[cniAnnotation] = cniNetworks
 	}
 
 	// TODO use constants for podLabels
@@ -564,6 +592,16 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			pod.Spec.Tolerations = append(pod.Spec.Tolerations, v)
 		}
 	}
+
+	if len(serviceAccountName) > 0 {
+		pod.Spec.ServiceAccountName = serviceAccountName
+		automount := true
+		pod.Spec.AutomountServiceAccountToken = &automount
+	} else {
+		automount := false
+		pod.Spec.AutomountServiceAccountToken = &automount
+	}
+
 	return &pod, nil
 }
 
@@ -581,10 +619,21 @@ func getRequiredCapabilities(vmi *v1.VirtualMachineInstance) []k8sv1.Capability 
 	return res
 }
 
-func getRequiredResources(vmi *v1.VirtualMachineInstance) k8sv1.ResourceList {
+func getRequiredResources(vmi *v1.VirtualMachineInstance, useEmulation bool) k8sv1.ResourceList {
 	res := k8sv1.ResourceList{}
-	if (vmi.Spec.Domain.Devices.AutoattachPodInterface == nil) || (*vmi.Spec.Domain.Devices.AutoattachPodInterface == true) {
+	if (len(vmi.Spec.Domain.Devices.Interfaces) > 0) ||
+		(vmi.Spec.Domain.Devices.AutoattachPodInterface == nil) ||
+		(*vmi.Spec.Domain.Devices.AutoattachPodInterface == true) {
 		res[TunDevice] = resource.MustParse("1")
+	}
+	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
+		if !useEmulation && (iface.Model == "" || iface.Model == "virtio") {
+			// Note that about network interface, useEmulation does not make
+			// any difference on eventual Domain xml, but uniformly making
+			// /dev/vhost-net unavailable and libvirt implicitly fallback
+			// to use QEMU userland NIC emulation.
+			res[VhostNetDevice] = resource.MustParse("1")
+		}
 	}
 	return res
 }
@@ -662,23 +711,41 @@ func getPortsFromVMI(vmi *v1.VirtualMachineInstance) []k8sv1.ContainerPort {
 	return ports
 }
 
-func getMultusInterfaceList(vmi *v1.VirtualMachineInstance) string {
+func getCniInterfaceList(vmi *v1.VirtualMachineInstance) (ifaceListString string, cniAnnotation string) {
 	ifaceList := make([]string, 0)
 
 	for _, network := range vmi.Spec.Networks {
+		// set the type for the first network
+		// all other networks must have same type
 		if network.Multus != nil {
 			ifaceList = append(ifaceList, network.Multus.NetworkName)
+			if cniAnnotation == "" {
+				cniAnnotation = "k8s.v1.cni.cncf.io/networks"
+			}
+		} else if network.Genie != nil {
+			ifaceList = append(ifaceList, network.Genie.NetworkName)
+			if cniAnnotation == "" {
+				cniAnnotation = "cni"
+			}
 		}
 	}
 
-	return strings.Join(ifaceList, ",")
+	ifaceListString = strings.Join(ifaceList, ",")
+	return
 }
 
-func NewTemplateService(launcherImage string, virtShareDir string, imagePullSecret string, configMapCache cache.Store, persistentVolumeClaimCache cache.Store) TemplateService {
+func NewTemplateService(launcherImage string,
+	virtShareDir string,
+	ephemeralDiskDir string,
+	imagePullSecret string,
+	configMapCache cache.Store,
+	persistentVolumeClaimCache cache.Store) TemplateService {
+
 	precond.MustNotBeEmpty(launcherImage)
 	svc := templateService{
 		launcherImage:              launcherImage,
 		virtShareDir:               virtShareDir,
+		ephemeralDiskDir:           ephemeralDiskDir,
 		imagePullSecret:            imagePullSecret,
 		configMapStore:             configMapCache,
 		persistentVolumeClaimStore: persistentVolumeClaimCache,

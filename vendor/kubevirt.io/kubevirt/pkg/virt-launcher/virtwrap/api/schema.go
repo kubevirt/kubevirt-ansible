@@ -24,14 +24,12 @@ package api
 
 import (
 	"encoding/xml"
+	"fmt"
 
 	kubev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/types"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
@@ -135,12 +133,18 @@ type DomainSpec struct {
 }
 
 type CPUTune struct {
-	VCPUPin []CPUTuneVCPUPin `xml:"vcpupin"`
+	VCPUPin     []CPUTuneVCPUPin     `xml:"vcpupin"`
+	IOThreadPin []CPUTuneIOThreadPin `xml:"iothreadpin,omitempty"`
 }
 
 type CPUTuneVCPUPin struct {
 	VCPU   uint   `xml:"vcpu,attr"`
 	CPUSet string `xml:"cpuset,attr"`
+}
+
+type CPUTuneIOThreadPin struct {
+	IOThread uint   `xml:"iothread,attr"`
+	CPUSet   string `xml:"cpuset,attr"`
 }
 
 type VCPU struct {
@@ -204,6 +208,16 @@ type Metadata struct {
 type KubeVirtMetadata struct {
 	UID         types.UID           `xml:"uid"`
 	GracePeriod GracePeriodMetadata `xml:"graceperiod,omitempty"`
+	Migration   *MigrationMetadata  `xml:"migration,omitempty"`
+}
+
+type MigrationMetadata struct {
+	UID            types.UID    `xml:"uid,omitempty"`
+	StartTimestamp *metav1.Time `xml:"startTimestamp,omitempty"`
+	EndTimestamp   *metav1.Time `xml:"endTimestamp,omitempty"`
+	Completed      bool         `xml:"completed,omitempty"`
+	Failed         bool         `xml:"failed,omitempty"`
+	FailureReason  string       `xml:"failureReason,omitempty"`
 }
 
 type GracePeriodMetadata struct {
@@ -275,11 +289,14 @@ type Controller struct {
 	Driver *ControllerDriver `xml:"driver,omitempty"`
 }
 
+// END Controller -----------------------------
+
+// BEGIN ControllerDriver
 type ControllerDriver struct {
 	IOThread *uint `xml:"iothread,attr,omitempty"`
 }
 
-// END Controller -----------------------------
+// END ControllerDriver
 
 // BEGIN Disk -----------------------------
 
@@ -296,6 +313,7 @@ type Disk struct {
 	Alias        *Alias        `xml:"alias,omitempty"`
 	BackingStore *BackingStore `xml:"backingStore,omitempty"`
 	BootOrder    *BootOrder    `xml:"boot,omitempty"`
+	Address      *Address      `xml:"address,omitempty"`
 }
 
 type DiskAuth struct {
@@ -305,7 +323,8 @@ type DiskAuth struct {
 
 type DiskSecret struct {
 	Type  string `xml:"type,attr"`
-	Usage string `xml:"usage,attr"`
+	Usage string `xml:"usage,attr,omitempty"`
+	UUID  string `xml:"uuid,attr,omitempty"`
 }
 
 type ReadOnly struct{}
@@ -332,6 +351,7 @@ type DiskDriver struct {
 	Name        string `xml:"name,attr"`
 	Type        string `xml:"type,attr"`
 	IOThread    *uint  `xml:"iothread,attr,omitempty"`
+	Queues      *uint  `xml:"queues,attr,omitempty"`
 }
 
 type DiskSourceHost struct {
@@ -407,6 +427,12 @@ type Interface struct {
 	LinkState           *LinkState       `xml:"link,omitempty"`
 	FilterRef           *FilterRef       `xml:"filterref,omitempty"`
 	Alias               *Alias           `xml:"alias,omitempty"`
+	Driver              *InterfaceDriver `xml:"driver,omitempty"`
+}
+
+type InterfaceDriver struct {
+	Name   string `xml:"name,attr"`
+	Queues *uint  `xml:"queues,attr,omitempty"`
 }
 
 type LinkState struct {

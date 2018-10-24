@@ -20,8 +20,10 @@
 package controller
 
 import (
+	"fmt"
 	"runtime/debug"
 
+	k8sv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
@@ -30,14 +32,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
-	"fmt"
-
-	k8sv1 "k8s.io/api/core/v1"
-
+	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/datavolumecontroller/v1alpha1"
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/log"
-
-	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/datavolumecontroller/v1alpha1"
 )
 
 const (
@@ -46,7 +43,7 @@ const (
 	BurstReplicas uint = 250
 )
 
-// NewListWatchFromClient creates a new ListWatch from the specified client, resource, namespace and field selector.
+// NewListWatchFromClient creates a new ListWatch from the specified client, resource, kubevirtNamespace and field selector.
 func NewListWatchFromClient(c cache.Getter, resource string, namespace string, fieldSelector fields.Selector, labelSelector labels.Selector) *cache.ListWatch {
 	listFunc := func(options metav1.ListOptions) (runtime.Object, error) {
 		options.FieldSelector = fieldSelector.String()
@@ -73,7 +70,7 @@ func NewListWatchFromClient(c cache.Getter, resource string, namespace string, f
 
 func HandlePanic() {
 	if r := recover(); r != nil {
-		log.Log.Level(log.CRITICAL).Log("stacktrace", debug.Stack(), "msg", r)
+		log.Log.Level(log.FATAL).Log("stacktrace", debug.Stack(), "msg", r)
 	}
 }
 
@@ -113,6 +110,10 @@ func NewResourceEventHandlerFuncsForFunc(f func(interface{})) cache.ResourceEven
 			f(obj)
 		},
 	}
+}
+
+func MigrationKey(migration *v1.VirtualMachineInstanceMigration) string {
+	return fmt.Sprintf("%v/%v", migration.ObjectMeta.Namespace, migration.ObjectMeta.Name)
 }
 
 func VirtualMachineKey(vmi *v1.VirtualMachineInstance) string {

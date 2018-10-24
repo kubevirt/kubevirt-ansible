@@ -77,6 +77,15 @@ type SecretVolumeSource struct {
 	Optional *bool `json:"optional,omitempty"`
 }
 
+// ServiceAccountVolumeSource adapts a ServiceAccount into a volume.
+// ---
+// +k8s:openapi-gen=true
+type ServiceAccountVolumeSource struct {
+	// Name of the service account in the pod's namespace to use.
+	// More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+}
+
 // Represents a cloud-init nocloud user data source.
 // More info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html
 // ---
@@ -217,6 +226,12 @@ type Devices struct {
 	// Whether to have random number generator from host
 	// +optional
 	Rng *Rng `json:"rng,omitempty"`
+	// Whether or not to enable virtio multi-queue for block devices
+	// +optional
+	BlockMultiQueue *bool `json:"blockMultiQueue,omitempty"`
+	// If specified, virtual network interfaces configured with a virtio bus will also enable the vhost multiqueue feature
+	// +optional
+	NetworkInterfaceMultiQueue *bool `json:"networkInterfaceMultiqueue,omitempty"`
 }
 
 // ---
@@ -244,6 +259,9 @@ type Disk struct {
 	// Defaults to false.
 	// +optional
 	DedicatedIOThread *bool `json:"dedicatedIOThread,omitempty"`
+	// Cache specifies which kvm disk cache mode should be used
+	// +optional
+	Cache DriverCache `json:"cache,omitempty"`
 }
 
 // Represents the target of a volume to mount.
@@ -270,6 +288,9 @@ type DiskTarget struct {
 	// ReadOnly.
 	// Defaults to false.
 	ReadOnly bool `json:"readonly,omitempty"`
+	// If specified, the virtual disk will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10
+	// +optional
+	PciAddress string `json:"pciAddress,omitempty"`
 }
 
 // ---
@@ -378,6 +399,11 @@ type VolumeSource struct {
 	// More info: https://kubernetes.io/docs/concepts/configuration/secret/
 	// +optional
 	Secret *SecretVolumeSource `json:"secret,omitempty"`
+	// ServiceAccountVolumeSource represents a reference to a service account.
+	// There can only be one volume of this type!
+	// More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+	// +optional
+	ServiceAccount *ServiceAccountVolumeSource `json:"serviceAccount,omitempty"`
 }
 
 // ---
@@ -825,8 +851,9 @@ type Network struct {
 // ---
 // +k8s:openapi-gen=true
 type NetworkSource struct {
-	Pod    *PodNetwork    `json:"pod,omitempty"`
-	Multus *MultusNetwork `json:"multus,omitempty"`
+	Pod    *PodNetwork `json:"pod,omitempty"`
+	Multus *CniNetwork `json:"multus,omitempty"`
+	Genie  *CniNetwork `json:"genie,omitempty"`
 }
 
 // Represents the stock pod network interface.
@@ -844,10 +871,11 @@ type PodNetwork struct {
 type Rng struct {
 }
 
-// Represents the multus cni network.
+// Represents the cni network.
 // ---
 // +k8s:openapi-gen=true
-type MultusNetwork struct {
+type CniNetwork struct {
 	// References to a NetworkAttachmentDefinition CRD object in the same namespace.
+	// In case of genie, it references the CNI plugin name.
 	NetworkName string `json:"networkName"`
 }

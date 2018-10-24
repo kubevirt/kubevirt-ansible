@@ -28,13 +28,11 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-
-	"k8s.io/apimachinery/pkg/types"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/util/subresources"
@@ -330,7 +328,11 @@ func (v *vmis) asyncSubresourceHelper(name string, resource string) (StreamInter
 		response, err := wrappedRoundTripper.RoundTrip(req)
 
 		if err != nil {
-			errChan <- &AsyncSubresourceError{err: err.Error(), StatusCode: response.StatusCode}
+			statusCode := 0
+			if response != nil {
+				statusCode = response.StatusCode
+			}
+			errChan <- &AsyncSubresourceError{err: err.Error(), StatusCode: statusCode}
 			return
 		}
 

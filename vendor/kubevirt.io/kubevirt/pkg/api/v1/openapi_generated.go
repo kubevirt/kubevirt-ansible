@@ -35,6 +35,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/kubevirt/pkg/api/v1.ClockOffset":                               schema_kubevirt_pkg_api_v1_ClockOffset(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.ClockOffsetUTC":                            schema_kubevirt_pkg_api_v1_ClockOffsetUTC(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource":                    schema_kubevirt_pkg_api_v1_CloudInitNoCloudSource(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.CniNetwork":                                schema_kubevirt_pkg_api_v1_CniNetwork(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource":                     schema_kubevirt_pkg_api_v1_ConfigMapVolumeSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource":                          schema_kubevirt_pkg_api_v1_DataVolumeSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Devices":                                   schema_kubevirt_pkg_api_v1_Devices(ref),
@@ -65,7 +66,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/kubevirt/pkg/api/v1.LunTarget":                                 schema_kubevirt_pkg_api_v1_LunTarget(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Machine":                                   schema_kubevirt_pkg_api_v1_Machine(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Memory":                                    schema_kubevirt_pkg_api_v1_Memory(ref),
-		"kubevirt.io/kubevirt/pkg/api/v1.MultusNetwork":                             schema_kubevirt_pkg_api_v1_MultusNetwork(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Network":                                   schema_kubevirt_pkg_api_v1_Network(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.NetworkSource":                             schema_kubevirt_pkg_api_v1_NetworkSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.PITTimer":                                  schema_kubevirt_pkg_api_v1_PITTimer(ref),
@@ -76,12 +76,17 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/kubevirt/pkg/api/v1.ResourceRequirements":                      schema_kubevirt_pkg_api_v1_ResourceRequirements(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Rng":                                       schema_kubevirt_pkg_api_v1_Rng(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource":                        schema_kubevirt_pkg_api_v1_SecretVolumeSource(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.ServiceAccountVolumeSource":                schema_kubevirt_pkg_api_v1_ServiceAccountVolumeSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Timer":                                     schema_kubevirt_pkg_api_v1_Timer(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachine":                            schema_kubevirt_pkg_api_v1_VirtualMachine(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineCondition":                   schema_kubevirt_pkg_api_v1_VirtualMachineCondition(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstance":                    schema_kubevirt_pkg_api_v1_VirtualMachineInstance(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceCondition":           schema_kubevirt_pkg_api_v1_VirtualMachineInstanceCondition(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceList":                schema_kubevirt_pkg_api_v1_VirtualMachineInstanceList(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigration":           schema_kubevirt_pkg_api_v1_VirtualMachineInstanceMigration(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationList":       schema_kubevirt_pkg_api_v1_VirtualMachineInstanceMigrationList(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationSpec":       schema_kubevirt_pkg_api_v1_VirtualMachineInstanceMigrationSpec(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationStatus":     schema_kubevirt_pkg_api_v1_VirtualMachineInstanceMigrationStatus(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceNetworkInterface":    schema_kubevirt_pkg_api_v1_VirtualMachineInstanceNetworkInterface(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstancePreset":              schema_kubevirt_pkg_api_v1_VirtualMachineInstancePreset(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstancePresetList":          schema_kubevirt_pkg_api_v1_VirtualMachineInstancePresetList(ref),
@@ -279,6 +284,27 @@ func schema_kubevirt_pkg_api_v1_CloudInitNoCloudSource(ref common.ReferenceCallb
 	}
 }
 
+func schema_kubevirt_pkg_api_v1_CniNetwork(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Represents the cni network.",
+				Properties: map[string]spec.Schema{
+					"networkName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "References to a NetworkAttachmentDefinition CRD object in the same namespace. In case of genie, it references the CNI plugin name.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"networkName"},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_kubevirt_pkg_api_v1_ConfigMapVolumeSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -383,6 +409,20 @@ func schema_kubevirt_pkg_api_v1_Devices(ref common.ReferenceCallback) common.Ope
 							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.Rng"),
 						},
 					},
+					"blockMultiQueue": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Whether or not to enable virtio multi-queue for block devices",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"networkInterfaceMultiqueue": {
+						SchemaProps: spec.SchemaProps{
+							Description: "If specified, virtual network interfaces configured with a virtio bus will also enable the vhost multiqueue feature",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -455,6 +495,13 @@ func schema_kubevirt_pkg_api_v1_Disk(ref common.ReferenceCallback) common.OpenAP
 							Format:      "",
 						},
 					},
+					"cache": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Cache specifies which kvm disk cache mode should be used",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"name", "volumeName"},
 			},
@@ -518,6 +565,13 @@ func schema_kubevirt_pkg_api_v1_DiskTarget(ref common.ReferenceCallback) common.
 						SchemaProps: spec.SchemaProps{
 							Description: "ReadOnly. Defaults to false.",
 							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"pciAddress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "If specified, the virtual disk will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10",
+							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
@@ -1208,27 +1262,6 @@ func schema_kubevirt_pkg_api_v1_Memory(ref common.ReferenceCallback) common.Open
 	}
 }
 
-func schema_kubevirt_pkg_api_v1_MultusNetwork(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Represents the multus cni network.",
-				Properties: map[string]spec.Schema{
-					"networkName": {
-						SchemaProps: spec.SchemaProps{
-							Description: "References to a NetworkAttachmentDefinition CRD object in the same namespace.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"networkName"},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
 func schema_kubevirt_pkg_api_v1_Network(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1249,7 +1282,12 @@ func schema_kubevirt_pkg_api_v1_Network(ref common.ReferenceCallback) common.Ope
 					},
 					"multus": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.MultusNetwork"),
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.CniNetwork"),
+						},
+					},
+					"genie": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.CniNetwork"),
 						},
 					},
 				},
@@ -1257,7 +1295,7 @@ func schema_kubevirt_pkg_api_v1_Network(ref common.ReferenceCallback) common.Ope
 			},
 		},
 		Dependencies: []string{
-			"kubevirt.io/kubevirt/pkg/api/v1.MultusNetwork", "kubevirt.io/kubevirt/pkg/api/v1.PodNetwork"},
+			"kubevirt.io/kubevirt/pkg/api/v1.CniNetwork", "kubevirt.io/kubevirt/pkg/api/v1.PodNetwork"},
 	}
 }
 
@@ -1274,14 +1312,19 @@ func schema_kubevirt_pkg_api_v1_NetworkSource(ref common.ReferenceCallback) comm
 					},
 					"multus": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.MultusNetwork"),
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.CniNetwork"),
+						},
+					},
+					"genie": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.CniNetwork"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"kubevirt.io/kubevirt/pkg/api/v1.MultusNetwork", "kubevirt.io/kubevirt/pkg/api/v1.PodNetwork"},
+			"kubevirt.io/kubevirt/pkg/api/v1.CniNetwork", "kubevirt.io/kubevirt/pkg/api/v1.PodNetwork"},
 	}
 }
 
@@ -1502,6 +1545,26 @@ func schema_kubevirt_pkg_api_v1_SecretVolumeSource(ref common.ReferenceCallback)
 						SchemaProps: spec.SchemaProps{
 							Description: "Specify whether the Secret or it's keys must be defined",
 							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_kubevirt_pkg_api_v1_ServiceAccountVolumeSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServiceAccountVolumeSource adapts a ServiceAccount into a volume.",
+				Properties: map[string]spec.Schema{
+					"serviceAccountName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the service account in the pod's namespace to use. More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
+							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
@@ -1786,6 +1849,133 @@ func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceList(ref common.ReferenceC
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstance"},
+	}
+}
+
+func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceMigration(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VirtualMachineInstanceMigration represents the object tracking a VMI's migration to another host in the cluster",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationSpec", "kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationStatus"},
+	}
+}
+
+func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceMigrationList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VirtualMachineInstanceMigrationList is a list of VirtualMachineMigrations",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigration"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigration"},
+	}
+}
+
+func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceMigrationSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"vmiName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The name of the VMI to perform the migration on. VMI must exist in the migration objects namespace",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceMigrationStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "VirtualMachineInstanceMigration reprents information pertaining to a VMI's migration.",
+				Properties: map[string]spec.Schema{
+					"phase": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 
@@ -2297,11 +2487,17 @@ func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceStatus(ref common.Referenc
 							},
 						},
 					},
+					"migrationState": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Represents the status of a live migration",
+							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationState"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceCondition", "kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceNetworkInterface"},
+			"kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceCondition", "kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationState", "kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceNetworkInterface"},
 	}
 }
 
@@ -2525,12 +2721,18 @@ func schema_kubevirt_pkg_api_v1_Volume(ref common.ReferenceCallback) common.Open
 							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource"),
 						},
 					},
+					"serviceAccount": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServiceAccountVolumeSource represents a reference to a service account. There can only be one volume of this type! More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
+							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.ServiceAccountVolumeSource"),
+						},
+					},
 				},
 				Required: []string{"name"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource", "kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.EmptyDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.EphemeralVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.HostDisk", "kubevirt.io/kubevirt/pkg/api/v1.RegistryDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource"},
+			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource", "kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.EmptyDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.EphemeralVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.HostDisk", "kubevirt.io/kubevirt/pkg/api/v1.RegistryDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.ServiceAccountVolumeSource"},
 	}
 }
 
@@ -2594,11 +2796,17 @@ func schema_kubevirt_pkg_api_v1_VolumeSource(ref common.ReferenceCallback) commo
 							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource"),
 						},
 					},
+					"serviceAccount": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServiceAccountVolumeSource represents a reference to a service account. There can only be one volume of this type! More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
+							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.ServiceAccountVolumeSource"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource", "kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.EmptyDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.EphemeralVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.HostDisk", "kubevirt.io/kubevirt/pkg/api/v1.RegistryDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource"},
+			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource", "kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.EmptyDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.EphemeralVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.HostDisk", "kubevirt.io/kubevirt/pkg/api/v1.RegistryDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.ServiceAccountVolumeSource"},
 	}
 }
 
