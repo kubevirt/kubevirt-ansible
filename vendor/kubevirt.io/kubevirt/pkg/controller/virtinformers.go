@@ -24,23 +24,19 @@ import (
 	"sync"
 	"time"
 
+	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
-
-	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/datavolumecontroller/v1alpha1"
 	cdiv1informers "kubevirt.io/containerized-data-importer/pkg/client/informers/externalversions"
-
 	kubev1 "kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/testutils"
 )
-
-const systemNamespace = "kube-system"
 
 type newSharedInformer func() cache.SharedIndexInformer
 
@@ -67,6 +63,9 @@ type KubeInformerFactory interface {
 	// VirtualMachine handles the VMIs that are stopped or not running
 	VirtualMachine() cache.SharedIndexInformer
 
+	// Watches VirtualMachineInstanceMigration objects
+	VirtualMachineInstanceMigration() cache.SharedIndexInformer
+
 	// Watches for ConfigMap objects
 	ConfigMap() cache.SharedIndexInformer
 
@@ -89,18 +88,20 @@ type kubeInformerFactory struct {
 	lock          sync.Mutex
 	defaultResync time.Duration
 
-	informers        map[string]cache.SharedIndexInformer
-	startedInformers map[string]bool
+	informers         map[string]cache.SharedIndexInformer
+	startedInformers  map[string]bool
+	kubevirtNamespace string
 }
 
-func NewKubeInformerFactory(restClient *rest.RESTClient, clientSet kubecli.KubevirtClient) KubeInformerFactory {
+func NewKubeInformerFactory(restClient *rest.RESTClient, clientSet kubecli.KubevirtClient, kubevirtNamespace string) KubeInformerFactory {
 	return &kubeInformerFactory{
 		restClient: restClient,
 		clientSet:  clientSet,
 		// Resulting resync period will be between 12 and 24 hours, like the default for k8s
-		defaultResync:    resyncPeriod(12 * time.Hour),
-		informers:        make(map[string]cache.SharedIndexInformer),
-		startedInformers: make(map[string]bool),
+		defaultResync:     resyncPeriod(12 * time.Hour),
+		informers:         make(map[string]cache.SharedIndexInformer),
+		startedInformers:  make(map[string]bool),
+		kubevirtNamespace: kubevirtNamespace,
 	}
 }
 
@@ -161,6 +162,13 @@ func (f *kubeInformerFactory) VirtualMachinePreset() cache.SharedIndexInformer {
 	})
 }
 
+func (f *kubeInformerFactory) VirtualMachineInstanceMigration() cache.SharedIndexInformer {
+	return f.getInformer("vmimInformer", func() cache.SharedIndexInformer {
+		lw := cache.NewListWatchFromClient(f.restClient, "virtualmachineinstancemigrations", k8sv1.NamespaceAll, fields.Everything())
+		return cache.NewSharedIndexInformer(lw, &kubev1.VirtualMachineInstanceMigration{}, f.defaultResync, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
+	})
+}
+
 func (f *kubeInformerFactory) KubeVirtPod() cache.SharedIndexInformer {
 	return f.getInformer("kubeVirtPodInformer", func() cache.SharedIndexInformer {
 		// Watch all pods with the kubevirt app label
@@ -204,11 +212,10 @@ func (f *kubeInformerFactory) DummyDataVolume() cache.SharedIndexInformer {
 }
 
 func (f *kubeInformerFactory) ConfigMap() cache.SharedIndexInformer {
-	// We currently only monitor configmaps in the kube-system namespace
 	return f.getInformer("configMapInformer", func() cache.SharedIndexInformer {
 		restClient := f.clientSet.CoreV1().RESTClient()
 		fieldSelector := fields.OneTermEqualSelector("metadata.name", "kubevirt-config")
-		lw := cache.NewListWatchFromClient(restClient, "configmaps", systemNamespace, fieldSelector)
+		lw := cache.NewListWatchFromClient(restClient, "configmaps", f.kubevirtNamespace, fieldSelector)
 		return cache.NewSharedIndexInformer(lw, &k8sv1.ConfigMap{}, f.defaultResync, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc})
 	})
 }

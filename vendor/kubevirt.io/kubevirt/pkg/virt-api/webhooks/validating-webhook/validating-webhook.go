@@ -27,17 +27,17 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/resource"
-
 	v1beta1 "k8s.io/api/admission/v1beta1"
+	k8sv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	k8sfield "k8s.io/apimachinery/pkg/util/validation/field"
-
-	"k8s.io/apimachinery/pkg/labels"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/feature-gates"
@@ -159,6 +159,37 @@ func validateDisks(field *k8sfield.Path, disks []v1.Disk) []metav1.StatusCause {
 			})
 		}
 
+		// Verify pci address
+		if disk.Disk != nil && disk.Disk.PciAddress != "" {
+			if disk.Disk.Bus != "virtio" {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("disk %s - setting a PCI address is only possible with bus type virtio.", field.Child("domain", "devices", "disks", "disk").Index(idx).Child("name").String()),
+					Field:   field.Child("domain", "devices", "disks", "disk").Index(idx).Child("pciAddress").String(),
+				})
+			}
+
+			dbsfFields, err := util.ParsePciAddress(disk.Disk.PciAddress)
+			if err != nil {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("disk %s has malformed PCI address (%s).", field.Child("domain", "devices", "disks", "disk").Index(idx).Child("name").String(), disk.Disk.PciAddress),
+					Field:   field.Child("domain", "devices", "disks", "disk").Index(idx).Child("pciAddress").String(),
+				})
+			} else {
+				// make sure that slot is > 2. first 3 slots are reserved
+				if pciSlot, _ := strconv.Atoi(dbsfFields[2]); pciSlot < 3 {
+					causes = append(causes, metav1.StatusCause{
+						Type:    metav1.CauseTypeFieldValueInvalid,
+						Message: fmt.Sprintf("disks %s PCI address slot (%s) should be greater than 2.", field.Child("domain", "devices", "disks", "disk").Index(idx).Child("name").String(), dbsfFields[2]),
+						Field:   field.Child("domain", "devices", "disks", "disk").Index(idx).Child("pciAddress").String(),
+					})
+
+				}
+			}
+
+		}
+
 		// Verify boot order is greater than 0, if provided
 		if disk.BootOrder != nil && *disk.BootOrder < 1 {
 			causes = append(causes, metav1.StatusCause{
@@ -186,6 +217,15 @@ func validateDisks(field *k8sfield.Path, disks []v1.Disk) []metav1.StatusCause {
 				Field:   field.Index(idx).Child("serial").String(),
 			})
 		}
+
+		// Verify if cache mode is valid
+		if disk.Cache != "" && disk.Cache != v1.CacheNone && disk.Cache != v1.CacheWriteThrough {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s has invalid value %s", field.Index(idx).Child("cache").String(), disk.Cache),
+				Field:   field.Index(idx).Child("cache").String(),
+			})
+		}
 	}
 
 	return causes
@@ -204,6 +244,10 @@ func validateVolumes(field *k8sfield.Path, volumes []v1.Volume) []metav1.StatusC
 		// We won't process anything over the limit
 		return causes
 	}
+
+	// check that we have max 1 serviceAccount volume
+	serviceAccountVolumeCount := 0
+
 	for idx, volume := range volumes {
 		// verify name is unique
 		otherIdx, ok := nameMap[volume.Name]
@@ -260,6 +304,10 @@ func validateVolumes(field *k8sfield.Path, volumes []v1.Volume) []metav1.StatusC
 		}
 		if volume.Secret != nil {
 			volumeSourceSetCount++
+		}
+		if volume.ServiceAccount != nil {
+			volumeSourceSetCount++
+			serviceAccountVolumeCount++
 		}
 
 		if volumeSourceSetCount != 1 {
@@ -360,7 +408,26 @@ func validateVolumes(field *k8sfield.Path, volumes []v1.Volume) []metav1.StatusC
 				})
 			}
 		}
+
+		if volume.ServiceAccount != nil {
+			if volume.ServiceAccount.ServiceAccountName == "" {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("%s is a required field", field.Index(idx).Child("serviceAccount", "serviceAccountName").String()),
+					Field:   field.Index(idx).Child("serviceAccount", "serviceAccountName").String(),
+				})
+			}
+		}
 	}
+
+	if serviceAccountVolumeCount > 1 {
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("%s must have max one serviceAccount volume set", field.String()),
+			Field:   field.String(),
+		})
+	}
+
 	return causes
 }
 
@@ -727,28 +794,58 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 	}
 
 	if len(spec.Networks) > 0 && len(spec.Domain.Devices.Interfaces) > 0 {
+		multusExists := false
+		genieExists := false
+		podExists := false
+
 		for idx, network := range spec.Networks {
-			if network.Pod == nil && network.Multus == nil {
+
+			cniTypesCount := 0
+			// network name not needed by default
+			networkNameExistsOrNotNeeded := true
+
+			if network.Pod != nil {
+				cniTypesCount++
+				podExists = true
+			}
+
+			if network.NetworkSource.Multus != nil {
+				cniTypesCount++
+				multusExists = true
+				networkNameExistsOrNotNeeded = network.Multus.NetworkName != ""
+			}
+
+			if network.NetworkSource.Genie != nil {
+				cniTypesCount++
+				genieExists = true
+				networkNameExistsOrNotNeeded = network.Genie.NetworkName != ""
+			}
+
+			if cniTypesCount == 0 {
 				causes = append(causes, metav1.StatusCause{
 					Type:    metav1.CauseTypeFieldValueRequired,
 					Message: fmt.Sprintf("should have a network type"),
-					Field:   field.Child("networks").Index(idx).Child("pod").String(),
+					Field:   field.Child("networks").Index(idx).String(),
 				})
-			}
-
-			if network.Pod != nil && network.Multus != nil {
+			} else if cniTypesCount > 1 {
 				causes = append(causes, metav1.StatusCause{
 					Type:    metav1.CauseTypeFieldValueRequired,
 					Message: fmt.Sprintf("should have only one network type"),
 					Field:   field.Child("networks").Index(idx).String(),
 				})
-			}
-
-			if network.Multus != nil && network.Multus.NetworkName == "" {
+			} else if genieExists && (podExists || multusExists) {
 				causes = append(causes, metav1.StatusCause{
 					Type:    metav1.CauseTypeFieldValueRequired,
-					Message: fmt.Sprintf("multus network must have a networkName"),
-					Field:   field.Child("networks").Index(idx).Child("multus").String(),
+					Message: fmt.Sprintf("cannot combine Genie with other CNIs across networks"),
+					Field:   field.Child("networks").Index(idx).String(),
+				})
+			}
+
+			if !networkNameExistsOrNotNeeded {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueRequired,
+					Message: fmt.Sprintf("CNI delegating plugin must have a networkName"),
+					Field:   field.Child("networks").Index(idx).String(),
 				})
 			}
 
@@ -760,6 +857,9 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 
 		// Make sure the port name is unique across all the interfaces
 		portForwardMap := make(map[string]struct{})
+
+		vifMQ := spec.Domain.Devices.NetworkInterfaceMultiQueue
+		isVirtioNicRequested := false
 
 		// Validate that each interface has a matching network
 		for idx, iface := range spec.Domain.Devices.Interfaces {
@@ -907,6 +1007,20 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 					})
 				}
 			}
+			if iface.Model == "virtio" || iface.Model == "" {
+				isVirtioNicRequested = true
+			}
+
+		}
+		// Network interface multiqueue can only be set for a virtio driver
+		if vifMQ != nil && *vifMQ && !isVirtioNicRequested {
+
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("virtio-net multiqueue request, but there are no virtio interfaces defined"),
+				Field:   field.Child("domain", "devices", "networkInterfaceMultiqueue").String(),
+			})
+
 		}
 
 		// Validate that every network was assign to an interface
@@ -917,6 +1031,24 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 				Field:   field.Child("networks").String(),
 			})
 		}
+	}
+
+	_, requestOk := spec.Domain.Resources.Requests[k8sv1.ResourceCPU]
+	_, limitOK := spec.Domain.Resources.Limits[k8sv1.ResourceCPU]
+	isCPUResourcesSet := (requestOk == true) || (limitOK == true)
+	if !isCPUResourcesSet && (spec.Domain.Devices.BlockMultiQueue != nil) && (*spec.Domain.Devices.BlockMultiQueue == true) {
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("MultiQueue for block devices can't be used without specifying CPU requests or limits."),
+			Field:   field.Child("domain", "devices", "blockMultiQueue").String(),
+		})
+	}
+	if !isCPUResourcesSet && (spec.Domain.Devices.NetworkInterfaceMultiQueue != nil) && (*spec.Domain.Devices.NetworkInterfaceMultiQueue == true) {
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("MultiQueue for network interfaces can't be used without specifying CPU requests or limits."),
+			Field:   field.Child("domain", "devices", "networkInterfaceMultiqueue").String(),
+		})
 	}
 
 	if spec.Domain.IOThreadsPolicy != nil {
@@ -1028,6 +1160,20 @@ func ValidateVMIRSSpec(field *k8sfield.Path, spec *v1.VirtualMachineInstanceRepl
 			Type:    metav1.CauseTypeFieldValueInvalid,
 			Message: fmt.Sprintf("selector does not match labels."),
 			Field:   field.Child("selector").String(),
+		})
+	}
+
+	return causes
+}
+
+func ValidateVirtualMachineInstanceMigrationSpec(field *k8sfield.Path, spec *v1.VirtualMachineInstanceMigrationSpec) []metav1.StatusCause {
+	var causes []metav1.StatusCause
+
+	if spec.VMIName == "" {
+		return append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueRequired,
+			Message: fmt.Sprintf("vmiName is missing"),
+			Field:   field.Child("vmiName").String(),
 		})
 	}
 
@@ -1208,4 +1354,113 @@ func admitVMIPreset(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 func ServeVMIPreset(resp http.ResponseWriter, req *http.Request) {
 	serve(resp, req, admitVMIPreset)
+}
+
+func getAdmissionReviewMigration(ar *v1beta1.AdmissionReview) (new *v1.VirtualMachineInstanceMigration, old *v1.VirtualMachineInstanceMigration, err error) {
+	migrationResource := metav1.GroupVersionResource{
+		Group:    v1.VirtualMachineInstanceMigrationGroupVersionKind.Group,
+		Version:  v1.VirtualMachineInstanceMigrationGroupVersionKind.Version,
+		Resource: "virtualmachineinstancemigrations",
+	}
+	if ar.Request.Resource != migrationResource {
+		return nil, nil, fmt.Errorf("expect resource to be '%s'", migrationResource)
+	}
+
+	raw := ar.Request.Object.Raw
+	newMigration := v1.VirtualMachineInstanceMigration{}
+
+	err = json.Unmarshal(raw, &newMigration)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if ar.Request.Operation == v1beta1.Update {
+		raw := ar.Request.OldObject.Raw
+		oldMigration := v1.VirtualMachineInstanceMigration{}
+		err = json.Unmarshal(raw, &oldMigration)
+		if err != nil {
+			return nil, nil, err
+		}
+		return &newMigration, &oldMigration, nil
+	}
+
+	return &newMigration, nil, nil
+}
+
+func admitMigrationCreate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	migration, _, err := getAdmissionReviewMigration(ar)
+	if err != nil {
+		return webhooks.ToAdmissionResponseError(err)
+	}
+
+	if !featuregates.LiveMigrationEnabled() {
+		return webhooks.ToAdmissionResponseError(fmt.Errorf("LiveMigration feature gate is not enabled in kubevirt-config"))
+	}
+
+	causes := ValidateVirtualMachineInstanceMigrationSpec(k8sfield.NewPath("spec"), &migration.Spec)
+	if len(causes) > 0 {
+		return toAdmissionResponse(causes)
+	}
+
+	informers := webhooks.GetInformers()
+	cacheKey := fmt.Sprintf("%s/%s", migration.Namespace, migration.Spec.VMIName)
+	obj, exists, err := informers.VMIInformer.GetStore().GetByKey(cacheKey)
+	if err != nil {
+		return webhooks.ToAdmissionResponseError(err)
+	}
+
+	// ensure VMI exists for the migration
+	if !exists {
+		return webhooks.ToAdmissionResponseError(fmt.Errorf("the VMI %s does not exist under the cache", migration.Spec.VMIName))
+	}
+	vmi := obj.(*v1.VirtualMachineInstance)
+
+	// Don't allow introducing a migration job for a VMI that has already finalized
+	if vmi.IsFinal() {
+		return webhooks.ToAdmissionResponseError(fmt.Errorf("Cannot migrated VMI in finalized state."))
+	}
+
+	// Don't allow new migration jobs to be introduced when previous migration jobs
+	// are already in flight.
+	if vmi.Status.MigrationState != nil &&
+		string(vmi.Status.MigrationState.MigrationUID) != "" &&
+		!vmi.Status.MigrationState.Completed &&
+		!vmi.Status.MigrationState.Failed {
+
+		return webhooks.ToAdmissionResponseError(fmt.Errorf("in-flight migration detected. Active migration job (%s) is currently already in progress for VMI %s.", string(vmi.Status.MigrationState.MigrationUID), vmi.Name))
+	}
+
+	reviewResponse := v1beta1.AdmissionResponse{}
+	reviewResponse.Allowed = true
+	return &reviewResponse
+}
+
+func ServeMigrationCreate(resp http.ResponseWriter, req *http.Request) {
+	serve(resp, req, admitMigrationCreate)
+}
+
+func admitMigrationUpdate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	// Get new migration from admission response
+	newMigration, oldMigration, err := getAdmissionReviewMigration(ar)
+	if err != nil {
+		return webhooks.ToAdmissionResponseError(err)
+	}
+
+	// Reject Migration update if spec changed
+	if !reflect.DeepEqual(newMigration.Spec, oldMigration.Spec) {
+		return toAdmissionResponse([]metav1.StatusCause{
+			metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueNotSupported,
+				Message: "update of Migration object's spec is restricted",
+			},
+		})
+	}
+
+	reviewResponse := v1beta1.AdmissionResponse{}
+	reviewResponse.Allowed = true
+	return &reviewResponse
+}
+
+func ServeMigrationUpdate(resp http.ResponseWriter, req *http.Request) {
+	serve(resp, req, admitMigrationUpdate)
 }

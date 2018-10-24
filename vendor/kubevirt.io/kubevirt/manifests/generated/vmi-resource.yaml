@@ -53,12 +53,16 @@ spec:
                       type: boolean
                     autoattachPodInterface:
                       type: boolean
+                    blockMultiQueue:
+                      type: boolean
                     disks:
                       items:
                         properties:
                           bootOrder:
                             format: int32
                             type: integer
+                          cache:
+                            type: string
                           cdrom:
                             properties:
                               bus:
@@ -72,6 +76,8 @@ spec:
                           disk:
                             properties:
                               bus:
+                                type: string
+                              pciAddress:
                                 type: string
                               readonly:
                                 type: boolean
@@ -129,6 +135,8 @@ spec:
                         required:
                         - name
                       type: array
+                    networkInterfaceMultiqueue:
+                      type: boolean
                     rng: {}
                     watchdog:
                       properties:
@@ -229,6 +237,12 @@ spec:
             networks:
               items:
                 properties:
+                  genie:
+                    properties:
+                      networkName:
+                        type: string
+                    required:
+                    - networkName
                   multus:
                     properties:
                       networkName:
@@ -311,6 +325,10 @@ spec:
                         type: boolean
                       secretName:
                         type: string
+                  serviceAccount:
+                    properties:
+                      serviceAccountName:
+                        type: string
                 required:
                 - name
               type: array
@@ -343,6 +361,7 @@ spec:
                   mac:
                     type: string
               type: array
+            migrationState: {}
             nodeName:
               type: string
             phase:

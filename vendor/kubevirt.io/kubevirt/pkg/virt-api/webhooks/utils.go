@@ -26,14 +26,15 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/golang/glog"
 	v1beta1 "k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/client-go/tools/cache"
 
 	"kubevirt.io/kubevirt/pkg/controller"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
+	"kubevirt.io/kubevirt/pkg/util"
 )
 
 var webhookInformers *Informers
@@ -42,6 +43,7 @@ var once sync.Once
 type Informers struct {
 	VMIPresetInformer       cache.SharedIndexInformer
 	NamespaceLimitsInformer cache.SharedIndexInformer
+	VMIInformer             cache.SharedIndexInformer
 }
 
 func GetInformers() *Informers {
@@ -63,9 +65,14 @@ func newInformers() *Informers {
 	if err != nil {
 		panic(err)
 	}
-	kubeInformerFactory := controller.NewKubeInformerFactory(kubeClient.RestClient(), kubeClient)
+	namespace, err := util.GetNamespace()
+	if err != nil {
+		glog.Fatalf("Error searching for namespace: %v", err)
+	}
+	kubeInformerFactory := controller.NewKubeInformerFactory(kubeClient.RestClient(), kubeClient, namespace)
 	kubeInformerFactory.VMI()
 	return &Informers{
+		VMIInformer:             kubeInformerFactory.VMI(),
 		VMIPresetInformer:       kubeInformerFactory.VirtualMachinePreset(),
 		NamespaceLimitsInformer: kubeInformerFactory.LimitRanges(),
 	}

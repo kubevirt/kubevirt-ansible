@@ -1,5 +1,5 @@
-hash: 6e9e2ce81edeb5789893f4369e854a8ec66a3bf12488299fffb037d5f72e95d6
-updated: 2018-09-25T07:19:42.538982054Z
+hash: 5bc1765ffd3f10b5054e52016379d1e466e9f0afedd580ae82f3c1ef9475e7ad
+updated: 2018-10-17T14:44:40.553752937-04:00
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
@@ -56,13 +56,13 @@ imports:
 - name: github.com/go-logfmt/logfmt
   version: 390ab7935ee28ec6b286364bba9b4dd6410cb3d5
 - name: github.com/go-openapi/jsonpointer
-  version: 52eb3d4b47c6a51ce2693c8e614a15a07c1af435
+  version: ef5f0afec364d3b9396b7b77b43dbe26bf1f8004
 - name: github.com/go-openapi/jsonreference
-  version: 1c6a3fa339f2743b7b0fd2b842fc455eca2fa9eb
+  version: 8483a886a90412cd6858df4ea3483dce9c8e35a3
 - name: github.com/go-openapi/spec
-  version: f1468acb3b29cdd5c5f6fa29435d2d2d6e6c9ff1
+  version: 5bae59e25b21498baea7f9d46e9c147ec106a42e
 - name: github.com/go-openapi/swag
-  version: dd0dad036e67ae93c27dc64337b3f76296f3a5f0
+  version: 5899d5c5e619fda5fa86e14795a835f473ca284c
 - name: github.com/go-stack/stack
   version: 2fee6af1a9795aafbe0253a0cfbdf668e1fb8a9a
 - name: github.com/gogo/protobuf
@@ -72,8 +72,6 @@ imports:
   - proto
   - protoc-gen-gogo/descriptor
   - sortkeys
-- name: github.com/golang/glog
-  version: 44145f04b68cf362d9c4df2182967c2275eaefed
 - name: github.com/golang/groupcache
   version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
   subpackages:
@@ -93,7 +91,7 @@ imports:
 - name: github.com/google/btree
   version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/goexpect
-  version: 88b7cf98484152f464f685e94dc4334205362983
+  version: b18097df138928108f35d9eb94955cc12954c0d5
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/google/goterm
@@ -141,7 +139,7 @@ imports:
 - name: github.com/kr/logfmt
   version: b84e30acd515aadc4b783ad4ff83aff3299bdfe0
 - name: github.com/krolaw/dhcp4
-  version: 054a8f9eea918b9693b7b24ab027788e5a6182da
+  version: 7cead472c414711982509839c1a6a324d4c70ce6
   subpackages:
   - conn
 - name: github.com/libvirt/libvirt-go
@@ -161,7 +159,7 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/onsi/ginkgo
-  version: 2445fc1ddb3b4d9738f16af50182d47878701cc3
+  version: aec9277ec956b65322f6ecee8196a5ff3a01be5f
   subpackages:
   - config
   - extensions/table
@@ -354,13 +352,13 @@ imports:
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/ini.v1
-  version: 5cf292cae48347c2490ac1a58fe36735fb78df7e
+  version: 9c8236e659b76e87bf02044d06fde8683008ff3e
 - name: gopkg.in/tomb.v1
   version: c131134a1947e9afd9cecfe11f4c6dff0732ae58
 - name: gopkg.in/yaml.v2
   version: 670d4cfef0544295bc27a114dbac37980d83185a
 - name: k8s.io/api
-  version: 4e7be11eab3ffcfc1876898b8272df53785a9504
+  version: 2d6f90ab1293a1fb871cf149423ebb72aa7423aa
   subpackages:
   - admission/v1beta1
   - admissionregistration/v1alpha1
@@ -394,12 +392,12 @@ imports:
   - storage/v1alpha1
   - storage/v1beta1
 - name: k8s.io/apiextensions-apiserver
-  version: b05d9bb7cc74a62c5daac9cef31894343e5d2c9b
+  version: 408db4a50408e2149acbd657bceb2480c13cb0a4
   subpackages:
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/v1beta1
 - name: k8s.io/apimachinery
-  version: def12e63c512da17043b4f0293f52d1006603d9f
+  version: 103fd098999dc9c0c88536f5c9ad2e5da39373ae
   subpackages:
   - pkg/api/errors
   - pkg/api/meta
@@ -449,7 +447,7 @@ imports:
   - third_party/forked/golang/netutil
   - third_party/forked/golang/reflect
 - name: k8s.io/client-go
-  version: 2cefa64ff137e128daeddbd1775cd775708a05bf
+  version: 1f13a808da65775f22cbf47862c4e5898d8f4ca1
   subpackages:
   - discovery
   - discovery/fake
@@ -558,7 +556,7 @@ imports:
   - util/retry
   - util/workqueue
 - name: k8s.io/kube-aggregator
-  version: 07bfdba27d43fe6b7eea965213b3aad555de2457
+  version: 8e086f01c3c3620eca0eb45024cf7eafc0c54ba1
   subpackages:
   - pkg/apis/apiregistration
   - pkg/apis/apiregistration/v1
@@ -573,7 +571,7 @@ imports:
   - pkg/common
   - pkg/util/proto
 - name: kubevirt.io/containerized-data-importer
-  version: 3096ecec40cb06401cce09537c4eeecd4e2d9b89
+  version: 8d7a20b86c9a2ed8ac31e26aab50e362f0c84475
   repo: https://github.com/kubevirt/containerized-data-importer.git
   subpackages:
   - pkg/apis/datavolumecontroller

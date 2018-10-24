@@ -218,6 +218,16 @@ rules:
   - apiGroups:
       - ''
     resources:
+      - configmaps
+    resourceNames:
+      - extension-apiserver-authentication
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ''
+    resources:
       - pods/exec
     verbs:
       - create
@@ -225,6 +235,7 @@ rules:
       - kubevirt.io
     resources:
       - virtualmachineinstances
+      - virtualmachineinstancemigrations
     verbs:
       - get
       - list
@@ -557,11 +568,13 @@ spec:
             - "8443"
             - "--hostname-override"
             - "$(NODE_NAME)"
+            - "--pod-ip-address"
+            - "$(MY_POD_IP)"
           securityContext:
             privileged: true
           volumeMounts:
-            - name: libvirt-runtime
-              mountPath: /var/run/libvirt
+            - name: libvirt-runtimes
+              mountPath: /var/run/kubevirt-libvirt-runtimes
             - name: virt-share-dir
               mountPath: /var/run/kubevirt
             - name: virt-private-dir
@@ -573,10 +586,14 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
       volumes:
-        - name: libvirt-runtime
+        - name: libvirt-runtimes
           hostPath:
-            path: /var/run/libvirt
+            path: /var/run/kubevirt-libvirt-runtimes
         - name: virt-share-dir
           hostPath:
             path: /var/run/kubevirt
@@ -590,3 +607,4 @@ spec:
 {{index .GeneratedManifests "vmirs-resource.yaml"}}
 {{index .GeneratedManifests "vmipreset-resource.yaml"}}
 {{index .GeneratedManifests "vm-resource.yaml"}}
+{{index .GeneratedManifests "vmim-resource.yaml"}}

@@ -20,26 +20,24 @@
 package utils
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-
-	"encoding/json"
-
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-
-	"kubevirt.io/kubevirt/pkg/api/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/datavolumecontroller/v1alpha1"
+	"kubevirt.io/kubevirt/pkg/api/v1"
 )
 
 const (
 	VmiEphemeral         = "vmi-ephemeral"
+	VmiMigratable        = "vmi-migratable"
 	VmiFlavorSmall       = "vmi-flavor-small"
 	VmiSata              = "vmi-sata"
 	VmiFedora            = "vmi-fedora"
@@ -51,6 +49,8 @@ const (
 	VmiWithHookSidecar   = "vmi-with-sidecar-hook"
 	VmiMultusPtp         = "vmi-multus-ptp"
 	VmiMultusMultipleNet = "vmi-multus-multiple-net"
+	VmiGeniePtp          = "vmi-genie-ptp"
+	VmiGenieMultipleNet  = "vmi-genie-multiple-net"
 	VmiHostDisk          = "vmi-host-disk"
 	VmTemplateFedora     = "vm-template-fedora"
 	VmTemplateRHEL7      = "vm-template-rhel7"
@@ -67,12 +67,15 @@ const VmiReplicaSetCirros = "vmi-replicaset-cirros"
 
 const VmiPresetSmall = "vmi-preset-small"
 
+const VmiMigration = "migration-job"
+
 const (
 	busVirtio = "virtio"
 	busSata   = "sata"
 )
 
 const (
+	imageAlpine = "alpine-registry-disk-demo"
 	imageCirros = "cirros-registry-disk-demo"
 	imageFedora = "fedora-cloud-registry-disk-demo"
 )
@@ -281,6 +284,13 @@ func addHostDisk(spec *v1.VirtualMachineInstanceSpec, path string, hostDiskType 
 	return spec
 }
 
+func GetVMIMigratable() *v1.VirtualMachineInstance {
+	vmi := getBaseVMI(VmiMigratable)
+
+	addRegistryDisk(&vmi.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageAlpine, DockerTag), busVirtio)
+	return vmi
+}
+
 func GetVMIEphemeral() *v1.VirtualMachineInstance {
 	vmi := getBaseVMI(VmiEphemeral)
 
@@ -322,7 +332,7 @@ func GetVMISlirp() *v1.VirtualMachineInstance {
 func GetVMIMultusPtp() *v1.VirtualMachineInstance {
 	vm := getBaseVMI(VmiMultusPtp)
 	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
-	vm.Spec.Networks = []v1.Network{{Name: "ptp", NetworkSource: v1.NetworkSource{Multus: &v1.MultusNetwork{NetworkName: "ptp-conf"}}}}
+	vm.Spec.Networks = []v1.Network{{Name: "ptp", NetworkSource: v1.NetworkSource{Multus: &v1.CniNetwork{NetworkName: "ptp-conf"}}}}
 	addRegistryDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
 	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" |passwd fedora --stdin\n")
 
@@ -334,7 +344,7 @@ func GetVMIMultusPtp() *v1.VirtualMachineInstance {
 func GetVMIMultusMultipleNet() *v1.VirtualMachineInstance {
 	vm := getBaseVMI(VmiMultusMultipleNet)
 	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
-	vm.Spec.Networks = []v1.Network{*v1.DefaultPodNetwork(), {Name: "ptp", NetworkSource: v1.NetworkSource{Multus: &v1.MultusNetwork{NetworkName: "ptp-conf"}}}}
+	vm.Spec.Networks = []v1.Network{*v1.DefaultPodNetwork(), {Name: "ptp", NetworkSource: v1.NetworkSource{Multus: &v1.CniNetwork{NetworkName: "ptp-conf"}}}}
 	addRegistryDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
 	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" |passwd fedora --stdin\ndhclient eth1\n")
 
@@ -344,6 +354,39 @@ func GetVMIMultusMultipleNet() *v1.VirtualMachineInstance {
 	return vm
 }
 
+func GetVMIGeniePtp() *v1.VirtualMachineInstance {
+	vm := getBaseVMI(VmiGeniePtp)
+	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
+	vm.Spec.Networks = []v1.Network{
+		{Name: "ptp", NetworkSource: v1.NetworkSource{Genie: &v1.CniNetwork{NetworkName: "ptp"}}},
+	}
+	addRegistryDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
+	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
+
+	vm.Spec.Domain.Devices.Interfaces = []v1.Interface{
+		{Name: "ptp", InterfaceBindingMethod: v1.InterfaceBindingMethod{Bridge: &v1.InterfaceBridge{}}},
+	}
+
+	return vm
+}
+
+func GetVMIGenieMultipleNet() *v1.VirtualMachineInstance {
+	vm := getBaseVMI(VmiGenieMultipleNet)
+	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
+	vm.Spec.Networks = []v1.Network{
+		{Name: "default", NetworkSource: v1.NetworkSource{Genie: &v1.CniNetwork{NetworkName: "flannel"}}},
+		{Name: "ptp", NetworkSource: v1.NetworkSource{Genie: &v1.CniNetwork{NetworkName: "ptp"}}},
+	}
+	addRegistryDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
+	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\ndhclient eth1\n")
+
+	vm.Spec.Domain.Devices.Interfaces = []v1.Interface{
+		{Name: "default", InterfaceBindingMethod: v1.InterfaceBindingMethod{Bridge: &v1.InterfaceBridge{}}},
+		{Name: "ptp", InterfaceBindingMethod: v1.InterfaceBindingMethod{Bridge: &v1.InterfaceBridge{}}},
+	}
+
+	return vm
+}
 func GetVMINoCloud() *v1.VirtualMachineInstance {
 	vmi := getBaseVMI(VmiNoCloud)
 
@@ -468,16 +511,8 @@ func GetVMCirros() *v1.VirtualMachine {
 }
 
 func GetTemplateFedora() *Template {
-	return newTemplateFedoraWithDockerTag(DockerTag)
-}
-
-func GetTestTemplateFedora() *Template {
-	return newTemplateFedoraWithDockerTag("latest")
-}
-
-func newTemplateFedoraWithDockerTag(dockerTag string) *Template {
 	vm := getBaseVM("", map[string]string{"kubevirt-vm": "vm-${NAME}", "kubevirt.io/os": "fedora27"})
-	addRegistryDisk(&vm.Spec.Template.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, dockerTag), busVirtio)
+	addRegistryDisk(&vm.Spec.Template.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
 	addNoCloudDiskWitUserData(&vm.Spec.Template.Spec, "#cloud-config\npassword: fedora\nchpasswd: { expire: False }")
 
 	template := getBaseTemplate(vm, "4096Mi", "4")
@@ -726,6 +761,21 @@ func getBaseVMIPreset(name string, selectorLabels map[string]string) *v1.Virtual
 			Selector: metav1.LabelSelector{
 				MatchLabels: selectorLabels,
 			},
+		},
+	}
+}
+
+func GetVMIMigration() *v1.VirtualMachineInstanceMigration {
+	return &v1.VirtualMachineInstanceMigration{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: apiVersion,
+			Kind:       "VirtualMachineInstanceMigration",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: VmiMigration,
+		},
+		Spec: v1.VirtualMachineInstanceMigrationSpec{
+			VMIName: VmiMigratable,
 		},
 	}
 }

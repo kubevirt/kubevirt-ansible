@@ -3331,6 +3331,18 @@
      }
     }
    },
+   "v1.CniNetwork": {
+    "description": "Represents the cni network.",
+    "required": [
+     "networkName"
+    ],
+    "properties": {
+     "networkName": {
+      "description": "References to a NetworkAttachmentDefinition CRD object in the same namespace.\nIn case of genie, it references the CNI plugin name.",
+      "type": "string"
+     }
+    }
+   },
    "v1.ConfigMapVolumeSource": {
     "description": "ConfigMapVolumeSource adapts a ConfigMap into a volume.\nMore info: https://kubernetes.io/docs/concepts/storage/volumes/#configmap",
     "properties": {
@@ -3396,6 +3408,10 @@
       "description": "Whether to attach a pod network interface. Defaults to true.",
       "type": "boolean"
      },
+     "blockMultiQueue": {
+      "description": "Whether or not to enable virtio multi-queue for block devices\n+optional",
+      "type": "boolean"
+     },
      "disks": {
       "description": "Disks describes disks, cdroms, floppy and luns which are connected to the vmi.",
       "type": "array",
@@ -3409,6 +3425,10 @@
       "items": {
        "$ref": "#/definitions/v1.Interface"
       }
+     },
+     "networkInterfaceMultiqueue": {
+      "description": "If specified, virtual network interfaces configured with a virtio bus will also enable the vhost multiqueue feature\n+optional",
+      "type": "boolean"
      },
      "rng": {
       "description": "Whether to have random number generator from host\n+optional",
@@ -3430,6 +3450,10 @@
       "description": "BootOrder is an integer value \u003e 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach disk or interface that has a boot order must have a unique value.\nDisks without a boot order are not tried if a disk with a boot order exists.\n+optional",
       "type": "integer",
       "format": "integer"
+     },
+     "cache": {
+      "description": "Cache specifies which kvm disk cache mode should be used\n+optional",
+      "type": "string"
      },
      "cdrom": {
       "description": "Attach a volume as a cdrom to the vmi.",
@@ -3469,6 +3493,10 @@
     "properties": {
      "bus": {
       "description": "Bus indicates the type of disk device to emulate.\nsupported values: virtio, sata, scsi, ide.",
+      "type": "string"
+     },
+     "pciAddress": {
+      "description": "If specified, the virtual disk will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10\n+optional",
       "type": "string"
      },
      "readonly": {
@@ -3923,26 +3951,17 @@
      }
     }
    },
-   "v1.MultusNetwork": {
-    "description": "Represents the multus cni network.",
-    "required": [
-     "networkName"
-    ],
-    "properties": {
-     "networkName": {
-      "description": "References to a NetworkAttachmentDefinition CRD object in the same namespace.",
-      "type": "string"
-     }
-    }
-   },
    "v1.Network": {
     "description": "Network represents a network type and a resource that should be connected to the vm.",
     "required": [
      "name"
     ],
     "properties": {
+     "genie": {
+      "$ref": "#/definitions/v1.CniNetwork"
+     },
      "multus": {
-      "$ref": "#/definitions/v1.MultusNetwork"
+      "$ref": "#/definitions/v1.CniNetwork"
      },
      "name": {
       "description": "Network name.\nMust be a DNS_LABEL and unique within the vm.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
@@ -4403,6 +4422,15 @@
      }
     }
    },
+   "v1.ServiceAccountVolumeSource": {
+    "description": "ServiceAccountVolumeSource adapts a ServiceAccount into a volume.",
+    "properties": {
+     "serviceAccountName": {
+      "description": "Name of the service account in the pod's namespace to use.\nMore info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/",
+      "type": "string"
+     }
+    }
+   },
    "v1.Status": {
     "description": "Status is a return value for calls that don't return other objects.",
     "properties": {
@@ -4668,6 +4696,46 @@
      }
     }
    },
+   "v1.VirtualMachineInstanceMigrationState": {
+    "properties": {
+     "completed": {
+      "description": "Indicates the migration completed",
+      "type": "boolean"
+     },
+     "endTimestamp": {
+      "description": "The time the migration action ended",
+      "type": "string"
+     },
+     "failed": {
+      "description": "Indicates that the migration failed",
+      "type": "boolean"
+     },
+     "migrationUid": {
+      "description": "The VirtualMachineInstanceMigration object associated with this migration",
+      "type": "string"
+     },
+     "sourceNode": {
+      "description": "The source node that the VMI originated on",
+      "type": "string"
+     },
+     "startTimestamp": {
+      "description": "The time the migration action began",
+      "type": "string"
+     },
+     "targetNode": {
+      "description": "The target node that the VMI is moving to",
+      "type": "string"
+     },
+     "targetNodeAddress": {
+      "description": "The address of the target node to use for the migration",
+      "type": "string"
+     },
+     "targetNodeDomainDetected": {
+      "description": "The Target Node has seen the Domain Start Event",
+      "type": "boolean"
+     }
+    }
+   },
    "v1.VirtualMachineInstanceNetworkInterface": {
     "properties": {
      "ipAddress": {
@@ -4930,6 +4998,10 @@
        "$ref": "#/definitions/v1.VirtualMachineInstanceNetworkInterface"
       }
      },
+     "migrationState": {
+      "description": "Represents the status of a live migration",
+      "$ref": "#/definitions/v1.VirtualMachineInstanceMigrationState"
+     },
      "nodeName": {
       "description": "NodeName is the name where the VirtualMachineInstance is currently running.",
       "type": "string"
@@ -5071,6 +5143,10 @@
      "secret": {
       "description": "SecretVolumeSource represents a reference to a secret data in the same namespace.\nMore info: https://kubernetes.io/docs/concepts/configuration/secret/\n+optional",
       "$ref": "#/definitions/v1.SecretVolumeSource"
+     },
+     "serviceAccount": {
+      "description": "ServiceAccountVolumeSource represents a reference to a service account.\nThere can only be one volume of this type!\nMore info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/\n+optional",
+      "$ref": "#/definitions/v1.ServiceAccountVolumeSource"
      }
     }
    },
@@ -5157,6 +5233,9 @@
      },
      "s3": {
       "$ref": "#/definitions/v1alpha1.DataVolumeSourceS3"
+     },
+     "upload": {
+      "$ref": "#/definitions/v1alpha1.DataVolumeSourceUpload"
      }
     }
    },
@@ -5190,6 +5269,7 @@
      }
     }
    },
+   "v1alpha1.DataVolumeSourceUpload": {},
    "v1alpha1.DataVolumeSpec": {
     "required": [
      "source",

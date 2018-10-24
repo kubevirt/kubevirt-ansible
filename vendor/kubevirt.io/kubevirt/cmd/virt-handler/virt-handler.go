@@ -37,11 +37,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 
-	"kubevirt.io/kubevirt/pkg/util"
-
-	"kubevirt.io/kubevirt/pkg/certificates"
-
 	"kubevirt.io/kubevirt/pkg/api/v1"
+	"kubevirt.io/kubevirt/pkg/certificates"
 	"kubevirt.io/kubevirt/pkg/controller"
 	"kubevirt.io/kubevirt/pkg/inotify-informer"
 	"kubevirt.io/kubevirt/pkg/kubecli"
@@ -50,6 +47,7 @@ import (
 	_ "kubevirt.io/kubevirt/pkg/monitoring/reflector/prometheus" // import for prometheus metrics
 	_ "kubevirt.io/kubevirt/pkg/monitoring/workqueue/prometheus" // import for prometheus metrics
 	"kubevirt.io/kubevirt/pkg/service"
+	"kubevirt.io/kubevirt/pkg/util"
 	"kubevirt.io/kubevirt/pkg/virt-handler"
 	virtcache "kubevirt.io/kubevirt/pkg/virt-handler/cache"
 	"kubevirt.io/kubevirt/pkg/virt-launcher"
@@ -67,6 +65,8 @@ const (
 
 	hostOverride = ""
 
+	podIpAddress = ""
+
 	virtShareDir = "/var/run/kubevirt"
 
 	// This value is derived from default MaxPods in Kubelet Config
@@ -76,6 +76,7 @@ const (
 type virtHandlerApp struct {
 	service.ServiceListen
 	HostOverride            string
+	PodIpAddress            string
 	VirtShareDir            string
 	WatchdogTimeoutDuration time.Duration
 	MaxDevices              int
@@ -91,6 +92,10 @@ func (app *virtHandlerApp) Run() {
 			panic(err)
 		}
 		app.HostOverride = defaultHostName
+	}
+
+	if app.PodIpAddress == "" {
+		panic(fmt.Errorf("no pod ip detected"))
 	}
 
 	logger := log.Log
@@ -110,7 +115,11 @@ func (app *virtHandlerApp) Run() {
 		panic(err)
 	}
 
-	l, err := labels.Parse(fmt.Sprintf(v1.NodeNameLabel+" in (%s)", app.HostOverride))
+	vmiSourceLabel, err := labels.Parse(fmt.Sprintf(v1.NodeNameLabel+" in (%s)", app.HostOverride))
+	if err != nil {
+		panic(err)
+	}
+	vmiTargetLabel, err := labels.Parse(fmt.Sprintf(v1.MigrationTargetNodeNameLabel+" in (%s)", app.HostOverride))
 	if err != nil {
 		panic(err)
 	}
@@ -123,8 +132,15 @@ func (app *virtHandlerApp) Run() {
 		panic(err)
 	}
 
-	vmSharedInformer := cache.NewSharedIndexInformer(
-		controller.NewListWatchFromClient(virtCli.RestClient(), "virtualmachineinstances", k8sv1.NamespaceAll, fields.Everything(), l),
+	vmSourceSharedInformer := cache.NewSharedIndexInformer(
+		controller.NewListWatchFromClient(virtCli.RestClient(), "virtualmachineinstances", k8sv1.NamespaceAll, fields.Everything(), vmiSourceLabel),
+		&v1.VirtualMachineInstance{},
+		0,
+		cache.Indexers{},
+	)
+
+	vmTargetSharedInformer := cache.NewSharedIndexInformer(
+		controller.NewListWatchFromClient(virtCli.RestClient(), "virtualmachineinstances", k8sv1.NamespaceAll, fields.Everything(), vmiTargetLabel),
 		&v1.VirtualMachineInstance{},
 		0,
 		cache.Indexers{},
@@ -143,8 +159,10 @@ func (app *virtHandlerApp) Run() {
 		recorder,
 		virtCli,
 		app.HostOverride,
+		app.PodIpAddress,
 		app.VirtShareDir,
-		vmSharedInformer,
+		vmSourceSharedInformer,
+		vmTargetSharedInformer,
 		domainSharedInformer,
 		gracefulShutdownInformer,
 		int(app.WatchdogTimeoutDuration.Seconds()),
@@ -187,6 +205,9 @@ func (app *virtHandlerApp) AddFlags() {
 
 	flag.StringVar(&app.HostOverride, "hostname-override", hostOverride,
 		"Name under which the node is registered in Kubernetes, where this virt-handler instance is running on")
+
+	flag.StringVar(&app.PodIpAddress, "pod-ip-address", podIpAddress,
+		"The pod ip address")
 
 	flag.StringVar(&app.VirtShareDir, "kubevirt-share-dir", virtShareDir,
 		"Shared directory between virt-handler and virt-launcher")

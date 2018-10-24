@@ -25,21 +25,20 @@ import (
 	"time"
 
 	k8sv1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 
-	"kubevirt.io/kubevirt/pkg/util"
-
-	"k8s.io/apimachinery/pkg/api/errors"
-
 	"kubevirt.io/kubevirt/pkg/kubecli"
+	"kubevirt.io/kubevirt/pkg/util"
 )
 
 const featureGateEnvVar = "FEATURE_GATES"
 
 const (
-	dataVolumesGate = "DataVolumes"
-	cpuManager      = "CPUManager"
+	dataVolumesGate   = "DataVolumes"
+	cpuManager        = "CPUManager"
+	liveMigrationGate = "LiveMigration"
 )
 
 func ParseFeatureGatesFromConfigMap() {
@@ -87,4 +86,8 @@ func DataVolumesEnabled() bool {
 
 func CPUManagerEnabled() bool {
 	return strings.Contains(os.Getenv(featureGateEnvVar), cpuManager)
+}
+
+func LiveMigrationEnabled() bool {
+	return strings.Contains(os.Getenv(featureGateEnvVar), liveMigrationGate)
 }
