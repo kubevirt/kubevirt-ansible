@@ -8,10 +8,11 @@ import (
 
 	"kubevirt.io/kubevirt-ansible/tests"
 	"kubevirt.io/qe-tools/pkg/ginkgo-reporters"
+	ktests "kubevirt.io/kubevirt/tests"
 )
 
 func TestTests(t *testing.T) {
-	RegisterFailHandler(Fail)
+	RegisterFailHandler(ktests.KubevirtFailHandler)
 	reporters := make([]Reporter, 0)
 	if ginkgo_reporters.Polarion.Run {
 		reporters = append(reporters, &ginkgo_reporters.Polarion)
