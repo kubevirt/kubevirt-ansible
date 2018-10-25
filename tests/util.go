@@ -201,12 +201,12 @@ func execute(r Result) string {
 	}
 	if r.expectOut != "" {
 		Eventually(func() bool {
-			r.actualOut, err = ktests.RunCommand(r.cmd, cmd...)
+			r.actualOut, _, err = ktests.RunCommand(r.cmd, cmd...)
 			Expect(err).ToNot(HaveOccurred())
 			return strings.Contains(r.actualOut, r.expectOut)
 		}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
 	} else {
-		r.actualOut, err = ktests.RunCommand(r.cmd, cmd...)
+		r.actualOut, _, err = ktests.RunCommand(r.cmd, cmd...)
 		Expect(err).ToNot(HaveOccurred())
 	}
 	return r.actualOut
