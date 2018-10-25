@@ -5,7 +5,7 @@ This role deploys the CDI controller.
 ### Role Variables
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-| cdi_image_namespace | golden-images | |Namespace into which the CDI components should be installed. |
+| cdi_image_namespace | kube-system | |Namespace into which the CDI components should be installed. |
 | cdi_kubevirt_storageclass | kubevirt | |Storageclass that CDI will use to create PersistentVolumes. |
 | apb_action | provision |<ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
 | cdi_repo_tag | kubevirt | |CDI docker hub repo tag.|
