@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
+	"kubevirt.io/kubevirt/pkg/log"
 	ktests "kubevirt.io/kubevirt/tests"
 	"kubevirt.io/kubevirt/pkg/log"
 )
@@ -31,7 +33,11 @@ type Result struct {
 	params        []string
 }
 
-const NamespaceTestDefault = "kubevirt-test-default"
+const (
+	UsernameTestUser     = "kubevirt-test-user"
+	NamespaceTestDefault = "kubevirt-test-default"
+	UsernameAdminUser    = "test_admin"
+)
 
 const (
 	CDI_LABEL_KEY      = "app"
@@ -44,7 +50,7 @@ func CreateNamespaces() {
 	virtCli, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
 
-	testNamespaces := []string{ktests.NamespaceTestDefault}
+	testNamespaces := []string{ktests.NamespaceTestDefault, ktests.NamespaceTestAlternative}
 	// Create a Test Namespaces
 	for _, namespace := range testNamespaces {
 		ns := &k8sv1.Namespace{
@@ -62,7 +68,7 @@ func CreateNamespaces() {
 func RemoveNamespaces() {
 	virtCli, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
-	testNamespaces := []string{ktests.NamespaceTestDefault}
+	testNamespaces := []string{ktests.NamespaceTestDefault, ktests.NamespaceTestAlternative}
 
 	// First send an initial delete to every namespace
 	for _, namespace := range testNamespaces {
@@ -106,6 +112,61 @@ func WaitUntilResourceReadyByNameTestNamespace(resourceType, resourceName, query
 func WaitUntilResourceReadyByLabelTestNamespace(resourceType, label, query, expectOut string) {
 	By(fmt.Sprintf("Wait until resource %s with label=%s ready", resourceType, label))
 	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
+}
+
+func CreateUser(username string) {
+	By(fmt.Sprintf("Wait until user %s is created ", username))
+	execute(Result{cmd: "oc", verb: "create", resourceType: "user", resourceName: username})
+}
+
+func DeleteUser(username string) {
+	By(fmt.Sprintf("Wait until user %s is deleted", username))
+	execute(Result{cmd: "oc", verb: "delete", resourceType: "user", resourceName: username})
+}
+
+func VNCConnection(namespace, vmname string) (string, error) {
+	virtClient, err := kubecli.GetKubevirtClient()
+	ktests.PanicOnError(err)
+	pipeInReader, _ := io.Pipe()
+	pipeOutReader, pipeOutWriter := io.Pipe()
+	k8ResChan := make(chan error)
+	readStop := make(chan string)
+
+	go func() {
+		GinkgoRecover()
+		vnc, err := virtClient.VirtualMachineInstance(namespace).VNC(vmname)
+		if err != nil {
+			k8ResChan <- err
+			return
+		}
+
+		k8ResChan <- vnc.Stream(kubecli.StreamOptions{
+			In:  pipeInReader,
+			Out: pipeOutWriter,
+		})
+	}()
+
+	go func() {
+		GinkgoRecover()
+		buf := make([]byte, 1024, 1024)
+		n, err := pipeOutReader.Read(buf)
+		if err != nil && err != io.EOF {
+			return
+		}
+		if n == 0 && err == io.EOF {
+			log.Log.Info("zero bytes read from vnc socket.")
+			return
+		}
+		readStop <- strings.TrimSpace(string(buf[0:n]))
+	}()
+	response := ""
+	select {
+	case response = <-readStop:
+	case err = <-k8ResChan:
+	case <-time.After(45 * time.Second):
+		Fail("Timout reached while waiting for valid VNC server response")
+	}
+	return response, err
 }
 
 func execute(r Result) string {
