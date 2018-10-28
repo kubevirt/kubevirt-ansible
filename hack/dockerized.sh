@@ -56,7 +56,18 @@ _rsync() {
 }
 
 # Copy kubevirt into the persistent docker volume
-_rsync --delete --exclude _out --exclude deployment-openshift ${KUBEVIRT_ANSIBLE_DIR}/ "rsync://root@127.0.0.1:${RSYNCD_PORT}/build"
+_rsync \
+    --delete \
+    --include 'hack/***' \
+    --include 'vendor/***' \
+    --include 'glide*' \
+    --include 'tests/***' \
+    --include 'Makefile' \
+    --exclude '*' \
+    --verbose \
+    ${KUBEVIRT_ANSIBLE_DIR}/ \
+    "rsync://root@127.0.0.1:${RSYNCD_PORT}/build"
+
 
 # Run the command
 test -t 1 && USE_TTY="-it"
