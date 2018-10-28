@@ -1,7 +1,2 @@
 ---
 openshift_pkg_version: -3.10.0
-openshift_additional_repos:
-  - name: paas7-openshift-origin310-testing
-    baseurl: https://cbs.centos.org/repos/paas7-openshift-origin310-testing/x86_64/os/
-    enabled: yes
-    gpgcheck: no
