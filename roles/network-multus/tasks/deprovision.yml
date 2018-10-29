@@ -24,3 +24,19 @@
 
 - name: Delete cni plugins Resources
   command: kubectl delete -f /tmp/cni-plugins.yml --ignore-not-found
+
+- name: Render OVS plugin deployment yaml
+  template:
+    src: ovs-cni.yml
+    dest: /tmp/ovs-cni.yml
+
+- name: Delete OVS plugin Resources
+  command: kubectl delete -f /tmp/ovs-cni.yml --ignore-not-found
+
+- name: Render ovs-vsctl deployment yaml
+  template:
+    src: ovs-vsctl.yml
+    dest: /tmp/ovs-vsctl.yml
+
+- name: Delete ovs-vsctl Resources
+  command: kubectl delete -f /tmp/ovs-vsctl.yml --ignore-not-found

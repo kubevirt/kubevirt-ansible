@@ -2,17 +2,17 @@
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
-  name: {{ cni_provisioner_name }}
+  name: {{ ovs_provisioner_name }}
   namespace: {{ namespace }}
   labels:
     tier: node
-    app: cni-plugins
+    app: ovs-cni-plugin
 spec:
   template:
     metadata:
       labels:
         tier: node
-        app: cni-plugins
+        app: ovs-cni-plugin
     spec:
       hostNetwork: true
       nodeSelector:
@@ -22,8 +22,8 @@ spec:
         operator: Exists
         effect: NoSchedule
       containers:
-      - name: cni-plugins
-        image: {{ cni_provisioner_repo }}:{{ cni_provisioner_release }}
+      - name:  {{ ovs_provisioner_name }}
+        image: {{ ovs_provisioner_repo }}:{{ ovs_provisioner_release }}
         resources:
           requests:
             cpu: "100m"
@@ -35,7 +35,7 @@ spec:
           privileged: true
         volumeMounts:
         - name: cnibin
-          mountPath: /opt/cni/bin
+          mountPath: /host/opt/cni/bin
       volumes:
       - name: cnibin
         hostPath:

@@ -8,3 +8,5 @@ openshift_storage_glusterfs_storageclass_default: true
 openshift_storage_glusterfs_block_deploy: false
 # Disable any other default StorageClass
 openshift_storageclass_default: false
+openshift_storage_glusterfs_timeout: 900
+openshift_storage_glusterfs_image: gluster/gluster-centos:gluster4u0_centos7
