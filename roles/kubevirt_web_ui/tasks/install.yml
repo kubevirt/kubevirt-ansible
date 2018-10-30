@@ -45,7 +45,7 @@
 
 - set_fact:
     # Must have a trailing slash
-    console_picker_developer_console_public_url: "{{ openshift.master.public_console_url }}/"
+    console_picker_developer_console_public_url: "{{ openshift_master_public_console_url }}/"
   when: (openshift_web_console_enable_context_selector | default(true) | bool) and (openshift_web_console_install | default(true) | bool)
 
 - set_fact: console_cert={{ lookup('file', kubevirt_web_ui_cert) }}
