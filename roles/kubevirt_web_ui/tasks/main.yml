@@ -1,5 +1,6 @@
 ---
 # do any asserts here
+- include_tasks: required_params.yml
 
 - include_tasks: install.yml
   when: kubevirt_web_ui_install | default(true) | bool
