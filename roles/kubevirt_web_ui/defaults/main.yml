@@ -1,23 +1,14 @@
 ---
-# Required param:
-# - kubevirt_web_ui_image_name
-#
-# TODO: gather automatically
-# - openshift_master_default_subdomain
-# - public_master_hostname
+openshift_client_binary: "oc"
 
 kubevirt_web_ui_nodeselector: {"node-role.kubernetes.io/master":"true"}
 
 __console_template_file: "console-template.yaml"
 __console_config_file: "console-config.yaml"
 
-# Provide image explicitely
-# kubevirt_web_ui_image_name: "docker.io/mareklibra/kubevirt-web-ui:f679e704219f58aea97a1433ea01e7c7227afc7d"
-
 # Default the replica count to the number of masters.
 kubevirt_web_ui_replica_count: "1"
 
-kubevirt_web_ui_hostname: "kubevirt-web-ui.{{openshift_master_default_subdomain}}"
 kubevirt_web_ui_cert: ""
 kubevirt_web_ui_key: ""
 kubevirt_web_ui_ca: ""
@@ -26,15 +17,6 @@ kubevirt_web_ui_auth_ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/ca.
 
 kubevirt_web_ui_documentation_base_url: "https://docs.openshift.com/container-platform/3.11/"
 
-######
-# Mimic openshift-ansible
-openshift_client_binary: "oc"
-
 openshift:
   common:
-    config_base: "/etc/origin"  # as hardcoded in playbooks/cluster/openshift/config.yml
-  master:
-    public_console_url: "https://{{ public_master_hostname }}/console" # Example: https://master.mycluster.com:8443/console
-    public_api_url: "https://{{ public_master_hostname }}" 
-    logout_url: "" # TODO: not needed so far
-
+    config_base: "/etc/origin" # as hardcoded in playbooks/cluster/openshift/config.yml
