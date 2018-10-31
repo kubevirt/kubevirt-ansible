@@ -16,7 +16,6 @@ import (
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
 	ktests "kubevirt.io/kubevirt/tests"
-	"kubevirt.io/kubevirt/pkg/log"
 )
 
 type Result struct {

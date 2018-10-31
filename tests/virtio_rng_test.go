@@ -11,55 +11,55 @@ import (
 	. "github.com/onsi/gomega"
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
-	"kubevirt.io/kubevirt/tests"
+	ktests "kubevirt.io/kubevirt/tests"
 )
 
 const (
-	DDCommand       =  "dd count=10 bs=1024 if=/dev/%s of=/tmp/%s.txt\n"
-	CheckRNGDevice  =  "cat /sys/devices/virtual/misc/hw_random/%s\n"
-	CheckFileSize   =  "ls /tmp/%s.txt | wc -l'\n"
+	ddCommand       =  "dd count=10 bs=1024 if=/dev/%s of=/tmp/%s.txt\n"
+	checkRNGDevice  =  "cat /sys/devices/virtual/misc/hw_random/%s\n"
+	checkFileSize   =  "ls /tmp/%s.txt | wc -l'\n"
 	outputDevice    =  "virtio_rng.0" 
 )
-var RngAvailable    string
-var RngCurrent      string
-var DdWithRandom    string
-var DdWithHWRandom  string
-var CheckFileRandom string 
-var CheckFileHWRng  string
+var rngAvailable    string
+var rngCurrent      string
+var ddWithRandom    string
+var ddWithHWRandom  string
+var checkFileRandom string 
+var checkFileHWRng  string
 
 var _ = Describe("VIRT RNG test", func() {
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
-	tests.PanicOnError(err)
+	ktests.PanicOnError(err)
 	setCommands() 
 	
     Context("With VirtIO RNG device", func() {
 		var withRngVmi *v1.VirtualMachineInstance
-		withRngVmi = tests.NewRandomVMIWithEphemeralDisk(tests.RegistryDiskFor(tests.RegistryDiskAlpine))
+		withRngVmi = ktests.NewRandomVMIWithEphemeralDisk(ktests.RegistryDiskFor(ktests.RegistryDiskAlpine))
 	    It("Virtio rng device should be present", func() {
 			withRngVmi.Spec.Domain.Devices.Rng = &v1.Rng{}
 
 			By("Starting a VMI")
-			withRngVmi, err = virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(withRngVmi)
+			withRngVmi, err = virtClient.VirtualMachineInstance(ktests.NamespaceTestDefault).Create(withRngVmi)
 			Expect(err).ToNot(HaveOccurred())
-			tests.WaitForSuccessfulVMIStart(withRngVmi)
+			ktests.WaitForSuccessfulVMIStart(withRngVmi)
 
 			By("Expecting console")
-			expecter, err := tests.LoggedInAlpineExpecter(withRngVmi)
+			expecter, err := ktests.LoggedInAlpineExpecter(withRngVmi)
 			Expect(err).ToNot(HaveOccurred())
 			defer expecter.Close()
 
 			By("Checking the virtio RNG")
 			_, err = expecter.ExpectBatch([]expect.Batcher{
-				&expect.BSnd{S: RngAvailable},
+				&expect.BSnd{S: rngAvailable},
 				&expect.BExp{R: outputDevice},
-				&expect.BSnd{S: RngCurrent},
+				&expect.BSnd{S: rngCurrent},
 				&expect.BExp{R: outputDevice},
-				&expect.BSnd{S: DdWithRandom},
-				&expect.BSnd{S: DdWithHWRandom},
-				&expect.BSnd{S: CheckFileRandom},
+				&expect.BSnd{S: ddWithRandom},
+				&expect.BSnd{S: ddWithHWRandom},
+				&expect.BSnd{S: checkFileRandom},
 				&expect.BExp{R: "1"},
-				&expect.BSnd{S: CheckFileHWRng},
+				&expect.BSnd{S: checkFileHWRng},
 				&expect.BExp{R: "1"},
 			}, 60*time.Second)
 			Expect(err).ToNot(HaveOccurred())
@@ -69,10 +69,10 @@ var _ = Describe("VIRT RNG test", func() {
 })
 
 func setCommands(){
-	RngAvailable     = fmt.Sprintf(CheckRNGDevice, "rng_available")
-	RngCurrent       = fmt.Sprintf(CheckRNGDevice, "rng_current")
-	DdWithRandom   = fmt.Sprintf(DDCommand, "random", "random")
-	DdWithHWRandom   = fmt.Sprintf(DDCommand, "hwrng", "hwrng")
-	CheckFileRandom  = fmt.Sprintf(CheckFileSize,"random")
-	CheckFileHWRng   = fmt.Sprintf(CheckFileSize,"hwrng")
+	rngAvailable     = fmt.Sprintf(checkRNGDevice, "rng_available")
+	rngCurrent       = fmt.Sprintf(checkRNGDevice, "rng_current")
+	ddWithRandom   = fmt.Sprintf(ddCommand, "random", "random")
+	ddWithHWRandom   = fmt.Sprintf(ddCommand, "hwrng", "hwrng")
+	checkFileRandom  = fmt.Sprintf(checkFileSize,"random")
+	checkFileHWRng   = fmt.Sprintf(checkFileSize,"hwrng")
 }
