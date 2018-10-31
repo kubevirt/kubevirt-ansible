@@ -17,7 +17,7 @@
       lineinfile:
         path: "{{ mktemp.stdout }}/{{ __console_config_file }}"
         regexp: "^  masterPublicURL:.*$"
-        line: "  masterPublicURL: '{{ openshift.master.public_api_url }}'"
+        line: "  masterPublicURL: '{{ openshift_master_public_api_url }}'"
     - name: Change oauthEndpointCAFile
       lineinfile:
         path: "{{ mktemp.stdout }}/{{ __console_config_file }}"
@@ -27,7 +27,7 @@
       lineinfile:
         path: "{{ mktemp.stdout }}/{{ __console_config_file }}"
         regexp: "^  logoutRedirect:.*$"
-        line: "  logoutRedirect: '{{ openshift.master.logout_url | default('') }}'"
+        line: "  logoutRedirect: '{{ openshift_master_logout_url | default('') }}'"
     - name: Change documentationBaseURL
       lineinfile:
         path: "{{ mktemp.stdout }}/{{ __console_config_file }}"
