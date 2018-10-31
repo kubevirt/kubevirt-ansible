@@ -27,7 +27,7 @@ var ddWithHWRandom  string
 var checkFileRandom string 
 var checkFileHWRng  string
 
-var _ = Describe("VIRT RNG test", func() {
+var _ = FDescribe("VIRT RNG test", func() {
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
