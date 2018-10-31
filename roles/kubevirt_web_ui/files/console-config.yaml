@@ -8,7 +8,6 @@ clusterInfo:
   consoleBaseAddress: ''
   consoleBasePath: ''
   masterPublicURL: ''
-  developerConsolePublicURL: ''
 auth:
   clientID: kubevirt-web-ui
   clientSecretFile: /var/oauth-config/clientSecret
