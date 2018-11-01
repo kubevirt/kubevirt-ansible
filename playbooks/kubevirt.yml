@@ -25,3 +25,6 @@
     http_proxy: ""
   roles:
     - role: "cdi"
+
+- import_playbook: kubevirt-web-ui/config.yml
+
