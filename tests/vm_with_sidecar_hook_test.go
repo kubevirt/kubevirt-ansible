@@ -27,7 +27,7 @@ var _ = Describe("VMI with sidecar hook test", func() {
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmiName, "-o=jsonpath='{.status.phase}'", "Running")
 		
 			By("Expecting console")
-			expecter, err := tests.LoggedInFedoraExpecter(vmiName, tests.NamespaceTestDefault, 240)
+			expecter, err := tests.LoggedInFedoraExpecter(vmiName, tests.NamespaceTestDefault, 360)
 			Expect(err).ToNot(HaveOccurred())
 			defer expecter.Close()
 
