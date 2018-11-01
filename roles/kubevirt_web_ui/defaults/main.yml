@@ -1,7 +1,11 @@
 ---
 openshift_client_binary: "oc"
+apb_action: "provision"
 
-kubevirt_web_ui_nodeselector: {"node-role.kubernetes.io/master":"true"}
+# Deviation from openshift-console: the kubevirt/web-ui is installed to an _existing_ openshift cluster,
+# so "defaultNodeSelector" (see master config) takes effect causing scheduler to find no "master and compute" node.
+## kubevirt_web_ui_nodeselector: {"node-role.kubernetes.io/master":"true"}
+kubevirt_web_ui_nodeselector: {}
 
 __console_template_file: "console-template.yaml"
 __console_config_file: "console-config.yaml"
