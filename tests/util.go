@@ -10,6 +10,7 @@ import (
 	"github.com/google/goexpect"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/google/goexpect"
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -246,4 +247,48 @@ func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) 
 		return nil, err
 	}
 	return expecter, err
+}
+
+func RunOcDescribeCommand(resourceType, resourceName string) string {
+	fmt.Printf("Getting 'oc describe' with: %s ", resourceName)
+	return execute(Result{cmd: "oc", verb: "describe", resourceType: resourceType, resourceName: resourceName, nameSpace: NamespaceTestDefault})
+}
+
+func OpenConsole(virtCli kubecli.KubevirtClient, vmiName string, vmiNamespace string, timeout time.Duration , consoleType string, opts ...expect.Option) (expect.Expecter, <-chan error, error) {
+	vmiReader, vmiWriter := io.Pipe()
+	expecterReader, expecterWriter := io.Pipe()
+	resCh := make(chan error)
+	var con kubecli.StreamInterface
+	var err error
+	startTime := time.Now()
+	if consoleType == "serial" {
+		con, err = virtCli.VirtualMachineInstance(vmiNamespace).SerialConsole(vmiName, timeout)
+	} else if consoleType == "vnc" {
+		con, err = virtCli.VirtualMachineInstance(vmiNamespace).VNC(vmiName)
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	timeout = timeout - time.Now().Sub(startTime)
+
+	go func() {
+		resCh <- con.Stream(kubecli.StreamOptions{
+			In:  vmiReader,
+			Out: expecterWriter,
+		})
+	}()
+
+	return expect.SpawnGeneric(&expect.GenOptions{
+		In:  vmiWriter,
+		Out: expecterReader,
+		Wait: func() error {
+			return <-resCh
+		},
+		Close: func() error {
+			expecterWriter.Close()
+			vmiReader.Close()
+			return nil
+		},
+		Check: func() bool { return true },
+	}, timeout, opts...)
 }
