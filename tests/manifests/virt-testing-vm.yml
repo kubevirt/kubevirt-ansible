@@ -1,0 +1,47 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: test-${VM_NAME}
+objects:
+- apiVersion: ${VM_APIVERSION}
+  kind: VirtualMachineInstance
+  metadata:
+    name: ${VM_NAME}
+  spec:
+    terminationGracePeriodSeconds: 0
+    domain:
+      cpu:
+        cores: ${{CPU_CORES}}
+      resources:
+        overcommitGuestOverhead: ${{OVER_COMMIT_GUEST_OVERLOAD}}
+        requests:
+          memory: ${MEMORY}
+      devices:
+        autoattachGraphicsDevice: ${{AUTO_GRAPHIC_DEVICE}}
+        disks:
+        - disk:
+            bus: virtio
+          name: registrydisk
+          volumeName: registryvolume
+    volumes:
+      - name: registryvolume
+        registryDisk:
+          image: ${{IMAGE_NAME}}
+parameters:
+- name: VM_APIVERSION
+- name: VM_NAME
+- name: IMAGE_NAME
+- description: Amount of memory
+  name: MEMORY
+  value: 128Mi
+- description: Amount of cores
+  name: CPU_CORES
+  value: "1"
+- description: Guest memory over commit
+  name: OVER_COMMIT_GUEST_OVERLOAD
+  value: "false"
+- description: Enable/Disable the graphics device 
+  name: AUTO_GRAPHIC_DEVICE
+  value: "false"
