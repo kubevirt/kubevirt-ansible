@@ -1,10 +1,4 @@
 ---
-- name: Login As Super User
-  command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
-  when: cluster=="openshift"
-        and admin_user is defined
-        and admin_password is defined
-
 - name: Check if {{ namespace }} exists
   shell: kubectl get ns | grep -w {{ namespace }} | awk '{ print $1 }'
   register: ns
