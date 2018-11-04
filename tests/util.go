@@ -9,8 +9,7 @@ import (
 
 	"github.com/google/goexpect"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/google/goexpect"
+	. "github.com/onsi/gomega"	
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
