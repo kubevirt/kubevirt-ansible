@@ -2,8 +2,5 @@
 # do any asserts here
 - include_tasks: required_params.yml
 
-- include_tasks: install.yml
-  when: kubevirt_web_ui_install | default(true) | bool
+- include_tasks: "{{ apb_action}}.yml"
 
-- include_tasks: remove.yml
-  when: not kubevirt_web_ui_install | default(true) | bool

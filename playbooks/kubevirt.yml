@@ -1,4 +1,13 @@
 ---
+- hosts: all
+  connection: local
+  tasks:
+    - name: Login As Super User
+      command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+      when: cluster | default('openshift')=="openshift"
+            and admin_user is defined
+            and admin_password is defined
+
 - hosts: masters[0]
   connection: local
   gather_facts: False
@@ -25,3 +34,6 @@
     http_proxy: ""
   roles:
     - role: "cdi"
+
+- import_playbook: kubevirt-web-ui/config.yml
+

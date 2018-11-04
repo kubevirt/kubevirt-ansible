@@ -33,12 +33,13 @@
         path: "{{ mktemp.stdout }}/{{ __console_config_file }}"
         regexp: "^  documentationBaseURL:.*$"
         line: "  documentationBaseURL: '{{ kubevirt_web_ui_documentation_base_url }}'"
-    - name: Add context selector URL
-      # Add the developer console URL to the console picker on upgrade, even if there is an existing config.
-      lineinfile:
-        path: "{{ mktemp.stdout }}/{{ __console_config_file }}"
-        regexp: "^  developerConsolePublicURL:.*$"
-        line: "  developerConsolePublicURL: '{{ console_picker_developer_console_public_url | default('') }}'"
+# Context selector is temporarily removed - https://github.com/kubevirt/web-ui/issues/67
+#    - name: Add context selector URL
+      # Add the developer console URL to the console picker on upgrade
+#      lineinfile:
+#        path: "{{ mktemp.stdout }}/{{ __console_config_file }}"
+#        regexp: "^  developerConsolePublicURL:.*$"
+#        line: "  developerConsolePublicURL: '{{ console_picker_developer_console_public_url | default('') }}'"
 #    - name: Copy for debug
 #      shell: >
 #        cp "{{ mktemp.stdout }}/{{ __console_config_file }}" "/tmp/__console_config_file"

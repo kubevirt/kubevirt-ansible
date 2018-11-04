@@ -4,6 +4,8 @@ Used for deployment of the [Kubevirt Web UI](https://github.com/kubevirt/web-ui)
 The playbook is based on [opensift-ansible](https://github.com/openshift/openshift-ansible/tree/master/playbooks/openshift-console).
 
 ### Required Variables
+- `cluster`
+  - To install Kubevirt Web UI, please set `cluster=openshift`
 - `kubevirt_web_ui_image_name`
   - example: docker.io/mareklibra/kubevirt-web-ui:f679e704219f58aea97a1433ea01e7c7227afc7d
   - The docker image with the kubevirt-web-ui application
@@ -28,6 +30,6 @@ Please check `playbooks/kubevirt-web-ui/inventory_example.ini` for an example.
 
 ### Invocation
 ```
-ansible-playbook -i your_inventory_file.ini playbooks/kubevirt-web-ui/config.yml
+ansible-playbook -i your_inventory_file.ini playbooks/kubevirt-web-ui/config.yml -e "apb_action=provision cluster=openshift"
 ```
 
