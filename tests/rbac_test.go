@@ -29,7 +29,7 @@ var _ = Describe("RBAC", func() {
 
 	BeforeEach(func() {
 		By(fmt.Sprintf("Login with the user %s", tests.UsernameAdminUser))
-		_, _, err := ktests.RunCommand("oc", "login", "-u", tests.UsernameAdminUser, "-p", "123456")
+		_, _, err := ktests.RunCommandWithNS("", "oc", "login", "-u", tests.UsernameAdminUser, "-p", "123456")
 		Expect(err).ToNot(HaveOccurred(), "Should login as %s user", tests.UsernameAdminUser)
 
 		ktests.BeforeTestCleanup()
@@ -38,37 +38,37 @@ var _ = Describe("RBAC", func() {
 
 	AfterEach(func() {
 		By(fmt.Sprintf("Login with the user %s", tests.UsernameAdminUser))
-		_, _, err := ktests.RunCommand("oc", "login", "-u", tests.UsernameAdminUser, "-p", "123456")
+		_, _, err := ktests.RunCommandWithNS("", "oc", "login", "-u", tests.UsernameAdminUser, "-p", "123456")
 		Expect(err).ToNot(HaveOccurred(), "Should login as %s user", tests.UsernameAdminUser)
 
 		tests.DeleteUser(tests.UsernameTestUser)
 
 		By(fmt.Sprintf("Deleting the identity associated with %s user", tests.UsernameTestUser))
-		_, _, err = ktests.RunCommand("oc", "delete", "identity", "allow_all_auth:"+tests.UsernameTestUser)
+		_, _, err = ktests.RunCommandWithNS("", "oc", "delete", "identity", "allow_all_auth:"+tests.UsernameTestUser)
 		Expect(err).ToNot(HaveOccurred(), "Should delete identity of the %s user", tests.UsernameTestUser)
 	})
 
 	Describe("RBAC with default permission", func() {
 		It("should allow to access subresource endpoint.", func() {
 			By(fmt.Sprintf("Login with the user %s", tests.UsernameTestUser))
-			_, _, err := ktests.RunCommand("oc", "login", "-u", tests.UsernameTestUser, "-p", "123456")
+			_, _, err := ktests.RunCommandWithNS("", "oc", "login", "-u", tests.UsernameTestUser, "-p", "123456")
 			Expect(err).ToNot(HaveOccurred(), "Should login as %s user", tests.UsernameTestUser)
 
 			By("Creating a project/namespace")
-			_, _, err = ktests.RunCommand("oc", "new-project", NamespaceTestSystem)
+			_, _, err = ktests.RunCommandWithNS("", "oc", "new-project", NamespaceTestSystem)
 			Expect(err).ToNot(HaveOccurred(), "Should create %s project/namespace", NamespaceTestSystem)
 
 			By("Creating a VM from manifest")
-			_, _, err = ktests.RunCommand("oc", "create", "-f", vm.Manifest, "-n", NamespaceTestSystem)
+			_, _, err = ktests.RunCommandWithNS(NamespaceTestSystem, "oc", "create", "-f", vm.Manifest)
 			Expect(err).ToNot(HaveOccurred(), "Should create the VM %q in %s namespace", vm.Manifest, NamespaceTestSystem)
 
 			By("Starting the VM")
-			_, _, err = ktests.RunCommand("virtctl", "start", vm.Name, "-n", NamespaceTestSystem)
+			_, _, err = ktests.RunCommandWithNS(NamespaceTestSystem, "virtctl", "start", vm.Name)
 			Expect(err).ToNot(HaveOccurred(), "Should schedule the VM %q in %s namespace to start", vm.Name, NamespaceTestSystem)
 
 			By("Checking if the VMI is running")
 			Eventually(func() string {
-				output, _, err := ktests.RunCommand("oc", "get", "vmi", vm.Name, "--template", "{{.status.phase}}", "-n", NamespaceTestSystem)
+				output, _, err := ktests.RunCommandWithNS(NamespaceTestSystem, "oc", "get", "vmi", vm.Name, "--template", "{{.status.phase}}")
 				ExpectWithOffset(1, err).ToNot(HaveOccurred(), "Should get the phase of the VMI %q in %s namespace: output %q: %v", vm.Name, NamespaceTestSystem, output, err)
 				return output
 			}, time.Minute*10, time.Second*1).Should(Equal("Running"), "The VMI %q in %s namespace should reach \"Running\" phase within 10 minutes", vm.Name, NamespaceTestSystem)
@@ -86,22 +86,22 @@ var _ = Describe("RBAC", func() {
 			Expect(response).To(Equal("RFB 003.008"), "Should receive valid response from the VNC connection to the VMI %q in %s namespace", vm.Name, NamespaceTestSystem)
 
 			By("Stopping the VM")
-			_, _, err = ktests.RunCommand("virtctl", "stop", vm.Name, "-n", NamespaceTestSystem)
+			_, _, err = ktests.RunCommandWithNS(NamespaceTestSystem, "virtctl", "stop", vm.Name)
 			Expect(err).ToNot(HaveOccurred(), "VM %q in %s namespace should be scheduled to stop: %v", vm.Name, NamespaceTestSystem, err)
 
 			By("Deleting the VM specified by manifest")
-			_, _, err = ktests.RunCommand("oc", "delete", "-f", vm.Manifest, "-n", NamespaceTestSystem)
+			_, _, err = ktests.RunCommandWithNS(NamespaceTestSystem, "oc", "delete", "-f", vm.Manifest)
 			Expect(err).ToNot(HaveOccurred(), "VM %q in %s namespace should be deleted", vm.Name, NamespaceTestSystem)
 
 			By("Deleting the namespace")
-			_, _, err = ktests.RunCommand("oc", "delete", "project", NamespaceTestSystem)
+			_, _, err = ktests.RunCommandWithNS("", "oc", "delete", "project", NamespaceTestSystem)
 			Expect(err).ToNot(HaveOccurred(), "Namespace %s should be deleted", NamespaceTestSystem)
 		})
 	})
 
 	DescribeTable("RBAC Authorization", func(role, namespace string, con bool) {
 		By(fmt.Sprintf("Add %s to user %s", role, tests.UsernameTestUser))
-		_, _, err := ktests.RunCommand("oc", "adm", "policy", "add-role-to-user", role, tests.UsernameTestUser, "-n", namespace)
+		_, _, err := ktests.RunCommandWithNS(namespace, "oc", "adm", "policy", "add-role-to-user", role, tests.UsernameTestUser)
 		Expect(err).ToNot(HaveOccurred(), "Role %s should be added to %s user", role, tests.UsernameTestUser)
 
 		if con == false {
@@ -109,11 +109,11 @@ var _ = Describe("RBAC", func() {
 		}
 
 		By(fmt.Sprintf("Login with the user %s", tests.UsernameTestUser))
-		_, _, err = ktests.RunCommand("oc", "login", "-u", tests.UsernameTestUser, "-p", "123456")
+		_, _, err = ktests.RunCommandWithNS("", "oc", "login", "-u", tests.UsernameTestUser, "-p", "123456")
 		Expect(err).ToNot(HaveOccurred(), "Should login as %s user", tests.UsernameTestUser)
 
 		By("Creating a VM from manifest")
-		_, _, err = ktests.RunCommand("oc", "create", "-f", vm.Manifest, "-n", namespace)
+		_, _, err = ktests.RunCommandWithNS(namespace, "oc", "create", "-f", vm.Manifest)
 		if con == true {
 			Expect(err).ToNot(HaveOccurred(), "Should schedule the VM %q in %s namespace to start", vm.Name, namespace)
 		} else {
@@ -121,7 +121,7 @@ var _ = Describe("RBAC", func() {
 		}
 
 		By("Starting the VM")
-		_, _, err = ktests.RunCommand("virtctl", "start", vm.Name, "-n", namespace)
+		_, _, err = ktests.RunCommandWithNS(namespace, "virtctl", "start", vm.Name)
 		if con == true {
 			Expect(err).ToNot(HaveOccurred(), "Should schedule the VM %q in %s namespace to start", vm.Name, namespace)
 		} else {
@@ -130,7 +130,7 @@ var _ = Describe("RBAC", func() {
 
 		By("Checking if the VMI is running")
 		getVMIStatus := func() string {
-			output, _, err := ktests.RunCommand("oc", "get", "vmi", vm.Name, "--template", "{{.status.phase}}", "-n", namespace)
+			output, _, err := ktests.RunCommandWithNS(namespace, "oc", "get", "vmi", vm.Name, "--template", "{{.status.phase}}")
 			if con == true {
 				ExpectWithOffset(1, err).ToNot(HaveOccurred(), "Should get the phase of the VMI %q in %s namespace: output %s: %v", vm.Name, namespace, output, err)
 			} else {
@@ -165,7 +165,7 @@ var _ = Describe("RBAC", func() {
 		}
 
 		By("Check if we can stop VM ")
-		_, _, err = ktests.RunCommand("virtctl", "stop", vm.Name, "-n", namespace)
+		_, _, err = ktests.RunCommandWithNS(namespace, "virtctl", "stop", vm.Name)
 		if con == true {
 			Expect(err).ToNot(HaveOccurred(), "The VM %q in %s namespace should be scheduled to stop: %v", vm.Name, namespace, err)
 		} else {
@@ -173,7 +173,7 @@ var _ = Describe("RBAC", func() {
 		}
 
 		By("Deleting the VM specified by manifest")
-		_, _, err = ktests.RunCommand("oc", "delete", "-f", vm.Manifest, "-n", namespace)
+		_, _, err = ktests.RunCommandWithNS(namespace, "oc", "delete", "-f", vm.Manifest)
 		if con == true {
 			Expect(err).ToNot(HaveOccurred(), "The VM %q in %s namespace should be deleted", vm.Name, namespace)
 		} else {
@@ -191,17 +191,17 @@ func createResourcesToTestViewRole() {
 	vm.Name = "vm-cirros"
 	vm.Manifest = "tests/manifests/vm-cirros.yaml"
 
-	_, _, err := ktests.RunCommand("oc", "login", "-u", tests.UsernameAdminUser, "-p", "123456")
+	_, _, err := ktests.RunCommandWithNS("", "oc", "login", "-u", tests.UsernameAdminUser, "-p", "123456")
 	Expect(err).ToNot(HaveOccurred(), "Should login as %s user", tests.UsernameAdminUser)
 
-	_, _, err = ktests.RunCommand("oc", "create", "-f", vm.Manifest, "-n", ktests.NamespaceTestAlternative)
+	_, _, err = ktests.RunCommandWithNS(ktests.NamespaceTestAlternative, "oc", "create", "-f", vm.Manifest)
 	Expect(err).ToNot(HaveOccurred(), "Should create VM %q in %s namespace", vm.Name, ktests.NamespaceTestAlternative)
 
-	_, _, err = ktests.RunCommand("virtctl", "start", vm.Name, "-n", ktests.NamespaceTestAlternative)
+	_, _, err = ktests.RunCommandWithNS(ktests.NamespaceTestAlternative, "virtctl", "start", vm.Name)
 	Expect(err).ToNot(HaveOccurred(), "Should schedule VM %q in %s namespace to start", vm.Name, ktests.NamespaceTestAlternative)
 
 	Eventually(func() string {
-		output, _, err := ktests.RunCommand("oc", "get", "vmi", vm.Name, "--template", "{{.status.phase}}", "-n", ktests.NamespaceTestAlternative)
+		output, _, err := ktests.RunCommandWithNS(ktests.NamespaceTestAlternative, "oc", "get", "vmi", vm.Name, "--template", "{{.status.phase}}")
 		Expect(err).ToNot(HaveOccurred(), "Should get the phase of the VMI %q in %s namespace: output %s: %v", vm.Name, ktests.NamespaceTestAlternative, output, err)
 		return output
 	}, time.Minute*10, time.Second*1).Should(Equal("Running"), "The VMI %q in %s namespace should reach the \"Running\" phase within 10 minutes", vm.Name, ktests.NamespaceTestAlternative)
