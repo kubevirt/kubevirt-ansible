@@ -10,7 +10,6 @@ import (
 	"github.com/google/goexpect"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/google/goexpect"
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -238,7 +237,7 @@ func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) 
 		&expect.BSnd{S: "fedora\n"},
 		&expect.BExp{R: "Password:"},
 		&expect.BSnd{S: "fedora\n"},
-		&expect.BExp{R: "]$"}})
+		&expect.BExp{R: "fedora@" + vmiName + " ~]$"}})
 	res, err := expecter.ExpectBatch(b, time.Duration(timeout)*time.Second)
 	if err != nil {
 		log.DefaultLogger().Object(vmi).Infof("Login: %v", res)
