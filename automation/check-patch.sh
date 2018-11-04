@@ -241,6 +241,7 @@ run() {
         -i "$inventory_file" \
         -v \
         -e "apb_action=deprovision" \
+        -e "${args[*]}" \
         playbooks/automation/deprovision.yml
 }
 
