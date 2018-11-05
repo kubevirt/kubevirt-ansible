@@ -19,14 +19,14 @@ var _ = Describe("Node Eviction", func() {
 		ktests.BeforeTestCleanup()
 
 		args := []string{"get", "node", "--selector=node-role.kubernetes.io/compute=true", "--output=jsonpath={.items..metadata.name}"}
-		output, err := ktests.RunCommand("oc", args...)
+		output, _, err := ktests.RunCommand("oc", args...)
 		Expect(err).ToNot(HaveOccurred())
 
 		var count int
 		nodes := strings.Fields(output)
 		for _, node := range nodes {
 			args := []string{"get", "node", node}
-			output, err := ktests.RunCommand("oc", args...)
+			output, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			if !strings.Contains(output, "SchedulingDisabled") && !strings.Contains(output, "NotReady") {
@@ -52,47 +52,47 @@ var _ = Describe("Node Eviction", func() {
 		It("virtualmachine instance will not be re-scheduled", func() {
 			By("Create the virtualmachine instance")
 			args := []string{"create", "-n", ns, "-f", vmi.Manifest}
-			_, err := ktests.RunCommand("oc", args...)
+			_, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check that the virtualmachine instance is running")
 			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.phase}}"}
 			Eventually(func() string {
-				output, err := ktests.RunCommand("oc", args...)
+				output, _, err := ktests.RunCommand("oc", args...)
 				Expect(err).ToNot(HaveOccurred())
 				return output
 			}, time.Minute*10).Should(Equal("Running"))
 
 			By("Retrieve the vmi's node")
 			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.nodeName}}"}
-			nodeName, err := ktests.RunCommand("oc", args...)
+			nodeName, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Drain the vmi's node")
 			args = []string{"adm", "drain", nodeName, "--delete-local-data", "--ignore-daemonsets", "--force", "--pod-selector=kubevirt.io=virt-launcher"}
-			_, err = ktests.RunCommand("oc", args...)
+			_, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify that the virtual machine instance is Failed")
 			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.phase}}"}
-			output, err := ktests.RunCommand("oc", args...)
+			output, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(output).To(Equal("Failed"))
 
 			By("Verify that the vmi's node is unschedulable")
 			args = []string{"get", "node", nodeName, "--template", "{{.spec.unschedulable}}"}
-			output, err = ktests.RunCommand("oc", args...)
+			output, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(output).To(Equal("true"))
 
 			By("Uncordon the vmi's node")
 			args = []string{"adm", "uncordon", nodeName}
-			_, err = ktests.RunCommand("oc", args...)
+			_, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify that the node is schedulable again")
 			args = []string{"get", "node", nodeName}
-			output, err = ktests.RunCommand("oc", args...)
+			output, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(output).ToNot(ContainSubstring("SchedulingDisabled"))
 		})
@@ -106,19 +106,19 @@ var _ = Describe("Node Eviction", func() {
 		It("virtualmachineinstance owned by a replicaset will be re-scheduled", func() {
 			By("Create the virtualmachine instance replicaset")
 			args := []string{"create", "-n", ns, "-f", vmi.Manifest}
-			_, err := ktests.RunCommand("oc", args...)
+			_, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check that the virtualmachine instance is running")
 			args = []string{"get", "-n", ns, "vmi", "--selector=kubevirt.io/vmReplicaSet=vmi-replicaset-cirros", "--output=jsonpath={.items..metadata.name}"}
-			vmis, err := ktests.RunCommand("oc", args...)
+			vmis, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			vmiList := strings.Fields(vmis)
 			for _, vmi := range vmiList {
 				args = []string{"get", "-n", ns, "vmi", vmi, "--template", "{{.status.phase}}"}
 				Eventually(func() string {
-					output, err := ktests.RunCommand("oc", args...)
+					output, _, err := ktests.RunCommand("oc", args...)
 					Expect(err).ToNot(HaveOccurred())
 					return output
 				}, time.Minute*10).Should(Equal("Running"))
@@ -126,25 +126,25 @@ var _ = Describe("Node Eviction", func() {
 
 			By("Retrieve the vmi's node")
 			args = []string{"get", "-n", ns, "vmi", vmiList[0], "--template", "{{.status.nodeName}}"}
-			nodeName, err := ktests.RunCommand("oc", args...)
+			nodeName, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Drain the vmi's node")
 			args = []string{"adm", "drain", nodeName, "--delete-local-data", "--ignore-daemonsets=true", "--force", "--pod-selector=kubevirt.io=virt-launcher"}
-			_, err = ktests.RunCommand("oc", args...)
+			_, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify that the vmi's node is unschedulable")
 			args = []string{"get", "node", nodeName, "--template", "{{.spec.unschedulable}}"}
 			Eventually(func() string {
-				output, err := ktests.RunCommand("oc", args...)
+				output, _, err := ktests.RunCommand("oc", args...)
 				Expect(err).ToNot(HaveOccurred())
 				return output
 			}, time.Minute*2).Should(Equal("true"))
 
 			By("Verify that the vmi is running on other node")
 			args = []string{"get", "-n", ns, "vmi", "--selector=kubevirt.io/vmReplicaSet=vmi-replicaset-cirros", "--output=jsonpath={.items..metadata.name}"}
-			vmis, err = ktests.RunCommand("oc", args...)
+			vmis, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			// It's verify all VM instance are running, not just verify new VM instance status.
@@ -152,7 +152,7 @@ var _ = Describe("Node Eviction", func() {
 			for _, vmi := range vmiList {
 				args = []string{"get", "-n", ns, "vmi", vmi, "--template", "{{.status.phase}}"}
 				Eventually(func() string {
-					output, err := ktests.RunCommand("oc", args...)
+					output, _, err := ktests.RunCommand("oc", args...)
 					Expect(err).ToNot(HaveOccurred())
 					return output
 				}, time.Minute*2).Should(Equal("Running"))
@@ -160,12 +160,12 @@ var _ = Describe("Node Eviction", func() {
 
 			By("Uncordon the vmi's node")
 			args = []string{"adm", "uncordon", nodeName}
-			_, err = ktests.RunCommand("oc", args...)
+			_, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify that the node is schedulable again")
 			args = []string{"get", "node", nodeName}
-			output, err := ktests.RunCommand("oc", args...)
+			output, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(output).ToNot(ContainSubstring("SchedulingDisabled"))
 		})
@@ -179,54 +179,54 @@ var _ = Describe("Node Eviction", func() {
 		It("virtualmachineinstance owned by a virtual machine will be re-scheduled", func() {
 			By("Create the virtualmachine instance's vm")
 			args := []string{"create", "-n", ns, "-f", vmi.Manifest}
-			_, err := ktests.RunCommand("oc", args...)
+			_, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Start the virtual machine via virtctl")
 			args = []string{"-n", ns, "start", vmi.Name}
-			_, err = ktests.RunCommand("virtctl", args...)
+			_, _, err = ktests.RunCommand("virtctl", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check that the virtualmachine instance is running")
 			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.phase}}"}
 			Eventually(func() string {
-				output, err := ktests.RunCommand("oc", args...)
+				output, _, err := ktests.RunCommand("oc", args...)
 				Expect(err).ToNot(HaveOccurred())
 				return output
 			}, time.Minute*10).Should(Equal("Running"))
 
 			By("Retrieve the vmi's node")
 			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.nodeName}}"}
-			nodeName, err := ktests.RunCommand("oc", args...)
+			nodeName, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Drain the vmi's node")
 			args = []string{"adm", "drain", nodeName, "--delete-local-data", "--ignore-daemonsets=true", "--force", "--pod-selector=kubevirt.io=virt-launcher"}
-			_, err = ktests.RunCommand("oc", args...)
+			_, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify that the vmi's node is unschedulable")
 			args = []string{"get", "node", nodeName, "--template", "{{.spec.unschedulable}}"}
-			Eventually(func() (string, error) {
+			Eventually(func() (string, string, error) {
 				return ktests.RunCommand("oc", args...)
 			}, time.Minute*2).Should(Equal("true"))
 
 			By("Verify that the vmi is running on other node")
 			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.phase}}"}
 			Eventually(func() string {
-				output, err := ktests.RunCommand("oc", args...)
+				output, _, err := ktests.RunCommand("oc", args...)
 				Expect(err).ToNot(HaveOccurred())
 				return output
 			}, time.Minute*2).Should(Equal("Running"))
 
 			By("Uncordon the vmi's node")
 			args = []string{"adm", "uncordon", nodeName}
-			_, err = ktests.RunCommand("oc", args...)
+			_, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify that the node is schedulable again")
 			args = []string{"get", "node", nodeName}
-			output, err := ktests.RunCommand("oc", args...)
+			output, _, err := ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(output).ToNot(ContainSubstring("SchedulingDisabled"))
 		})
@@ -235,18 +235,18 @@ var _ = Describe("Node Eviction", func() {
 
 func uncordonNodes() {
 	args := []string{"get", "node", "--selector=node-role.kubernetes.io/compute=true", "--output=jsonpath={.items..metadata.name}"}
-	output, err := ktests.RunCommand("oc", args...)
+	output, _, err := ktests.RunCommand("oc", args...)
 	Expect(err).ToNot(HaveOccurred())
 
 	nodes := strings.Fields(output)
 	for _, node := range nodes {
 		args := []string{"get", "node", node}
-		output, err := ktests.RunCommand("oc", args...)
+		output, _, err := ktests.RunCommand("oc", args...)
 		Expect(err).ToNot(HaveOccurred())
 
 		if strings.Contains(output, "SchedulingDisabled") {
 			args = []string{"adm", "uncordon", node}
-			_, err = ktests.RunCommand("oc", args...)
+			_, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	}

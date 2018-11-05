@@ -9,6 +9,9 @@ BUILDER=kubevirt-ansible
 
 TEMPFILE=".rsynctemp"
 
+SYNC_OUT=${SYNC_OUT:-true}
+SYNC_VENDOR=${SYNC_VENDOR:-false}
+
 # Build the build container
 (cd ${DOCKER_DIR} && docker build . -q -t ${BUILDER})
 
@@ -18,10 +21,13 @@ if [ -z "$(docker volume list | grep ${BUILDER})" ]; then
 fi
 
 # Make sure that the output directory exists
-docker run -v "${BUILDER}:/root:rw,z" --rm ${BUILDER} mkdir -p /root/go/src/kubevirt.io/kubevirt-ansible/_out
+docker run -v "${BUILDER}:/root:rw,z" --security-opt label:disable --rm ${BUILDER} mkdir -p /root/go/src/kubevirt.io/kubevirt-ansible/_out
+
+# Make sure that the vendor directory exists
+docker run -v "${BUILDER}:/root:rw,z" --security-opt label:disable --rm ${BUILDER} mkdir -p /root/go/src/kubevirt.io/kubevirt-ansible/vendor
 
 # Start an rsyncd instance and make sure it gets stopped after the script exits
-RSYNC_CID=$(docker run -d -v "${BUILDER}:/root:rw,z" --expose 873 -P ${BUILDER} /usr/bin/rsync --no-detach --daemon --verbose)
+RSYNC_CID=$(docker run -d -v "${BUILDER}:/root:rw,z" --security-opt label:disable --expose 873 -P ${BUILDER} /usr/bin/rsync --no-detach --daemon --verbose)
 
 function finish() {
     docker stop ${RSYNC_CID} >/dev/null 2>&1 &
@@ -71,7 +77,12 @@ _rsync \
 
 # Run the command
 test -t 1 && USE_TTY="-it"
-docker run --rm -v "${BUILDER}:/root:rw,z" ${USE_TTY} -w "/root/go/src/kubevirt.io/kubevirt-ansible" ${BUILDER} "$@"
+docker run --rm -v "${BUILDER}:/root:rw,z" --security-opt label:disable ${USE_TTY} -w "/root/go/src/kubevirt.io/kubevirt-ansible" ${BUILDER} "$@"
 
-# Copy from container content of out directory
-_rsync --delete "rsync://root@127.0.0.1:${RSYNCD_PORT}/out" ${OUT_DIR}
+if [ "$SYNC_VENDOR" = "true" ]; then
+    _rsync --delete "rsync://root@127.0.0.1:${RSYNCD_PORT}/vendor" "${VENDOR_DIR}"
+fi
+# Copy the build output out of the container, make sure that _out exactly matches the build result
+if [ "$SYNC_OUT" = "true" ]; then
+    _rsync --delete "rsync://root@127.0.0.1:${RSYNCD_PORT}/out" ${OUT_DIR}
+fi

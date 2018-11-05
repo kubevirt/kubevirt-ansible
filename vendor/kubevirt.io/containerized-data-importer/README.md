@@ -1,16 +1,17 @@
 # Containerized Data Importer
+[![Go Report Card](https://goreportcard.com/badge/github.com/kubevirt/containerized-data-importer)](https://goreportcard.com/report/github.com/kubevirt/containerized-data-importer)
+[![Coverage Status](https://img.shields.io/coveralls/kubevirt/containerized-data-importer/master.svg)](https://coveralls.io/github/kubevirt/containerized-data-importer?branch=master)
+
 A declarative Kubernetes utility to import Virtual Machine images for use with [Kubevirt](https://github.com/kubevirt/kubevirt). At a high level, a persistent volume claim (PVC), which defines VM-suitable storage via a storage class, is created. A custom controller watches for importer specific claims, and when discovered, starts an import/copy process. The status of the import process is reflected in the same claim, and when the copy completes Kubevirt can create the VM based on the just-imported image.
-In Addition, the Containerized Data Importer gives the option to clone the imported VM image from one PVC to another one across two different namespaces (A.K.A Host-Assisted cloning).
+In Addition, the Containerized Data Importer gives the option to clone the imported VM image from one PVC to another one across two different namespaces (A.K.A Host-Assisted cloning). 
 
 1. [Purpose](#purpose)
 1. [Versions](#versions)
 1. [Design](/doc/design.md#design)
 1. [Running the CDI Controller](#deploying-cdi)
 1. [Cloning VM Images](#cloning-vm-images)
-1. [Endpoint Size](#endpoint-size)
 1. [Hacking (WIP)](hack/README.md#getting-started-for-developers)
 1. [Security Configurations](#security-configurations)
-
 
 ## Overview
 
@@ -57,8 +58,6 @@ Supported file formats are:
 - A running Kubernetes cluster with roles and role bindings implementing security necesary for the CDI controller to watch PVCs and pods across all namespaces.
 - A storage class and provisioner.
 - An HTTP or S3 file server hosting VM images
-> Note: CDI is able to import a local file endpoint but this is not supported except for testing and debugging.
-`file:///` endpoints can only access the container's filesystem and require that files on the host be mounted via hostPath to the impoter pod. This bind-mount is **not** done by CDI.
 
 - An optional "golden" namespace acting as the image registry. The `default` namespace is fine for tire kicking.
 
@@ -68,7 +67,7 @@ Supported file formats are:
 
 *Or*
 
-`$ git clone https://kubevirt.io/containerized-data-importer.git`
+`$ git clone https://github.com/kubevirt/containerized-data-importer.git $GOPATH/src/kubevirt.io/containerized-data-importer`
 
 *Or download only the yamls:*
 
@@ -78,20 +77,48 @@ $ wget https://raw.githubusercontent.com/kubevirt/containerized-data-importer/ku
 $ wget https://raw.githubusercontent.com/kubevirt/containerized-data-importer/kubevirt-centric-readme/manifests/example/endpoint-secret.yaml
 ```
 
-### Run the CDI Controller
+### Deploy CDI from a release
 
 Deploying the CDI controller is straight forward. In this document the _default_ namespace is used, but in a production setup a [protected namespace](#protecting-the-golden-image-namespace) that is inaccessible to regular users should be used instead.
 
-1. Deploy the controller from the release manifest:
+1. Ensure that the cdi-sa service account has proper authority to run privileged containers, typically in a kube environment this is true by default.
+   If you are running an openshift variation of kubernetes you may need to enable privileged containers in the security context:
+
+```
+$ oc adm policy add-scc-to-user privileged -z cdi-sa
+```
+
+2. Deploy the controller from the release manifest:
 
 ```
 $ VERSION=<cdi version>
-$ kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-controller-deployment.yaml
+$ kubectl create -f https://github.com/kubevirt/containerized-data-importer/releases/download/$VERSION/cdi-controller.yaml
 ```
 
-**DEPRECATION NOTICE:** The below method will not be supported in releases following v1.1.0 as `manifests/controller/cdi-controller-deployment.yaml` will be removed.  See [Make Targets (manifests)](./hack/README.md#make-targets) for generating manifests locally.
+### Deploy CDI using a template
 
-`$ kubectl -n default create -f https://raw.githubusercontent.com/kubevirt/containerized-data-importer/master/manifests/cdi-controller-deployment.yaml`
+By default when using `manifests/generated/cdi-controller.yaml` CDI will deploy into the kube-system namespace using default settings.  You can customize the deployment by using the generated `manifests/generated/cdi-controller.yaml.j2` jinja2 template.  This allows you to alter the install namespace, docker image repo, docker image tags, etc.  To deploy using the template follow these steps:
+
+1. Install j2cli:
+
+    `$ pip install j2cli`
+
+1. Install CDI:
+
+    ```
+    $ cdi_namespace=default \
+      docker_prefix=kubevirt \
+      docker_tag=v1.1.1 \
+      pull_policy=IfNotPresent \
+      verbosity=1 \
+      j2 manifests/generated/cdi-controller.yaml.j2 | kubectl create -f -
+    ```
+    Check the template file and make sure to supply values for all variables.
+
+> Note: the default verbosity level is set to 1 in the controller deployment file, which is minimal logging. If greater details are desired increase the `-v` number to 2 or 3.
+
+> Note: the importer pod uses the same logging verbosity as the controller. If a different level of logging is required after the controller has been started, the deployment can be edited and applied by using `kubectl apply -f <CDI-MANIFEST>`. This will not alter the running controller's logging level but will affect importer pods created after the change. To change the running controller's log level requires it to be restarted after the deployment has been edited.
+
 
 ### Start Importing Images
 
@@ -120,18 +147,6 @@ Make copies of the [example manifests](./manifests/example) for editing. The nec
 
 ### Deploy the API Objects
 
-1. (Optional) Create the namespace where the controller will run:
-
-    `$ kubectl create ns <CDI-NAMESPACE>`
-
-1. Deploy the CDI controller:
-
-   `$ kubectl -n <CDI-NAMESPACE> create -f manifests/controller/cdi-controller-deployment.yaml`
-
-> Note: the default verbosity level is set to 1 in the controller deployment file, which is minimal logging. If greater details are desired increase the `-v` number to 2 or 3.
-
-> Note: the importer pod uses the same logging verbosity as the controller. If a different level of logging is required after the controller has been started, the deployment can be edited and applied via `kubectl apply -f manifests/controller/cdi-controller-deployment.yaml`. This will not alter the running controller's logging level but will affect importer pods created after the change. To change the running controller's log level requires it to be restarted after the deployment has been edited.
-
 1. (Optional) Create the endpoint secret in the PVC's namespace:
 
    `$ kubectl -n <NAMESPACE> create -f endpoint-secret.yaml`
@@ -155,7 +170,28 @@ Make copies of the [example manifests](./manifests/example) for editing. The nec
 
 ### Cloning VM Images
 
-Cloning is achieved by creating a new PVC with the 'k8s.io/CloneRequest' annotation indicating the name of the PVC the image is copied from. Once the controller detects the PVC, it starts two pods which are responsible for the cloning of the image from one PVC to another using a unix socket that is created on the host itself. When the cloning is completed, the PVC which the image was copied to, is assigned with the 'k8s.io/CloneOf' annotation to indicate cloning completion. The copied VM image can be used by a new pod only after the cloning process is completed.
+Cloning is achieved by creating a new PVC with the 'k8s.io/CloneRequest' annotation indicating the name of the PVC the image is copied from.
+Once the controller detects the PVC, it starts two pods (source and target pods) which are responsible for the cloning of the image from one PVC to another using a unix socket that is created on the host itself. 
+When the cloning is completed, the PVC which the image was copied to, is assigned with the 'k8s.io/CloneOf' annotation to indicate cloning completion.
+The copied VM image can be used by a new pod only after the cloning process is completed.
+
+The two cloning pods must execute on the same node. Pod adffinity is used to enforce this requirement; however, the cluster also needs to be configured to delay volume binding until pod scheduling has completed.
+
+In Kubernetes 1.9 and older export KUBE_FEATURE_GATES before bringing up the cluster:
+`$ export KUBE_FEATURE_GATES="PersistentLocalVolumes=true,VolumeScheduling=true,MountPropagation=true"`
+
+These features default to true in Kubernetes 1.10 and later and thus do not need to be set.
+
+Regardless of the Kubernetes version, a storage class with _volumeBindingMode_ set to "WaitForFirstConsumer" needs to be created. Eg:
+```
+   kind: StorageClass
+   apiVersion: storage.k8s.io/v1
+   metadata:
+     name: <local-storage-name>
+   provisioner: kubernetes.io/no-provisioner
+   volumeBindingMode: WaitForFirstConsumer
+```
+
 
 ### Start Cloning Images
 
@@ -164,6 +200,7 @@ From the [example manifests](./manifests/example) you copied earlier, the necess
 
 ###### Edit target-pvc.yaml:
 1.  `k8s.io/CloneRequest:` The name of the PVC we copy the image from (including its namespace). For example: "source-ns/golden-pvc".
+2. add the name of the storage class which defines `volumeBindingMode` per above. Note, this is not required in Kubernetes 1.10 and later.
 
 ### Deploy the API Object
 1. (Optional) Create the namespace where the target PVC will be deployed:
@@ -185,64 +222,11 @@ From the [example manifests](./manifests/example) you copied earlier, the necess
    `$ kubectl -n <TARGET-NAMESPACE> get pvc <target-pvc-name> -o yaml`
 
 
-### Endpoint Size
-
-The size of the source endpoint can be retrieved by importing the _pkg/lib/size_ package. The `Size` function returns the endpoint size without the need to decompress and copy the source file. The `Size` function has this signature:
-```
-func Size(endpoint, accessKey, secKey string) (int64, error)
-```
-where:
-
-- **endpoint** is the full enpoint path name, eg. _https://s3.amazonaws.com/kubevirt-images/tinyCore.qcow2_
-
-- **accessKey** and **secKey** are optional credentials for accessing private endpoints.
-
-Example:
-```
-import (
-   ...
-   "kubevirt.io/containerized-data-importer/pkg/lib/size"
-   ...
-   size, err := size.Size(sourceFileEp, "", "")
-   if err == nil {
-      ... // have a valid size
-   }
-```
-##### Limitations:
-The `Size` function currently supports the following file formats:
-- _any.tar_
-
-- _any.tar.gz_
-
-- _any.tar.xz_
-
-- _any.qcow2_
-
-- _any.qcow2.tar[.gz|.xz]_
-
-- _any.iso_
-
-- _any.iso.tar[.gz|.xz]_
-
-The `Size` function does **not** yet support the following formats:
-- _any.gz_
-
-- _any.xz_
-
-- certain raw, unititialized iso formats
-
-In other words, if the endpoint is a _qcow2_ file, or any file wrapped by tar (even with compression) then the size of the endpoint can be determined. If the endpoint is an unformatted raw file, not compressed, not archived, then its size cannot (yet) be returned.
-
-An additional caveat is that currently the size is under reported for simple iso files, meaning a structured iso file that is not archived and/or compressed.
-
-
 ### Security Configurations
 
 #### RBAC Roles
 
 CDI runs under a custom ServiceAccount (cdi-sa) and uses the [Kubernetes RBAC model](https://kubernetes.io/docs/admin/authorization/rbac/) to apply an application specific custom ClusterRole with rules to properly access needed resources such as PersistentVolumeClaims and Pods.
-
-> NOTE: The cdi-controller-deployment.yaml in the manifests directory should be updated if deploying manually with kubectl to use the correct Namespace where the deployment is running.
 
 
 #### Protecting VM Image Namespaces

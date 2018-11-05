@@ -1,3 +1,21 @@
+# Monitoring
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubevirt-prometheus-metrics
+  namespace: {{.Namespace}}
+  labels:
+    prometheus.kubevirt.io: ""
+    kubevirt.io: ""
+spec:
+  ports:
+    - name: metrics
+      port: 443
+      targetPort: metrics
+      protocol: TCP
+  selector:
+    prometheus.kubevirt.io: ""
+---
 # RBAC
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
@@ -177,6 +195,7 @@ rules:
       - admissionregistration.k8s.io
     resources:
       - validatingwebhookconfigurations
+      - mutatingwebhookconfigurations
     verbs:
       - get
       - create
@@ -199,6 +218,16 @@ rules:
   - apiGroups:
       - ''
     resources:
+      - configmaps
+    resourceNames:
+      - extension-apiserver-authentication
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ''
+    resources:
       - pods/exec
     verbs:
       - create
@@ -206,8 +235,24 @@ rules:
       - kubevirt.io
     resources:
       - virtualmachineinstances
+      - virtualmachineinstancemigrations
     verbs:
       - get
+      - list
+      - watch
+  - apiGroups:
+      - ''
+    resources:
+      - limitranges
+    verbs:
+      - watch
+      - list
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachineinstancepresets
+    verbs:
+      - watch
       - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -224,7 +269,6 @@ rules:
       - pods
       - configmaps
       - endpoints
-      - limitranges
     verbs:
       - get
       - list
@@ -394,6 +438,7 @@ spec:
                   ]
       labels:
         kubevirt.io: virt-api
+        prometheus.kubevirt.io: ""
     spec:
       serviceAccountName: kubevirt-apiserver
       containers:
@@ -408,6 +453,9 @@ spec:
           ports:
             - containerPort: 8443
               name: "virt-api"
+              protocol: "TCP"
+            - containerPort: 8443
+              name: "metrics"
               protocol: "TCP"
           readinessProbe:
             tcpSocket:
@@ -440,6 +488,7 @@ spec:
                   ]
       labels:
         kubevirt.io: virt-controller
+        prometheus.kubevirt.io: ""
     spec:
       serviceAccountName: kubevirt-controller
       containers:
@@ -451,21 +500,23 @@ spec:
               - "--launcher-image"
               - "{{.DockerPrefix}}/virt-launcher:{{.DockerTag}}"
               - "--port"
-              - "8182"
+              - "8443"
           ports:
-            - containerPort: 8182
-              name: "virt-controller"
+            - containerPort: 8443
+              name: "metrics"
               protocol: "TCP"
           livenessProbe:
             failureThreshold: 8
             httpGet:
-              port: 8182
+              scheme: HTTPS
+              port: 8443
               path: /healthz
             initialDelaySeconds: 15
             timeoutSeconds: 10
           readinessProbe:
             httpGet:
-              port: 8182
+              scheme: HTTPS
+              port: 8443
               path: /leader
             initialDelaySeconds: 15
             timeoutSeconds: 10
@@ -497,27 +548,33 @@ spec:
                   ]
       labels:
         kubevirt.io: virt-handler
+        prometheus.kubevirt.io: ""
     spec:
       serviceAccountName: kubevirt-privileged
       hostPID: true
       containers:
         - name: virt-handler
           ports:
-            - containerPort: 8185
-              hostPort: 8185
+            - containerPort: 8443
+              name: "metrics"
+              protocol: "TCP"
           image: {{.DockerPrefix}}/virt-handler:{{.DockerTag}}
           imagePullPolicy: {{.ImagePullPolicy}}
           command:
             - "virt-handler"
             - "-v"
             - "3"
+            -  "--port"
+            - "8443"
             - "--hostname-override"
             - "$(NODE_NAME)"
+            - "--pod-ip-address"
+            - "$(MY_POD_IP)"
           securityContext:
             privileged: true
           volumeMounts:
-            - name: libvirt-runtime
-              mountPath: /var/run/libvirt
+            - name: libvirt-runtimes
+              mountPath: /var/run/kubevirt-libvirt-runtimes
             - name: virt-share-dir
               mountPath: /var/run/kubevirt
             - name: virt-private-dir
@@ -529,10 +586,14 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
       volumes:
-        - name: libvirt-runtime
+        - name: libvirt-runtimes
           hostPath:
-            path: /var/run/libvirt
+            path: /var/run/kubevirt-libvirt-runtimes
         - name: virt-share-dir
           hostPath:
             path: /var/run/kubevirt
@@ -546,3 +607,4 @@ spec:
 {{index .GeneratedManifests "vmirs-resource.yaml"}}
 {{index .GeneratedManifests "vmipreset-resource.yaml"}}
 {{index .GeneratedManifests "vm-resource.yaml"}}
+{{index .GeneratedManifests "vmim-resource.yaml"}}

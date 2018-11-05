@@ -1,16 +1,19 @@
 package util
 
 import (
+	"bufio"
 	"encoding/xml"
 	"fmt"
 	"os"
 	"os/exec"
 	"reflect"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/libvirt/libvirt-go"
 	k8sv1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/log"
@@ -101,15 +104,22 @@ func SetDomainSpec(virConn cli.Connection, vmi *v1.VirtualMachineInstance, wante
 	return dom, nil
 }
 
-func GetDomainSpec(dom cli.VirDomain) (*api.DomainSpec, error) {
-	spec, err := GetDomainSpecWithFlags(dom, libvirt.DOMAIN_XML_MIGRATABLE)
+func GetDomainSpec(status libvirt.DomainState, dom cli.VirDomain) (*api.DomainSpec, error) {
+
+	var spec *api.DomainSpec
+	inactiveSpec, err := GetDomainSpecWithFlags(dom, libvirt.DOMAIN_XML_INACTIVE)
 	if err != nil {
 		return nil, err
 	}
 
-	inactiveSpec, err := GetDomainSpecWithFlags(dom, libvirt.DOMAIN_XML_INACTIVE)
-	if err != nil {
-		return nil, err
+	spec = inactiveSpec
+	// libvirt (the whole server) sometimes block indefinitely if a guest-shutdown was performed
+	// and we immediately ask it after the successful shutdown for a migratable xml.
+	if !cli.IsDown(status) {
+		spec, err = GetDomainSpecWithFlags(dom, libvirt.DOMAIN_XML_MIGRATABLE)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if !reflect.DeepEqual(spec.Metadata, inactiveSpec.Metadata) {
@@ -118,7 +128,6 @@ func GetDomainSpec(dom cli.VirDomain) (*api.DomainSpec, error) {
 		metadata := &inactiveSpec.Metadata
 		metadata.DeepCopyInto(&spec.Metadata)
 	}
-
 	return spec, nil
 }
 
@@ -145,13 +154,27 @@ func StartLibvirt(stopChan chan struct{}) {
 	go func() {
 		for {
 			exitChan := make(chan struct{})
-			cmd := exec.Command("/usr/share/kubevirt/virt-launcher/libvirtd.sh")
+			cmd := exec.Command("/usr/sbin/libvirtd")
 
-			// libvirtd logs to stderr (see configuration in libvirtd.sh)
 			// connect libvirt's stderr to our own stdout in order to see the logs in the container logs
-			cmd.Stderr = os.Stdout
+			reader, err := cmd.StderrPipe()
+			if err != nil {
+				log.Log.Reason(err).Error("failed to start libvirtd")
+				panic(err)
+			}
 
-			err := cmd.Start()
+			go func() {
+				scanner := bufio.NewScanner(reader)
+				for scanner.Scan() {
+					log.LogLibvirtLogLine(log.Log, scanner.Text())
+				}
+
+				if err := scanner.Err(); err != nil {
+					log.Log.Reason(err).Error("failed to read libvirt logs")
+				}
+			}()
+
+			err = cmd.Start()
 			if err != nil {
 				log.Log.Reason(err).Error("failed to start libvirtd")
 				panic(err)
@@ -226,8 +249,11 @@ func SplitVMINamespaceKey(domainName string) (namespace, name string) {
 // VMINamespaceKeyFunc constructs the domain name with a namespace prefix i.g.
 // namespace_name.
 func VMINamespaceKeyFunc(vmi *v1.VirtualMachineInstance) string {
-	domName := fmt.Sprintf("%s_%s", vmi.GetObjectMeta().GetNamespace(), vmi.GetObjectMeta().GetName())
-	return domName
+	return DomainFromNamespaceName(vmi.Namespace, vmi.Name)
+}
+
+func DomainFromNamespaceName(namespace, name string) string {
+	return fmt.Sprintf("%s_%s", namespace, name)
 }
 
 func NewDomain(dom cli.VirDomain) (*api.Domain, error) {
@@ -241,4 +267,68 @@ func NewDomain(dom cli.VirDomain) (*api.Domain, error) {
 	domain := api.NewDomainReferenceFromName(namespace, name)
 	domain.GetObjectMeta().SetUID(domain.Spec.Metadata.KubeVirt.UID)
 	return domain, nil
+}
+
+func NewDomainFromName(name string, vmiUID types.UID) *api.Domain {
+	namespace, name := SplitVMINamespaceKey(name)
+
+	domain := api.NewDomainReferenceFromName(namespace, name)
+	domain.Spec.Metadata.KubeVirt.UID = vmiUID
+	domain.GetObjectMeta().SetUID(domain.Spec.Metadata.KubeVirt.UID)
+	return domain
+}
+
+func SetupLibvirt() error {
+
+	// TODO: setting permissions and owners is not part of device plugins.
+	// Configure these manually right now on "/dev/kvm"
+	stats, err := os.Stat("/dev/kvm")
+	if err == nil {
+		s, ok := stats.Sys().(*syscall.Stat_t)
+		if !ok {
+			return fmt.Errorf("can't convert file stats to unix/linux stats")
+		}
+		err := os.Chown("/dev/kvm", int(s.Uid), 107)
+		if err != nil {
+			return err
+		}
+		err = os.Chmod("/dev/kvm", 0660)
+		if err != nil {
+			return err
+		}
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	qemuConf, err := os.OpenFile("/etc/libvirt/qemu.conf", os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer qemuConf.Close()
+	// We are in a container, don't try to stuff qemu inside special cgroups
+	_, err = qemuConf.WriteString("cgroup_controllers = [ ]\n")
+	if err != nil {
+		return err
+	}
+
+	// If hugepages exist, tell libvirt about them
+	_, err = os.Stat("/dev/hugepages")
+	if err == nil {
+		_, err = qemuConf.WriteString("hugetlbfs_mount = \"/dev/hugepages\"\n")
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+
+	// Let libvirt log to stderr
+	libvirtConf, err := os.OpenFile("/etc/libvirt/libvirtd.conf", os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer libvirtConf.Close()
+	_, err = libvirtConf.WriteString("log_outputs = \"1:stderr\"\n")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

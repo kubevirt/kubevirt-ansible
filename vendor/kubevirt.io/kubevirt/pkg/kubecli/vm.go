@@ -21,10 +21,9 @@ package kubecli
 
 import (
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-
-	"k8s.io/apimachinery/pkg/types"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
 )
@@ -58,7 +57,7 @@ func (o *vm) Create(vm *v1.VirtualMachine) (*v1.VirtualMachine, error) {
 	return newVm, err
 }
 
-// Get the OfflineVirtual machine from the cluster by its name and namespace
+// Get the Virtual machine from the cluster by its name and namespace
 func (o *vm) Get(name string, options *k8smetav1.GetOptions) (*v1.VirtualMachine, error) {
 	newVm := &v1.VirtualMachine{}
 	err := o.restClient.Get().

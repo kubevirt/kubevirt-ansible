@@ -26,10 +26,8 @@ import (
 	"os/signal"
 	"time"
 
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/spf13/cobra"
-
+	"golang.org/x/crypto/ssh/terminal"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"kubevirt.io/kubevirt/pkg/kubecli"
@@ -40,7 +38,7 @@ var timeout int
 
 func NewCommand(clientConfig clientcmd.ClientConfig) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "console (vmi)",
+		Use:     "console (VMI)",
 		Short:   "Connect to a console of a virtual machine instance.",
 		Example: usage(),
 		Args:    cobra.ExactArgs(1),
@@ -60,9 +58,9 @@ type Console struct {
 }
 
 func usage() string {
-	usage := `# Connect to the console on VirtualMachineInstance 'myvmi':
+	usage := `  # Connect to the console on VirtualMachineInstance 'myvmi':
   virtctl console myvmi
-# Configure one minute timeout (default 5 minutes)
+  # Configure one minute timeout (default 5 minutes)
   virtctl console --timeout=1 myvmi`
 
 	return usage

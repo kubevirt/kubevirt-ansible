@@ -34,10 +34,11 @@ import (
 	v1alpha10 "k8s.io/client-go/kubernetes/typed/rbac/v1alpha1"
 	v1beta18 "k8s.io/client-go/kubernetes/typed/rbac/v1beta1"
 	v1alpha11 "k8s.io/client-go/kubernetes/typed/scheduling/v1alpha1"
+	v1beta19 "k8s.io/client-go/kubernetes/typed/scheduling/v1beta1"
 	v1alpha12 "k8s.io/client-go/kubernetes/typed/settings/v1alpha1"
 	v18 "k8s.io/client-go/kubernetes/typed/storage/v1"
 	v1alpha13 "k8s.io/client-go/kubernetes/typed/storage/v1alpha1"
-	v1beta19 "k8s.io/client-go/kubernetes/typed/storage/v1beta1"
+	v1beta110 "k8s.io/client-go/kubernetes/typed/storage/v1beta1"
 	rest "k8s.io/client-go/rest"
 
 	versioned "kubevirt.io/containerized-data-importer/pkg/client/clientset/versioned"
@@ -73,6 +74,16 @@ func (_m *MockKubevirtClient) VirtualMachineInstance(namespace string) VirtualMa
 
 func (_mr *_MockKubevirtClientRecorder) VirtualMachineInstance(arg0 interface{}) *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "VirtualMachineInstance", arg0)
+}
+
+func (_m *MockKubevirtClient) VirtualMachineInstanceMigration(namespace string) VirtualMachineInstanceMigrationInterface {
+	ret := _m.ctrl.Call(_m, "VirtualMachineInstanceMigration", namespace)
+	ret0, _ := ret[0].(VirtualMachineInstanceMigrationInterface)
+	return ret0
+}
+
+func (_mr *_MockKubevirtClientRecorder) VirtualMachineInstanceMigration(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "VirtualMachineInstanceMigration", arg0)
 }
 
 func (_m *MockKubevirtClient) ReplicaSet(namespace string) ReplicaSetInterface {
@@ -505,9 +516,19 @@ func (_mr *_MockKubevirtClientRecorder) SchedulingV1alpha1() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "SchedulingV1alpha1")
 }
 
-func (_m *MockKubevirtClient) Scheduling() v1alpha11.SchedulingV1alpha1Interface {
+func (_m *MockKubevirtClient) SchedulingV1beta1() v1beta19.SchedulingV1beta1Interface {
+	ret := _m.ctrl.Call(_m, "SchedulingV1beta1")
+	ret0, _ := ret[0].(v1beta19.SchedulingV1beta1Interface)
+	return ret0
+}
+
+func (_mr *_MockKubevirtClientRecorder) SchedulingV1beta1() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "SchedulingV1beta1")
+}
+
+func (_m *MockKubevirtClient) Scheduling() v1beta19.SchedulingV1beta1Interface {
 	ret := _m.ctrl.Call(_m, "Scheduling")
-	ret0, _ := ret[0].(v1alpha11.SchedulingV1alpha1Interface)
+	ret0, _ := ret[0].(v1beta19.SchedulingV1beta1Interface)
 	return ret0
 }
 
@@ -535,9 +556,9 @@ func (_mr *_MockKubevirtClientRecorder) Settings() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Settings")
 }
 
-func (_m *MockKubevirtClient) StorageV1beta1() v1beta19.StorageV1beta1Interface {
+func (_m *MockKubevirtClient) StorageV1beta1() v1beta110.StorageV1beta1Interface {
 	ret := _m.ctrl.Call(_m, "StorageV1beta1")
-	ret0, _ := ret[0].(v1beta19.StorageV1beta1Interface)
+	ret0, _ := ret[0].(v1beta110.StorageV1beta1Interface)
 	return ret0
 }
 
@@ -972,6 +993,97 @@ func (_m *MockVirtualMachineInterface) Patch(name string, pt types.PatchType, da
 }
 
 func (_mr *_MockVirtualMachineInterfaceRecorder) Patch(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	_s := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Patch", _s...)
+}
+
+// Mock of VirtualMachineInstanceMigrationInterface interface
+type MockVirtualMachineInstanceMigrationInterface struct {
+	ctrl     *gomock.Controller
+	recorder *_MockVirtualMachineInstanceMigrationInterfaceRecorder
+}
+
+// Recorder for MockVirtualMachineInstanceMigrationInterface (not exported)
+type _MockVirtualMachineInstanceMigrationInterfaceRecorder struct {
+	mock *MockVirtualMachineInstanceMigrationInterface
+}
+
+func NewMockVirtualMachineInstanceMigrationInterface(ctrl *gomock.Controller) *MockVirtualMachineInstanceMigrationInterface {
+	mock := &MockVirtualMachineInstanceMigrationInterface{ctrl: ctrl}
+	mock.recorder = &_MockVirtualMachineInstanceMigrationInterfaceRecorder{mock}
+	return mock
+}
+
+func (_m *MockVirtualMachineInstanceMigrationInterface) EXPECT() *_MockVirtualMachineInstanceMigrationInterfaceRecorder {
+	return _m.recorder
+}
+
+func (_m *MockVirtualMachineInstanceMigrationInterface) Get(name string, options *v1.GetOptions) (*v19.VirtualMachineInstanceMigration, error) {
+	ret := _m.ctrl.Call(_m, "Get", name, options)
+	ret0, _ := ret[0].(*v19.VirtualMachineInstanceMigration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockVirtualMachineInstanceMigrationInterfaceRecorder) Get(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Get", arg0, arg1)
+}
+
+func (_m *MockVirtualMachineInstanceMigrationInterface) List(opts *v1.ListOptions) (*v19.VirtualMachineInstanceMigrationList, error) {
+	ret := _m.ctrl.Call(_m, "List", opts)
+	ret0, _ := ret[0].(*v19.VirtualMachineInstanceMigrationList)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockVirtualMachineInstanceMigrationInterfaceRecorder) List(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "List", arg0)
+}
+
+func (_m *MockVirtualMachineInstanceMigrationInterface) Create(_param0 *v19.VirtualMachineInstanceMigration) (*v19.VirtualMachineInstanceMigration, error) {
+	ret := _m.ctrl.Call(_m, "Create", _param0)
+	ret0, _ := ret[0].(*v19.VirtualMachineInstanceMigration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockVirtualMachineInstanceMigrationInterfaceRecorder) Create(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Create", arg0)
+}
+
+func (_m *MockVirtualMachineInstanceMigrationInterface) Update(_param0 *v19.VirtualMachineInstanceMigration) (*v19.VirtualMachineInstanceMigration, error) {
+	ret := _m.ctrl.Call(_m, "Update", _param0)
+	ret0, _ := ret[0].(*v19.VirtualMachineInstanceMigration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockVirtualMachineInstanceMigrationInterfaceRecorder) Update(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Update", arg0)
+}
+
+func (_m *MockVirtualMachineInstanceMigrationInterface) Delete(name string, options *v1.DeleteOptions) error {
+	ret := _m.ctrl.Call(_m, "Delete", name, options)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockVirtualMachineInstanceMigrationInterfaceRecorder) Delete(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Delete", arg0, arg1)
+}
+
+func (_m *MockVirtualMachineInstanceMigrationInterface) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (*v19.VirtualMachineInstanceMigration, error) {
+	_s := []interface{}{name, pt, data}
+	for _, _x := range subresources {
+		_s = append(_s, _x)
+	}
+	ret := _m.ctrl.Call(_m, "Patch", _s...)
+	ret0, _ := ret[0].(*v19.VirtualMachineInstanceMigration)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+func (_mr *_MockVirtualMachineInstanceMigrationInterfaceRecorder) Patch(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	_s := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Patch", _s...)
 }

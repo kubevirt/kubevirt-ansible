@@ -35,12 +35,12 @@ import (
 	"k8s.io/client-go/rest"
 
 	cdiclient "kubevirt.io/containerized-data-importer/pkg/client/clientset/versioned"
-
 	"kubevirt.io/kubevirt/pkg/api/v1"
 )
 
 type KubevirtClient interface {
 	VirtualMachineInstance(namespace string) VirtualMachineInstanceInterface
+	VirtualMachineInstanceMigration(namespace string) VirtualMachineInstanceMigrationInterface
 	ReplicaSet(namespace string) ReplicaSetInterface
 	VirtualMachine(namespace string) VirtualMachineInterface
 	ServerVersion() *ServerVersion
@@ -112,4 +112,13 @@ type VirtualMachineInterface interface {
 	Update(*v1.VirtualMachine) (*v1.VirtualMachine, error)
 	Delete(name string, options *k8smetav1.DeleteOptions) error
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.VirtualMachine, err error)
+}
+
+type VirtualMachineInstanceMigrationInterface interface {
+	Get(name string, options *k8smetav1.GetOptions) (*v1.VirtualMachineInstanceMigration, error)
+	List(opts *k8smetav1.ListOptions) (*v1.VirtualMachineInstanceMigrationList, error)
+	Create(*v1.VirtualMachineInstanceMigration) (*v1.VirtualMachineInstanceMigration, error)
+	Update(*v1.VirtualMachineInstanceMigration) (*v1.VirtualMachineInstanceMigration, error)
+	Delete(name string, options *k8smetav1.DeleteOptions) error
+	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.VirtualMachineInstanceMigration, err error)
 }

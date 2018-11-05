@@ -20,49 +20,63 @@
 package api
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
-	"regexp"
+	"strconv"
+	"strings"
+	"syscall"
 
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"strconv"
-	"strings"
-
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/cloud-init"
+	"kubevirt.io/kubevirt/pkg/config"
 	"kubevirt.io/kubevirt/pkg/emptydisk"
 	"kubevirt.io/kubevirt/pkg/ephemeral-disk"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/precond"
 	"kubevirt.io/kubevirt/pkg/registry-disk"
 	"kubevirt.io/kubevirt/pkg/util"
+	"kubevirt.io/kubevirt/pkg/util/net/dns"
 )
 
 const (
 	CPUModeHostPassthrough = "host-passthrough"
 	CPUModeHostModel       = "host-model"
+	defaultIOThread        = uint(1)
 )
 
 type ConverterContext struct {
 	UseEmulation   bool
 	Secrets        map[string]*k8sv1.Secret
 	VirtualMachine *v1.VirtualMachineInstance
+	CPUSet         []int
+	IsBlockPVC     map[string]bool
 }
 
-func Convert_v1_Disk_To_api_Disk(diskDevice *v1.Disk, disk *Disk, devicePerBus map[string]int) error {
+func Convert_v1_Disk_To_api_Disk(diskDevice *v1.Disk, disk *Disk, devicePerBus map[string]int, numQueues *uint) error {
 
 	if diskDevice.Disk != nil {
 		disk.Device = "disk"
 		disk.Target.Bus = diskDevice.Disk.Bus
 		disk.Target.Device = makeDeviceName(diskDevice.Disk.Bus, devicePerBus)
+		if diskDevice.Disk.PciAddress != "" {
+			if diskDevice.Disk.Bus != "virtio" {
+				return fmt.Errorf("setting a pci address is not allowed for non-virtio bus types, for disk %s", diskDevice.Name)
+			}
+			addr, err := decoratePciAddressField(diskDevice.Disk.PciAddress)
+			if err != nil {
+				return fmt.Errorf("failed to configure disk %s: %v", diskDevice.Name, err)
+			}
+			disk.Address = addr
+		}
 		disk.ReadOnly = toApiReadOnly(diskDevice.Disk.ReadOnly)
+		disk.Serial = diskDevice.Serial
 	} else if diskDevice.LUN != nil {
 		disk.Device = "lun"
 		disk.Target.Bus = diskDevice.LUN.Bus
@@ -88,10 +102,79 @@ func Convert_v1_Disk_To_api_Disk(diskDevice *v1.Disk, disk *Disk, devicePerBus m
 	disk.Driver = &DiskDriver{
 		Name: "qemu",
 	}
+	if numQueues != nil {
+		disk.Driver.Queues = numQueues
+	}
 	disk.Alias = &Alias{Name: diskDevice.Name}
 	if diskDevice.BootOrder != nil {
 		disk.BootOrder = &BootOrder{Order: *diskDevice.BootOrder}
 	}
+
+	return nil
+}
+
+func checkDirectIOFlag(path string, isBlockDev bool) bool {
+	fileExists := true
+
+	// check if fs where disk.img file is located or block device
+	// support direct i/o
+	f, err := os.OpenFile(path, syscall.O_RDONLY|syscall.O_DIRECT, 0)
+	defer f.Close()
+	if err != nil {
+		if fileExists = !os.IsNotExist(err); fileExists {
+			return false
+		}
+	}
+
+	if !fileExists && !isBlockDev {
+		path = path + ".directio_check"
+		f, err := os.OpenFile(path, syscall.O_CREAT|syscall.O_DIRECT, 755)
+		defer f.Close()
+		defer os.Remove(path)
+		if err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+func setDriverCacheMode(disk *Disk, mode v1.DriverCache) error {
+	var path string
+	var blockDevice bool
+	supportDirectIO := true
+
+	if disk.Source.File != "" {
+		path = disk.Source.File
+		blockDevice = false
+	} else if disk.Source.Dev != "" {
+		path = disk.Source.Dev
+		blockDevice = true
+	} else {
+		return fmt.Errorf("Unable to set a driver cache mode, disk is neither a block device nor a file")
+	}
+
+	if mode == "" || mode == v1.CacheNone {
+		supportDirectIO = checkDirectIOFlag(path, blockDevice)
+		if !supportDirectIO {
+			log.Log.Infof("%s file system does not support direct I/O", path)
+		}
+	}
+
+	// if user set a cache mode = 'none' and fs does not support direct I/O then return an error
+	if mode == v1.CacheNone && !supportDirectIO {
+		return fmt.Errorf("Unable to use '%s' cache mode, file system where %s is stored does not support direct I/O", mode, path)
+	}
+
+	// if user did not set a cache mode and fs supports direct I/O then set cache = 'none'
+	// else set cache = 'writethrough
+	if mode == "" && supportDirectIO {
+		mode = v1.CacheNone
+	} else if mode == "" && !supportDirectIO {
+		mode = v1.CacheWriteThrough
+	}
+
+	disk.Driver.Cache = string(mode)
+	log.Log.Infof("Driver cache mode for %s set to %s", path, mode)
 
 	return nil
 }
@@ -146,8 +229,12 @@ func Convert_v1_Volume_To_api_Disk(source *v1.Volume, disk *Disk, c *ConverterCo
 		return Convert_v1_CloudInitNoCloudSource_To_api_Disk(source.CloudInitNoCloud, disk, c)
 	}
 
+	if source.HostDisk != nil {
+		return Convert_v1_HostDisk_To_api_Disk(source.HostDisk.Path, disk, c)
+	}
+
 	if source.PersistentVolumeClaim != nil {
-		return Convert_v1_FilesystemVolumeSource_To_api_Disk(source.Name, disk, c)
+		return Convert_v1_PersistentVolumeClaim_To_api_Disk(source.Name, disk, c)
 	}
 
 	if source.DataVolume != nil {
@@ -160,20 +247,73 @@ func Convert_v1_Volume_To_api_Disk(source *v1.Volume, disk *Disk, c *ConverterCo
 	if source.EmptyDisk != nil {
 		return Convert_v1_EmptyDiskSource_To_api_Disk(source.Name, source.EmptyDisk, disk, c)
 	}
+	if source.ConfigMap != nil {
+		return Convert_v1_Config_To_api_Disk(source.Name, disk, config.ConfigMap)
+	}
+	if source.Secret != nil {
+		return Convert_v1_Config_To_api_Disk(source.Name, disk, config.Secret)
+	}
+	if source.ServiceAccount != nil {
+		return Convert_v1_Config_To_api_Disk(source.Name, disk, config.ServiceAccount)
+	}
 
 	return fmt.Errorf("disk %s references an unsupported source", disk.Alias.Name)
 }
 
-// Convert_v1_FilesystemVolumeSource_To_api_Disk takes a FS source and builds the KVM Disk representation
-func Convert_v1_FilesystemVolumeSource_To_api_Disk(volumeName string, disk *Disk, c *ConverterContext) error {
-
+func Convert_v1_Config_To_api_Disk(volumeName string, disk *Disk, configType config.Type) error {
 	disk.Type = "file"
 	disk.Driver.Type = "raw"
-	disk.Source.File = filepath.Join(
-		"/var/run/kubevirt-private",
-		"vmi-disks",
-		volumeName,
-		"disk.img")
+	switch configType {
+	case config.ConfigMap:
+		disk.Source.File = config.GetConfigMapDiskPath(volumeName)
+		break
+	case config.Secret:
+		disk.Source.File = config.GetSecretDiskPath(volumeName)
+		break
+	case config.ServiceAccount:
+		disk.Source.File = config.GetServiceAccountDiskPath()
+		break
+	default:
+		return fmt.Errorf("Cannot convert config '%s' to disk, unrecognized type", configType)
+	}
+
+	return nil
+}
+
+func GetFilesystemVolumePath(volumeName string) string {
+	return filepath.Join(string(filepath.Separator), "var", "run", "kubevirt-private", "vmi-disks", volumeName, "disk.img")
+}
+
+func GetBlockDeviceVolumePath(volumeName string) string {
+	return filepath.Join(string(filepath.Separator), "dev", volumeName)
+}
+
+func Convert_v1_PersistentVolumeClaim_To_api_Disk(name string, disk *Disk, c *ConverterContext) error {
+	if c.IsBlockPVC[name] {
+		return Convert_v1_BlockVolumeSource_To_api_Disk(name, disk, c)
+	}
+	return Convert_v1_FilesystemVolumeSource_To_api_Disk(name, disk, c)
+}
+
+// Convert_v1_FilesystemVolumeSource_To_api_Disk takes a FS source and builds the KVM Disk representation
+func Convert_v1_FilesystemVolumeSource_To_api_Disk(volumeName string, disk *Disk, c *ConverterContext) error {
+	disk.Type = "file"
+	disk.Driver.Type = "raw"
+	disk.Source.File = GetFilesystemVolumePath(volumeName)
+	return nil
+}
+
+func Convert_v1_BlockVolumeSource_To_api_Disk(volumeName string, disk *Disk, c *ConverterContext) error {
+	disk.Type = "block"
+	disk.Driver.Type = "raw"
+	disk.Source.Dev = GetBlockDeviceVolumePath(volumeName)
+	return nil
+}
+
+func Convert_v1_HostDisk_To_api_Disk(path string, disk *Disk, c *ConverterContext) error {
+	disk.Type = "file"
+	disk.Driver.Type = "raw"
+	disk.Source.File = path
 	return nil
 }
 
@@ -387,6 +527,18 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		return err
 	}
 
+	virtioNetProhibited := false
+	if _, err := os.Stat("/dev/vhost-net"); os.IsNotExist(err) {
+		if c.UseEmulation {
+			logger := log.DefaultLogger()
+			logger.Infof("In-kernel virtio-net device emulation '/dev/vhost-net' not present. Falling back to QEMU userland emulation.")
+		} else {
+			virtioNetProhibited = true
+		}
+	} else if err != nil {
+		return err
+	}
+
 	// Spec metadata
 	domain.Spec.Metadata.KubeVirt.UID = vmi.UID
 	if vmi.Spec.TerminationGracePeriodSeconds != nil {
@@ -427,11 +579,77 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		volumes[volume.Name] = volume.DeepCopy()
 	}
 
+	dedicatedThreads := 0
+	autoThreads := 0
+	useIOThreads := false
+	threadPoolLimit := 1
+
+	if vmi.Spec.Domain.IOThreadsPolicy != nil {
+		useIOThreads = true
+
+		if (*vmi.Spec.Domain.IOThreadsPolicy) == v1.IOThreadsPolicyAuto {
+			numCPUs := 1
+			// Requested CPU's is guaranteed to be no greater than the limit
+			if cpuRequests, ok := vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceCPU]; ok {
+				numCPUs = int(cpuRequests.Value())
+			} else if cpuLimit, ok := vmi.Spec.Domain.Resources.Limits[k8sv1.ResourceCPU]; ok {
+				numCPUs = int(cpuLimit.Value())
+			}
+
+			threadPoolLimit = numCPUs * 2
+		}
+	}
+	for _, diskDevice := range vmi.Spec.Domain.Devices.Disks {
+		dedicatedThread := false
+		if diskDevice.DedicatedIOThread != nil {
+			dedicatedThread = *diskDevice.DedicatedIOThread
+		}
+		if dedicatedThread {
+			useIOThreads = true
+			dedicatedThreads += 1
+		} else {
+			autoThreads += 1
+		}
+	}
+
+	if (autoThreads + dedicatedThreads) > threadPoolLimit {
+		autoThreads = threadPoolLimit - dedicatedThreads
+		// We need at least one shared thread
+		if autoThreads < 1 {
+			autoThreads = 1
+		}
+	}
+
+	ioThreadCount := (autoThreads + dedicatedThreads)
+	if ioThreadCount != 0 {
+		if domain.Spec.IOThreads == nil {
+			domain.Spec.IOThreads = &IOThreads{}
+		}
+		domain.Spec.IOThreads.IOThreads = uint(ioThreadCount)
+	}
+
+	currentAutoThread := defaultIOThread
+	currentDedicatedThread := uint(autoThreads + 1)
+
+	var numQueues *uint
+	virtioBlkMQRequested := (vmi.Spec.Domain.Devices.BlockMultiQueue != nil) && (*vmi.Spec.Domain.Devices.BlockMultiQueue)
+	virtioNetMQRequested := (vmi.Spec.Domain.Devices.NetworkInterfaceMultiQueue != nil) && (*vmi.Spec.Domain.Devices.NetworkInterfaceMultiQueue)
+	if virtioBlkMQRequested || virtioNetMQRequested {
+		// Requested CPU's is guaranteed to be no greater than the limit
+		if cpuRequests, ok := vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceCPU]; ok {
+			numCPUs := uint(cpuRequests.Value())
+			numQueues = &numCPUs
+		} else if cpuLimit, ok := vmi.Spec.Domain.Resources.Limits[k8sv1.ResourceCPU]; ok {
+			numCPUs := uint(cpuLimit.Value())
+			numQueues = &numCPUs
+		}
+	}
+
 	devicePerBus := make(map[string]int)
 	for _, disk := range vmi.Spec.Domain.Devices.Disks {
 		newDisk := Disk{}
 
-		err := Convert_v1_Disk_To_api_Disk(&disk, &newDisk, devicePerBus)
+		err := Convert_v1_Disk_To_api_Disk(&disk, &newDisk, devicePerBus, numQueues)
 		if err != nil {
 			return err
 		}
@@ -443,6 +661,31 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		if err != nil {
 			return err
 		}
+
+		if useIOThreads {
+			ioThreadId := defaultIOThread
+			dedicatedThread := false
+			if disk.DedicatedIOThread != nil {
+				dedicatedThread = *disk.DedicatedIOThread
+			}
+
+			if dedicatedThread {
+				ioThreadId = currentDedicatedThread
+				currentDedicatedThread += 1
+			} else {
+				ioThreadId = currentAutoThread
+				// increment the threadId to be used next but wrap around at the thread limit
+				// the odd math here is because thread ID's start at 1, not 0
+				currentAutoThread = (currentAutoThread % uint(autoThreads)) + 1
+			}
+			newDisk.Driver.IOThread = &ioThreadId
+		}
+
+		err = setDriverCacheMode(&newDisk, disk.Cache)
+		if err != nil {
+			return err
+		}
+
 		domain.Spec.Devices.Disks = append(domain.Spec.Devices.Disks, newDisk)
 	}
 
@@ -516,6 +759,21 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		domain.Spec.CPU.Mode = CPUModeHostModel
 	}
 
+	// Adjust guest vcpu config. Currenty will handle vCPUs to pCPUs pinning
+	if vmi.IsCPUDedicated() {
+		if err := formatDomainCPUTune(vmi, domain, c); err != nil {
+			log.Log.Reason(err).Error("failed to format domain cputune.")
+			return err
+		}
+		if useIOThreads {
+			if err := formatDomainIOThreadPin(vmi, domain, c); err != nil {
+				log.Log.Reason(err).Error("failed to format domain iothread pinning.")
+				return err
+			}
+
+		}
+	}
+
 	// Add mandatory console device
 	var serialPort uint = 0
 	var serialType string = "serial"
@@ -581,18 +839,26 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 	}
 
 	networks := map[string]*v1.Network{}
-	multusNetworks := map[string]int{}
+	cniNetworks := map[string]int{}
 	for _, network := range vmi.Spec.Networks {
-		if network.Multus == nil && network.Pod == nil {
-			return fmt.Errorf("fail network %s must have a network type", network.Name)
+		numberOfSources := 0
+		if network.Pod != nil {
+			numberOfSources++
 		}
-		if network.Multus != nil && network.Pod != nil {
+		if network.Multus != nil {
+			cniNetworks[network.Name] = len(cniNetworks) + 1
+			numberOfSources++
+		}
+		if network.Genie != nil {
+			cniNetworks[network.Name] = len(cniNetworks)
+			numberOfSources++
+		}
+		if numberOfSources == 0 {
+			return fmt.Errorf("fail network %s must have a network type", network.Name)
+		} else if numberOfSources > 1 {
 			return fmt.Errorf("fail network %s must have only one network type", network.Name)
 		}
 		networks[network.Name] = network.DeepCopy()
-		if network.Multus != nil {
-			multusNetworks[network.Name] = len(multusNetworks) + 1
-		}
 	}
 
 	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
@@ -601,37 +867,47 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 			return fmt.Errorf("failed to find network %s", iface.Name)
 		}
 
+		ifaceType := getInterfaceType(&iface)
 		domainIface := Interface{
 			Model: &Model{
-				Type: getInterfaceType(&iface),
+				Type: ifaceType,
 			},
 			Alias: &Alias{
 				Name: iface.Name,
 			},
 		}
 
+		// if UseEmulation unset and at least one NIC model is virtio,
+		// /dev/vhost-net must be present as we should have asked for it.
+		if ifaceType == "virtio" && virtioNetProhibited {
+			return fmt.Errorf("In-kernel virtio-net device emulation '/dev/vhost-net' not present")
+		} else if ifaceType == "virtio" && virtioNetMQRequested {
+			domainIface.Driver = &InterfaceDriver{Name: "vhost", Queues: numQueues}
+		}
+
 		// Add a pciAddress if specifed
 		if iface.PciAddress != "" {
-			dbsfFields, err := util.ParsePciAddress(iface.PciAddress)
+			addr, err := decoratePciAddressField(iface.PciAddress)
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to configure interface %s: %v", iface.Name, err)
 			}
-			domainIface.Address = &Address{
-				Type:     "pci",
-				Domain:   "0x" + dbsfFields[0],
-				Bus:      "0x" + dbsfFields[1],
-				Slot:     "0x" + dbsfFields[2],
-				Function: "0x" + dbsfFields[3],
-			}
+			domainIface.Address = addr
 		}
 
 		if iface.Bridge != nil {
 			// TODO:(ihar) consider abstracting interface type conversion /
 			// detection into drivers
 			domainIface.Type = "bridge"
-			if value, ok := multusNetworks[iface.Name]; ok {
+			if value, ok := cniNetworks[iface.Name]; ok {
+				prefix := ""
+				// no error check, we assume that CNI type was set correctly
+				if net.Multus != nil {
+					prefix = "net"
+				} else if net.Genie != nil {
+					prefix = "eth"
+				}
 				domainIface.Source = InterfaceSource{
-					Bridge: fmt.Sprintf("k6t-net%d", value),
+					Bridge: fmt.Sprintf("k6t-%s%d", prefix, value),
 				}
 			} else {
 				domainIface.Source = InterfaceSource{
@@ -664,6 +940,75 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		domain.Spec.Devices.Interfaces = append(domain.Spec.Devices.Interfaces, domainIface)
 	}
 
+	return nil
+}
+
+func calculateRequestedVCPUs(vmi *v1.VirtualMachineInstance) uint32 {
+	cores := uint32(0)
+	if vmi.Spec.Domain.CPU != nil && vmi.Spec.Domain.CPU.Cores != 0 {
+		return vmi.Spec.Domain.CPU.Cores
+	}
+	if cpuRequests, ok := vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceCPU]; ok {
+		cores = uint32(cpuRequests.Value())
+	} else if cpuLimit, ok := vmi.Spec.Domain.Resources.Limits[k8sv1.ResourceCPU]; ok {
+		cores = uint32(cpuLimit.Value())
+	}
+	return cores
+}
+
+func formatDomainCPUTune(vmi *v1.VirtualMachineInstance, domain *Domain, c *ConverterContext) error {
+	if len(c.CPUSet) == 0 {
+		return fmt.Errorf("failed for get pods pinned cpus")
+	}
+	vcpus := calculateRequestedVCPUs(vmi)
+	cpuTune := CPUTune{}
+	for idx := 0; idx < int(vcpus); idx++ {
+		vcpupin := CPUTuneVCPUPin{}
+		vcpupin.VCPU = uint(idx)
+		vcpupin.CPUSet = strconv.Itoa(c.CPUSet[idx])
+		cpuTune.VCPUPin = append(cpuTune.VCPUPin, vcpupin)
+	}
+	domain.Spec.CPUTune = &cpuTune
+	return nil
+}
+
+func appendDomainIOThreadPin(domain *Domain, thread uint, cpuset string) {
+	iothreadPin := CPUTuneIOThreadPin{}
+	iothreadPin.IOThread = thread
+	iothreadPin.CPUSet = cpuset
+	domain.Spec.CPUTune.IOThreadPin = append(domain.Spec.CPUTune.IOThreadPin, iothreadPin)
+}
+
+func formatDomainIOThreadPin(vmi *v1.VirtualMachineInstance, domain *Domain, c *ConverterContext) error {
+	iothreads := int(domain.Spec.IOThreads.IOThreads)
+	vcpus := int(calculateRequestedVCPUs(vmi))
+
+	if iothreads >= vcpus {
+		// pin an IOThread on a CPU
+		for thread := 1; thread <= iothreads; thread++ {
+			cpuset := fmt.Sprintf("%d", c.CPUSet[thread%vcpus])
+			appendDomainIOThreadPin(domain, uint(thread), cpuset)
+		}
+	} else {
+		// the following will pin IOThreads to a set of cpus of a balanced size
+		// for example, for 3 threads and 8 cpus the output will look like:
+		// thread cpus
+		//   1    0,1,2
+		//   2    3,4,5
+		//   3    6,7
+		series := vcpus % iothreads
+		curr := 0
+		for thread := 1; thread <= iothreads; thread++ {
+			remainder := vcpus/iothreads - 1
+			if thread <= series {
+				remainder += 1
+			}
+			end := curr + remainder
+			slice := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(c.CPUSet[curr:end+1])), ","), "[]")
+			appendDomainIOThreadPin(domain, uint(thread), slice)
+			curr = end + 1
+		}
+	}
 	return nil
 }
 
@@ -798,12 +1143,12 @@ func GetResolvConfDetailsFromPod() ([][]byte, []string, error) {
 		return nil, nil, err
 	}
 
-	nameservers, err := ParseNameservers(string(b))
+	nameservers, err := dns.ParseNameservers(string(b))
 	if err != nil {
 		return nil, nil, err
 	}
 
-	searchDomains, err := ParseSearchDomains(string(b))
+	searchDomains, err := dns.ParseSearchDomains(string(b))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -814,60 +1159,17 @@ func GetResolvConfDetailsFromPod() ([][]byte, []string, error) {
 	return nameservers, searchDomains, err
 }
 
-func ParseNameservers(content string) ([][]byte, error) {
-	var nameservers [][]byte
-
-	re, err := regexp.Compile("([0-9]{1,3}.?){4}")
+func decoratePciAddressField(addressField string) (*Address, error) {
+	dbsfFields, err := util.ParsePciAddress(addressField)
 	if err != nil {
-		return nameservers, err
-	}
-
-	scanner := bufio.NewScanner(strings.NewReader(content))
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, nameserverPrefix) {
-			nameserver := re.FindString(line)
-			if nameserver != "" {
-				nameservers = append(nameservers, net.ParseIP(nameserver).To4())
-			}
-		}
-	}
-
-	if err = scanner.Err(); err != nil {
-		return nameservers, err
-	}
-
-	// apply a default DNS if none found from pod
-	if len(nameservers) == 0 {
-		nameservers = append(nameservers, net.ParseIP(defaultDNS).To4())
-	}
-
-	return nameservers, nil
-}
-
-func ParseSearchDomains(content string) ([]string, error) {
-	var searchDomains []string
-
-	scanner := bufio.NewScanner(strings.NewReader(content))
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, domainSearchPrefix) {
-			doms := strings.Fields(strings.TrimPrefix(line, domainSearchPrefix))
-			for _, dom := range doms {
-				searchDomains = append(searchDomains, dom)
-			}
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
 		return nil, err
 	}
-
-	if len(searchDomains) == 0 {
-		searchDomains = append(searchDomains, defaultSearchDomain)
+	decoratedAddrField := &Address{
+		Type:     "pci",
+		Domain:   "0x" + dbsfFields[0],
+		Bus:      "0x" + dbsfFields[1],
+		Slot:     "0x" + dbsfFields[2],
+		Function: "0x" + dbsfFields[3],
 	}
-
-	return searchDomains, nil
+	return decoratedAddrField, nil
 }

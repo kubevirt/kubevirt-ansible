@@ -5,20 +5,21 @@ package main
 // https for public remotes, and "file" for local files. The main use-case for this importer is
 // to copy VM images to a "golden" namespace for consumption by kubevirt.
 // This process expects several environmental variables:
-//    IMPORTER_ENDPOINT       Endpoint url minus scheme, bucket/object and port, eg. s3.amazon.com.
+//    ImporterEndpoint       Endpoint url minus scheme, bucket/object and port, eg. s3.amazon.com.
 //			      Access and secret keys are optional. If omitted no creds are passed
 //			      to the object store client.
-//    IMPORTER_ACCESS_KEY_ID  Optional. Access key is the user ID that uniquely identifies your
+//    ImporterAccessKeyID  Optional. Access key is the user ID that uniquely identifies your
 //			      account.
-//    IMPORTER_SECRET_KEY     Optional. Secret key is the password to your account.
+//    ImporterSecretKey     Optional. Secret key is the password to your account.
 
 import (
 	"flag"
 	"os"
 
 	"github.com/golang/glog"
-	. "kubevirt.io/containerized-data-importer/pkg/common"
-	. "kubevirt.io/containerized-data-importer/pkg/importer"
+
+	"kubevirt.io/containerized-data-importer/pkg/common"
+	"kubevirt.io/containerized-data-importer/pkg/importer"
 )
 
 func init() {
@@ -28,16 +29,16 @@ func init() {
 func main() {
 	defer glog.Flush()
 
-	glog.V(Vuser).Infoln("Starting importer")
-	ep, _ := ParseEnvVar(IMPORTER_ENDPOINT, false)
-	acc, _ := ParseEnvVar(IMPORTER_ACCESS_KEY_ID, false)
-	sec, _ := ParseEnvVar(IMPORTER_SECRET_KEY, false)
+	glog.V(1).Infoln("Starting importer")
+	ep, _ := importer.ParseEnvVar(common.ImporterEndpoint, false)
+	acc, _ := importer.ParseEnvVar(common.ImporterAccessKeyID, false)
+	sec, _ := importer.ParseEnvVar(common.ImporterSecretKey, false)
 
-	glog.V(Vuser).Infoln("begin import process")
-	err := CopyImage(IMPORTER_WRITE_PATH, ep, acc, sec)
+	glog.V(1).Infoln("begin import process")
+	err := importer.CopyImage(common.ImporterWritePath, ep, acc, sec)
 	if err != nil {
 		glog.Errorf("%+v", err)
 		os.Exit(1)
 	}
-	glog.V(Vuser).Infoln("import complete")
+	glog.V(1).Infoln("import complete")
 }

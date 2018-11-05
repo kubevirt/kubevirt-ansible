@@ -28,13 +28,12 @@ import (
 	"net"
 	"os"
 
+	lmf "github.com/subgraph/libmacouflage"
 	"github.com/vishvananda/netlink"
 
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/network/dhcp"
-
-	lmf "github.com/subgraph/libmacouflage"
 )
 
 type VIF struct {
@@ -55,6 +54,7 @@ type NetworkHandler interface {
 	LinkSetDown(link netlink.Link) error
 	LinkSetUp(link netlink.Link) error
 	LinkAdd(link netlink.Link) error
+	LinkSetLearningOff(link netlink.Link) error
 	ParseAddr(s string) (*netlink.Addr, error)
 	SetRandomMac(iface string) (net.HardwareAddr, error)
 	GetMacDetails(iface string) (net.HardwareAddr, error)
@@ -85,6 +85,9 @@ func (h *NetworkUtilsHandler) LinkSetUp(link netlink.Link) error {
 }
 func (h *NetworkUtilsHandler) LinkAdd(link netlink.Link) error {
 	return netlink.LinkAdd(link)
+}
+func (h *NetworkUtilsHandler) LinkSetLearningOff(link netlink.Link) error {
+	return netlink.LinkSetLearning(link, false)
 }
 func (h *NetworkUtilsHandler) ParseAddr(s string) (*netlink.Addr, error) {
 	return netlink.ParseAddr(s)
