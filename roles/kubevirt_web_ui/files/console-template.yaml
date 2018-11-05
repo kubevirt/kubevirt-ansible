@@ -12,7 +12,7 @@ metadata:
 parameters:
 - name: IMAGE
   # value: openshift/origin-console:latest
-  value: docker.io/mareklibra/kubevirt-web-ui:latest # TODO: point to "officil" upstream
+  value: quay.io/kubevirt/kubevirt-web-ui:latest
   required: true
 - name: NAMESPACE
   value: kubevirt-web-ui

@@ -7,7 +7,7 @@ The playbook is based on [opensift-ansible](https://github.com/openshift/openshi
 - `cluster`
   - To install Kubevirt Web UI, please set `cluster=openshift`
 - `kubevirt_web_ui_image_name`
-  - example: docker.io/mareklibra/kubevirt-web-ui:f679e704219f58aea97a1433ea01e7c7227afc7d
+  - example: quay.io/kubevirt/kubevirt-web-ui:latest
   - The docker image with the kubevirt-web-ui application
 
 ### Optional Variables:
