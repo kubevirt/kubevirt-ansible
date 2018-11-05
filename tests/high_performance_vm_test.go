@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 	"flag"
-	
+
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/ginkgo"
 	"kubevirt.io/kubevirt/pkg/kubecli"
@@ -16,7 +16,7 @@ import (
 var _ = Describe("High performance vm test", func() {
 	/*
 	* This test includes the features:
-	* 1. Headless 
+	* 1. Headless
 	* 2. Support memory over commitment
 	*/
 
@@ -29,7 +29,7 @@ var _ = Describe("High performance vm test", func() {
 		headless                   = "false"
 		vmAPIVersion               = "kubevirt.io/v1alpha2"
 	)
-	
+
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
 	registryDisk := ktests.RegistryDiskFor(ktests.RegistryDiskCirros)
@@ -42,7 +42,7 @@ var _ = Describe("High performance vm test", func() {
 		It("Create headless VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, headlessDstVMFilePath, "VM_NAME="+headlesstestVMName, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(headlessDstVMFilePath)
-			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", headlesstestVMName, "-o=jsonpath='{.status.phase}'", "Running")			
+			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", headlesstestVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
 
 		It("Check VM settings with 'oc describe'", func() {
@@ -52,13 +52,13 @@ var _ = Describe("High performance vm test", func() {
 		It("[Negative] Check console VNC is disable", func() {
 			_, _, err := tests.OpenConsole(virtClient, headlesstestVMName, tests.NamespaceTestDefault, 20*time.Second, "vnc")
 			Expect(strings.Contains(string(err.Error()), vncErr)).To(BeTrue())
-		})				
+		})
 	})
 
 	Context("Support memory over commitment test", func() {
 		memoryOvercommitDstVMFilePath := "/tmp/memoryOvercommit-vm.json"
 		memoryOvercommitVMName := "memoryovercommit"
-	
+
 		It("Create memoryOvercommit VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
@@ -68,7 +68,7 @@ var _ = Describe("High performance vm test", func() {
 			res := tests.RunOcDescribeCommand("vmis", memoryOvercommitVMName)
 			Expect(strings.Contains(res, overcommitGuestOverheadStr)).To(BeTrue())
 		})
-	})	
+	})
 
 	Context("Headless and Support memory over commitment VM test", func() {
 		memoryOvercommitDstVMFilePath := "/tmp/headlessAndMemoryOvercommit-vm.json"

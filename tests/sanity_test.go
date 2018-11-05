@@ -34,7 +34,7 @@ var _ = Describe("Sanity", func() {
 		It("should start it", func() {
 			vmi, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(vmi)
 			Expect(err).To(BeNil())
-			
+
 			tests.WaitForSuccessfulVMIStart(vmi)
 		})
 	})

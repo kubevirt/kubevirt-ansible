@@ -11,6 +11,7 @@ FUNC_TEST_ARGS="${FUNC_TEST_ARGS:--test.timeout 60m --junit-output=exported-arti
 
 function build_func_tests() {
     mkdir -p ${TESTS_OUT_DIR}/
+    go vet ./tests/...
     ginkgo build ${KUBEVIRT_ANSIBLE_DIR}/tests
     mv ${KUBEVIRT_ANSIBLE_DIR}/tests/tests.test ${TESTS_OUT_DIR}/
 }

@@ -18,21 +18,21 @@ const (
 	ddCommand       =  "dd count=10 bs=1024 if=/dev/%s of=/tmp/%s.txt\n"
 	checkRNGDevice  =  "cat /sys/devices/virtual/misc/hw_random/%s\n"
 	checkFileSize   =  "ls /tmp/%s.txt | wc -l'\n"
-	outputDevice    =  "virtio_rng.0" 
+	outputDevice    =  "virtio_rng.0"
 )
 var rngAvailable    string
 var rngCurrent      string
 var ddWithRandom    string
 var ddWithHWRandom  string
-var checkFileRandom string 
+var checkFileRandom string
 var checkFileHWRng  string
 
 var _ = Describe("VIRT RNG test", func() {
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
-	setCommands() 
-	
+	setCommands()
+
     Context("With VirtIO RNG device", func() {
 		var withRngVmi *v1.VirtualMachineInstance
 		withRngVmi = ktests.NewRandomVMIWithEphemeralDisk(ktests.RegistryDiskFor(ktests.RegistryDiskAlpine))
@@ -65,7 +65,7 @@ var _ = Describe("VIRT RNG test", func() {
 			Expect(err).ToNot(HaveOccurred())
     	})
 	})
-	
+
 })
 
 func setCommands(){
