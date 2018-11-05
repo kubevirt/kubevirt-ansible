@@ -227,7 +227,7 @@ func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) 
 	vmi, err := virtClient.VirtualMachineInstance(vmiNamespace).Get(vmiName, &metav1.GetOptions{})
 	ktests.PanicOnError(err)
 	expecter, _, err := ktests.NewConsoleExpecter(virtClient, vmi, 30*time.Second)
-    if err != nil {
+        if err != nil {
 		return nil, err
 	}
 	b := append([]expect.Batcher{
