@@ -45,6 +45,11 @@ const (
 	paramFlag          = "-p"
 )
 
+const (
+	ShortTimeout       = time.Duration(2) * time.Minute
+	LongTimeout        = time.Duration(4) * time.Minute
+)
+
 func CreateNamespaces() {
 	virtCli, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
@@ -169,6 +174,10 @@ func VNCConnection(namespace, vmname string) (string, error) {
 }
 
 func execute(r Result) string {
+	return executeWithCustomTimeout(r, LongTimeout)
+}
+
+func executeWithCustomTimeout(r Result, timeout time.Duration) string {
 	var err error
 	if r.verb == "" {
 		Expect(fmt.Errorf("verb can not be empty"))
@@ -205,7 +214,7 @@ func execute(r Result) string {
 			r.actualOut, _, err = ktests.RunCommand(r.cmd, cmd...)
 			Expect(err).ToNot(HaveOccurred())
 			return strings.Contains(r.actualOut, r.expectOut)
-		}, time.Duration(2)*time.Minute).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
+		}, timeout).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
 	} else {
 		r.actualOut, _, err = ktests.RunCommand(r.cmd, cmd...)
 		Expect(err).ToNot(HaveOccurred())
