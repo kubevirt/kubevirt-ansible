@@ -16,6 +16,11 @@ openshift_install_examples=false
 # Domain name that will be used by the Openshift router
 openshift_master_default_subdomain=cloudapps.example.com
 
+# Image used for the kubevirt/web-ui deployment
+kubevirt_web_ui_image_name=docker.io/mareklibra/kubevirt-web-ui:v1.3-8
+# Master public API URL
+public_master_hostname=openshift.cloudapps.example.com:443
+
 # Enabling KubeVirt Admission Controller (https://www.kubevirt.io/user-guide/#/installation/api-validation?id=kubevirt-api-validation)
 openshift_master_admission_plugin_config={"ValidatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}},"MutatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}}}
 
