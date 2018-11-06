@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-
 	"github.com/google/goexpect"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,17 +14,18 @@ import (
 )
 
 const (
-	ddCommand       =  "dd count=10 bs=1024 if=/dev/%s of=/tmp/%s.txt\n"
-	checkRNGDevice  =  "cat /sys/devices/virtual/misc/hw_random/%s\n"
-	checkFileSize   =  "ls /tmp/%s.txt | wc -l'\n"
-	outputDevice    =  "virtio_rng.0"
+	ddCommand      = "dd count=10 bs=1024 if=/dev/%s of=/tmp/%s.txt\n"
+	checkRNGDevice = "cat /sys/devices/virtual/misc/hw_random/%s\n"
+	checkFileSize  = "ls /tmp/%s.txt | wc -l'\n"
+	outputDevice   = "virtio_rng.0"
 )
-var rngAvailable    string
-var rngCurrent      string
-var ddWithRandom    string
-var ddWithHWRandom  string
+
+var rngAvailable string
+var rngCurrent string
+var ddWithRandom string
+var ddWithHWRandom string
 var checkFileRandom string
-var checkFileHWRng  string
+var checkFileHWRng string
 
 var _ = Describe("VIRT RNG test", func() {
 	flag.Parse()
@@ -33,10 +33,10 @@ var _ = Describe("VIRT RNG test", func() {
 	ktests.PanicOnError(err)
 	setCommands()
 
-    Context("With VirtIO RNG device", func() {
+	Context("With VirtIO RNG device", func() {
 		var withRngVmi *v1.VirtualMachineInstance
 		withRngVmi = ktests.NewRandomVMIWithEphemeralDisk(ktests.RegistryDiskFor(ktests.RegistryDiskAlpine))
-	    It("Virtio rng device should be present", func() {
+		It("Virtio rng device should be present", func() {
 			withRngVmi.Spec.Domain.Devices.Rng = &v1.Rng{}
 
 			By("Starting a VMI")
@@ -63,16 +63,16 @@ var _ = Describe("VIRT RNG test", func() {
 				&expect.BExp{R: "1"},
 			}, 60*time.Second)
 			Expect(err).ToNot(HaveOccurred())
-    	})
+		})
 	})
 
 })
 
-func setCommands(){
-	rngAvailable     = fmt.Sprintf(checkRNGDevice, "rng_available")
-	rngCurrent       = fmt.Sprintf(checkRNGDevice, "rng_current")
-	ddWithRandom   = fmt.Sprintf(ddCommand, "random", "random")
-	ddWithHWRandom   = fmt.Sprintf(ddCommand, "hwrng", "hwrng")
-	checkFileRandom  = fmt.Sprintf(checkFileSize,"random")
-	checkFileHWRng   = fmt.Sprintf(checkFileSize,"hwrng")
+func setCommands() {
+	rngAvailable = fmt.Sprintf(checkRNGDevice, "rng_available")
+	rngCurrent = fmt.Sprintf(checkRNGDevice, "rng_current")
+	ddWithRandom = fmt.Sprintf(ddCommand, "random", "random")
+	ddWithHWRandom = fmt.Sprintf(ddCommand, "hwrng", "hwrng")
+	checkFileRandom = fmt.Sprintf(checkFileSize, "random")
+	checkFileHWRng = fmt.Sprintf(checkFileSize, "hwrng")
 }

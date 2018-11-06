@@ -1,16 +1,15 @@
 package tests_test
 
 import (
+	"flag"
 	"strings"
 	"time"
-	"flag"
 
-	. "github.com/onsi/gomega"
 	. "github.com/onsi/ginkgo"
-	"kubevirt.io/kubevirt/pkg/kubecli"
+	. "github.com/onsi/gomega"
 	"kubevirt.io/kubevirt-ansible/tests"
+	"kubevirt.io/kubevirt/pkg/kubecli"
 	ktests "kubevirt.io/kubevirt/tests"
-
 )
 
 var _ = Describe("High performance vm test", func() {
@@ -18,7 +17,7 @@ var _ = Describe("High performance vm test", func() {
 	* This test includes the features:
 	* 1. Headless
 	* 2. Support memory over commitment
-	*/
+	 */
 
 	const (
 		virtRawVMFilePath          = "tests/manifests/virt-testing-vm.yml"
@@ -75,7 +74,7 @@ var _ = Describe("High performance vm test", func() {
 		memoryOvercommitVMName := "headlessandmemoryovercommit"
 
 		It("Create headless and memory over commit VM", func() {
-			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath,	"VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "AUTO_GRAPHIC_DEVICE="+headless,	"IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
+			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})

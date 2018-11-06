@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/goexpect"
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"	
+	. "github.com/onsi/gomega"
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,8 +46,8 @@ const (
 )
 
 const (
-	ShortTimeout       = time.Duration(2) * time.Minute
-	LongTimeout        = time.Duration(4) * time.Minute
+	ShortTimeout = time.Duration(2) * time.Minute
+	LongTimeout  = time.Duration(4) * time.Minute
 )
 
 func CreateNamespaces() {
@@ -236,7 +236,7 @@ func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) 
 	vmi, err := virtClient.VirtualMachineInstance(vmiNamespace).Get(vmiName, &metav1.GetOptions{})
 	ktests.PanicOnError(err)
 	expecter, _, err := ktests.NewConsoleExpecter(virtClient, vmi, 30*time.Second)
-        if err != nil {
+	if err != nil {
 		return nil, err
 	}
 	b := append([]expect.Batcher{
@@ -262,7 +262,7 @@ func RunOcDescribeCommand(resourceType, resourceName string) string {
 	return execute(Result{cmd: "oc", verb: "describe", resourceType: resourceType, resourceName: resourceName, nameSpace: NamespaceTestDefault})
 }
 
-func OpenConsole(virtCli kubecli.KubevirtClient, vmiName string, vmiNamespace string, timeout time.Duration , consoleType string, opts ...expect.Option) (expect.Expecter, <-chan error, error) {
+func OpenConsole(virtCli kubecli.KubevirtClient, vmiName string, vmiNamespace string, timeout time.Duration, consoleType string, opts ...expect.Option) (expect.Expecter, <-chan error, error) {
 	vmiReader, vmiWriter := io.Pipe()
 	expecterReader, expecterWriter := io.Pipe()
 	resCh := make(chan error)
