@@ -1,0 +1,66 @@
+---
+- name: Check if namespace "{{ skydive_namespace }}" exists
+  shell: "kubectl get ns | grep -w {{ skydive_namespace }} | awk \'{ print $1 }\'"
+  register: ns
+
+- name: Create {{ skydive_namespace }} namespace on the kubernetes cluster
+  shell: kubectl create namespace {{ skydive_namespace }}
+  when: ns.stdout != skydive_namespace
+    and cluster=="kubernetes"
+
+- name: Create {{ skydive_namespace }} project on the openshift cluster
+  shell: oc new-project {{ skydive_namespace }}
+  when: ns.stdout != skydive_namespace
+    and cluster=="openshift"
+
+- name: Render skydive deployment yaml for kubernetes
+  template:
+    src: kubernetes-skydive.yaml
+    dest: /tmp/skydive.yaml
+  when: cluster=="kubernetes"
+
+- name: Render skydive deployment yaml for openshift
+  template:
+    src: openshift-skydive.yaml
+    dest: /tmp/skydive.yaml
+  when: cluster=="openshift"
+
+- name: Deploy skydive for openshift
+  shell: "oc -n {{ skydive_namespace }} apply -f /tmp/skydive.yaml"
+  when: cluster=="openshift"
+
+- name: Deploy skydive for kubernetes
+  shell: "oc -n {{ skydive_namespace }} apply -f /tmp/skydive.yaml"
+  when: cluster=="kubernetes"
+
+- name: Add privilage for openshift cluster
+  shell: "oc adm policy add-scc-to-user privileged system:serviceaccount:{{ skydive_namespace }}:default"
+  when: cluster=="openshift"
+
+- name: Create app from openshift teamplate
+  shell: "oc -n {{ skydive_namespace }} new-app --template=skydive"
+  when: cluster=="openshift"
+
+- name: Openshift resource
+  set_fact:
+    analyzer_resource: deploymentconfig
+  when: cluster=="openshift"
+
+- name: Kubernetes resource
+  set_fact:
+    analyzer_resource: deployment
+  when: cluster=="kubernetes"
+
+- name: Wait until skydive analyzer is running
+  shell: "kubectl -n {{ skydive_namespace }} get {{ analyzer_resource }} --no-headers skydive-analyzer | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 20
+  delay: 5
+
+- name: Wait until skydive agent is running
+  shell: "kubectl -n {{ skydive_namespace }} get daemonset --no-headers skydive-agent | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 50
+  delay: 5

@@ -208,6 +208,7 @@ run() {
         "ansible_modules_version=$ansible_modules_version"
         "kubevirt_openshift_version=$kubevirt_openshift_version"
         "openshift_playbook_path=$openshift_playbook_path"
+        "deploy_skydive=True"
 	"storage_role=$storage_role"
     )
 
