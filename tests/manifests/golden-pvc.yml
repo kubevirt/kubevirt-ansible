@@ -17,7 +17,7 @@ objects:
     - ReadWriteOnce
     resources:
       requests:
-        storage: 10Gi
+        storage: 1Gi
 parameters:
 - name: PVC_NAME
 - name: EP_URL
