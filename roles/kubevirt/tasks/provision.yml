@@ -47,7 +47,7 @@
   when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
 
 - name: Create KubeVirt Resources
-  command: kubectl apply -f /tmp/kubevirt.yaml
+  command: kubectl apply -f /tmp/kubevirt.yaml --validate=false
 
 # Skipping because of https://github.com/kubevirt/kubevirt/issues/1628
 - name: Demo Content manifest
