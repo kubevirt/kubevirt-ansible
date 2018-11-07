@@ -2,12 +2,12 @@
 - name: oc Command
   set_fact:
     cluster_command: oc
-  when: cluster=="openshift"
+  when: platform=="openshift"
 
 - name: kubectl Command
   set_fact:
     cluster_command: kubectl
-  when: cluster=="kubernetes"
+  when: platform=="kubernetes"
 
 - name: Check if namespace "{{ namespace }}" exists
   shell: "{{ cluster_command }} get ns | grep -w {{ namespace }} | awk \'{ print $1 }\'"
@@ -26,12 +26,12 @@
   - name: openshift cni config
     set_fact:
       cni_config: "{{ openshift_cni_config }}"
-    when: cluster=="openshift"
+    when: platform=="openshift"
 
   - name: kubernetes cni config
     set_fact:
       cni_config: "{{ kubernetes_cni_config }}"
-    when: cluster=="kubernetes"
+    when: platform=="kubernetes"
 
   - name: Render multus deployment yaml
     template:
@@ -71,7 +71,7 @@
         dest: /tmp/ovs-vsctl.yml
     - name: Create ovs-vsctl resources
       shell: "{{ cluster_command }} apply -f /tmp/ovs-vsctl.yml"
-    when: cluster == "openshift"
+    when: platform == "openshift"
   when: deploy_ovs_plugin
 
 - name: Wait until multus is running
