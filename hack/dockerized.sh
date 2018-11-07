@@ -11,6 +11,7 @@ TEMPFILE=".rsynctemp"
 
 SYNC_OUT=${SYNC_OUT:-true}
 SYNC_VENDOR=${SYNC_VENDOR:-false}
+SYNC_GENERATED=${SYNC_GENERATED:-false}
 
 # Build the build container
 (cd ${DOCKER_DIR} && docker build . -q -t ${BUILDER})
@@ -61,7 +62,7 @@ _rsync() {
     rsync -al "$@"
 }
 
-# Copy kubevirt into the persistent docker volume
+# Copy kubevirt-ansible into the persistent docker volume
 _rsync \
     --delete \
     --include 'hack/***' \
@@ -85,4 +86,8 @@ fi
 # Copy the build output out of the container, make sure that _out exactly matches the build result
 if [ "$SYNC_OUT" = "true" ]; then
     _rsync --delete "rsync://root@127.0.0.1:${RSYNCD_PORT}/out" ${OUT_DIR}
+fi
+# Copy generated sources
+if [ "$SYNC_GENERATED" = "true" ]; then
+    _rsync --delete "rsync://root@127.0.0.1:${RSYNCD_PORT}/build/tests/" ${KUBEVIRT_ANSIBLE_DIR}/tests
 fi

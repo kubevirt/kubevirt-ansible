@@ -214,7 +214,7 @@ run() {
     timeout \
         --kill-after 5m \
         20m \
-        make generate-tests &> "${ARTIFACTS_PATH}/generate-tests.log" &
+        make build-tests &> "${ARTIFACTS_PATH}/generate-tests.log" &
     readonly MAKE_TESTS_PID="$!"
 
     ansible-playbook \
@@ -325,6 +325,8 @@ main() {
 
     mkdir -p "$ARTIFACTS_PATH"
     mkdir -p "$VMS_LOGS_PATH"
+
+    make check
 
     run "$run_path" "$cluster"
 }

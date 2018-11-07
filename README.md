@@ -36,7 +36,7 @@ oc login
 
 2. Compile tests from the [tests](./tests) directory inside the docker container and copy it to the `kubevirt-ansible/_out` directory.
 ```
-make generate-tests
+make build-tests
 ```
 
 3. Run all the e2e tests with the `~/.kube/config` file
@@ -62,7 +62,7 @@ or you can pass it to tests via:
 ```
 export STREAM_IMAGE_URL=<the_image_url>
 ```
- 
+
 ## Questions ? Help ? Ideas ?
 
 Stop by the [#kubevirt](https://webchat.freenode.net/?channels=kubevirt) chat channel on freenode IRC

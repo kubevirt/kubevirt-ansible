@@ -34,18 +34,18 @@ var _ = Describe("Network Connectivity", func() {
 	})
 
 	Context("Connectivity between VMs", func() {
-			It("two vms ping each other should be successful", func() {
-				for i := 0; i < 2; i++ {
-					expecter, err := tests.LoggedInCirrosExpecter(vms[i])
-					Expect(err).ToNot(HaveOccurred())
-					defer expecter.Close()
-					cmdCheck := fmt.Sprintf("ping -w 3 %s \n", vmsIP[1-i])
-					err = tests.CheckForTextExpecter(vms[i], []expect.Batcher{
-						&expect.BSnd{S: cmdCheck},
-						&expect.BExp{R: "3 packets transmitted"},
-					}, 60)
-					Expect(err).ToNot(HaveOccurred())
-				}
-			})
+		It("two vms ping each other should be successful", func() {
+			for i := 0; i < 2; i++ {
+				expecter, err := tests.LoggedInCirrosExpecter(vms[i])
+				Expect(err).ToNot(HaveOccurred())
+				defer expecter.Close()
+				cmdCheck := fmt.Sprintf("ping -w 3 %s \n", vmsIP[1-i])
+				err = tests.CheckForTextExpecter(vms[i], []expect.Batcher{
+					&expect.BSnd{S: cmdCheck},
+					&expect.BExp{R: "3 packets transmitted"},
+				}, 60)
+				Expect(err).ToNot(HaveOccurred())
+			}
+		})
 	})
 })
