@@ -16,6 +16,9 @@
   command: "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
   when: cluster=="openshift"
 
+- name: Enable kubevirt feature gates
+  shell: "oc apply -f {{ kubevirt_template_dir }}/kubevirt-config.yaml -n {{ namespace }}"
+
 # Kubevirt manifest
 - name: Check for kubevirt.yaml.j2 template in {{ kubevirt_template_dir }}
   stat:
