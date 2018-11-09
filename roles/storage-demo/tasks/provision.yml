@@ -1,7 +1,7 @@
 ---
 - name: Login As Super User
   command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
-  when: cluster=="openshift"
+  when: platform=="openshift"
         and admin_user is defined
         and admin_password is defined
 
@@ -24,7 +24,7 @@
 
 - name: Grant privileged access to storage-demo serviceaccount
   command: oc adm policy add-scc-to-user privileged system:serviceaccount:{{ namespace }}:storage-demo
-  when: cluster=="openshift"
+  when: platform=="openshift"
 
 - name: Select a target node
   command: kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="Hostname")].address}'

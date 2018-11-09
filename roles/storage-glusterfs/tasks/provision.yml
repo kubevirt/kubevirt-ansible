@@ -1,7 +1,7 @@
 ---
 - name: Login As Super User
   command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
-  when: cluster=="openshift"
+  when: platform=="openshift"
         and admin_user is defined
         and admin_password is defined
 
@@ -12,7 +12,7 @@
   command: "oc get route -n {{ glusterfs_namespace }} -l heketi={{ glusterfs_name_label }}route -o jsonpath='{.items[0].spec.host}'"
   register: route_cmd
   when:
-    - cluster == 'openshift'
+    - platform == 'openshift'
     - heketi_url is not defined
 
 - set_fact:
