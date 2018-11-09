@@ -10,11 +10,11 @@
 - name: Add Privileged Policy
   command: "oc adm policy add-scc-to-user privileged -z {{ item }} -n {{ namespace }}"
   with_items: "{{ kubevirt_privileged_policies | list }}"
-  when: cluster=="openshift"
+  when: platform=="openshift"
 
 - name: Add Hostmount-anyuid Policy
   command: "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
-  when: cluster=="openshift"
+  when: platform=="openshift"
 
 - name: Enable kubevirt feature gates
   shell: "oc apply -f {{ kubevirt_template_dir }}/kubevirt-config.yaml -n {{ namespace }}"
@@ -133,10 +133,10 @@
     dest: "/tmp/{{ item }}.yaml"
   with_items:
     - "{{ default_vm_templates }}"
-  when: cluster == "openshift" and "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}" and "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}"
+  when: platform == "openshift" and "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}" and "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}"
 
 - name: Create default VM templates in OpenShift Namespace
   shell: "oc apply -f /tmp/{{ item }}.yaml -n openshift"
   with_items:
     - "{{ default_vm_templates }}"
-  when: cluster == "openshift"
+  when: platform == "openshift"

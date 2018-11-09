@@ -6,50 +6,50 @@
 - name: Create {{ skydive_namespace }} namespace on the kubernetes cluster
   shell: kubectl create namespace {{ skydive_namespace }}
   when: ns.stdout != skydive_namespace
-    and cluster=="kubernetes"
+    and platform=="kubernetes"
 
 - name: Create {{ skydive_namespace }} project on the openshift cluster
   shell: oc new-project {{ skydive_namespace }}
   when: ns.stdout != skydive_namespace
-    and cluster=="openshift"
+    and platform=="openshift"
 
 - name: Render skydive deployment yaml for kubernetes
   template:
     src: kubernetes-skydive.yaml
     dest: /tmp/skydive.yaml
-  when: cluster=="kubernetes"
+  when: platform=="kubernetes"
 
 - name: Render skydive deployment yaml for openshift
   template:
     src: openshift-skydive.yaml
     dest: /tmp/skydive.yaml
-  when: cluster=="openshift"
+  when: platform=="openshift"
 
 - name: Deploy skydive for openshift
   shell: "oc -n {{ skydive_namespace }} apply -f /tmp/skydive.yaml"
-  when: cluster=="openshift"
+  when: platform=="openshift"
 
 - name: Deploy skydive for kubernetes
   shell: "oc -n {{ skydive_namespace }} apply -f /tmp/skydive.yaml"
-  when: cluster=="kubernetes"
+  when: platform=="kubernetes"
 
 - name: Add privilage for openshift cluster
   shell: "oc adm policy add-scc-to-user privileged system:serviceaccount:{{ skydive_namespace }}:default"
-  when: cluster=="openshift"
+  when: platform=="openshift"
 
 - name: Create app from openshift teamplate
   shell: "oc -n {{ skydive_namespace }} new-app --template=skydive"
-  when: cluster=="openshift"
+  when: platform=="openshift"
 
 - name: Openshift resource
   set_fact:
     analyzer_resource: deploymentconfig
-  when: cluster=="openshift"
+  when: platform=="openshift"
 
 - name: Kubernetes resource
   set_fact:
     analyzer_resource: deployment
-  when: cluster=="kubernetes"
+  when: platform=="kubernetes"
 
 - name: Wait until skydive analyzer is running
   shell: "kubectl -n {{ skydive_namespace }} get {{ analyzer_resource }} --no-headers skydive-analyzer | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"

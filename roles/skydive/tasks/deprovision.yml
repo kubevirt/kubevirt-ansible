@@ -6,9 +6,9 @@
 - name: Delete {{ skydive_namespace }} namespace on the kubernetes cluster
   shell: kubectl delete namespaces {{ skydive_namespace }}
   when: ns.stdout == skydive_namespace
-    and cluster=="kubernetes"
+    and platform=="kubernetes"
 
 - name: Delete {{ skydive_namespace }} project on the openshift cluster
   shell: oc delete project {{ skydive_namespace }}
   when: ns.stdout == skydive_namespace
-    and cluster=="openshift"
+    and platform=="openshift"
