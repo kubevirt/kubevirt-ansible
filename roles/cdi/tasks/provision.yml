@@ -39,7 +39,7 @@
 
 - name: Download CDI Template
   get_url:
-    url: "{{ cdi_release_manifest_url }}/{{ docker_tag }}/cdi-controller.yaml.j2"
+    url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
     dest: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
   when: byo_template.stat.exists == False and offline_templates.stat.exists == False
 
