@@ -249,7 +249,7 @@ func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) 
 		&expect.BSnd{S: "fedora\n"},
 		&expect.BExp{R: "Password:"},
 		&expect.BSnd{S: "fedora\n"},
-		&expect.BExp{R: "fedora@" + vmiName + " ~]$"}})
+		&expect.BExp{R: "$"}})
 	res, err := expecter.ExpectBatch(b, time.Duration(timeout)*time.Second)
 	if err != nil {
 		log.DefaultLogger().Object(vmi).Infof("Login: %v", res)
