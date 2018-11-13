@@ -5,14 +5,19 @@
   environment:
     http_proxy: ""
   tasks:
-    - name: Identify cluster
-      command: "oc get projects"
-      register: result
+    - name: Determine Environment
+      shell: "oc version> /dev/null 2>&1; if [ \"$?\" -eq 127 ]; then echo 'kubectl'; else echo 'oc'; fi"
+      register: cli
 
     - name: Set cluster variable
       set_fact:
         platform: "openshift"
-      when: "{{ result.rc }} == 0"
+      when: cli.stdout == "oc"
+
+    - name: Set cluster variable
+      set_fact:
+        platform: "kubernetes"
+      when: cli.stdout == "kubectl"
 
     - name: Login As Super User
       command: "oc login -u {{ admin_user }} -p {{ admin_password }}"

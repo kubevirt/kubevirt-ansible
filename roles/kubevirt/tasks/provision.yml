@@ -18,6 +18,7 @@
 
 - name: Enable kubevirt feature gates
   shell: "oc apply -f {{ kubevirt_template_dir }}/kubevirt-config.yaml -n {{ namespace }}"
+  when: platform=="openshift"
 
 # Kubevirt manifest
 - name: Check for kubevirt.yaml.j2 template in {{ kubevirt_template_dir }}
