@@ -21,7 +21,7 @@
   copy:
     src: "{{ kubevirt_template_dir }}/demo-content.yaml"
     dest: "/tmp/demo-content.yaml"
-  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
+  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == True
 
 - name: Delete Demo Content
   command: kubectl delete --ignore-not-found=true -f /tmp/demo-content.yaml
