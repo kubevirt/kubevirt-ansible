@@ -12,12 +12,6 @@
   register: mktemp
   changed_when: False
 
-- name: Copy admin client config
-  command: >
-    cp {{ openshift.common.config_base }}/master/admin.kubeconfig {{ mktemp.stdout }}/admin.kubeconfig
-  become: true
-  changed_when: false
-
 - name: Copy console templates to temp directory
   copy:
     src: "{{ item }}"
@@ -68,7 +62,6 @@
   register: updated_console_config
 
 - name: Apply the console template file
-  become: true
   shell: >
     {{ openshift_client_binary }} process -f "{{ mktemp.stdout }}/{{ __console_template_file }}"
     --param IMAGE="{{ kubevirt_web_ui_image_name }}"
@@ -79,8 +72,7 @@
     --param TLS_CERT="{{ console_cert | default('') }}"
     --param TLS_KEY="{{ console_key | default('') }}"
     --param TLS_CA_CERT="{{ console_ca_cert | default('') }}"
-    --config={{ mktemp.stdout }}/admin.kubeconfig
-    | {{ openshift_client_binary }} apply --config={{ mktemp.stdout }}/admin.kubeconfig -f -
+    | {{ openshift_client_binary }} apply -f -
 
 - name: Remove temp directory
   file:
