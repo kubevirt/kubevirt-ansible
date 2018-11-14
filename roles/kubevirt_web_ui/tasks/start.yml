@@ -4,8 +4,7 @@
   # A zero return code indicates the rollout succeeded.
   # https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#complete-deployment
   command: >
-    {{ openshift_client_binary }} rollout status deployment/console --config={{ openshift.common.config_base }}/master/admin.kubeconfig -n kubevirt-web-ui
+    {{ openshift_client_binary }} rollout status deployment/console -n kubevirt-web-ui
   changed_when: false
-  become: true
   # deviation from openshift-ansible: fail first and let the user gather troubleshooting info manually via `oc status`, `oc get pods`, `oc get events`, and `oc logs deployment/console`
 
