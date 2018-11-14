@@ -1,7 +1,7 @@
 ---
 - name: Kubevirt Web UI Install Checkpoint Start
   hosts: all
-  gather_facts: false
+  gather_facts: False
   tasks:
   - name: Set Console install 'In Progress'
     run_once: true
@@ -17,6 +17,7 @@
 - name: Kubevirt Web UI
   # hosts: oo_first_master
   hosts: masters[0]
+  gather_facts: False
   vars:
     first_master: "{{ masters[0] }}"
   tasks:
@@ -26,7 +27,7 @@
 
 - name: Kubevirt Web UI Install Checkpoint End
   hosts: all
-  gather_facts: false
+  gather_facts: False
   tasks:
   - name: Set Console install 'Complete'
     run_once: true
