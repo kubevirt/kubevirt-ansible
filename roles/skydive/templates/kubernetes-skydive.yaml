@@ -62,6 +62,9 @@ spec:
           failureThreshold: 3
       - name: skydive-elasticsearch
         image: elasticsearch:5
+        env:
+        - name: ES_JAVA_OPTS
+          value: {{ es_java_opts }}
         ports:
         - containerPort: 9200
 ---
