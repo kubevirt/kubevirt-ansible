@@ -10,7 +10,7 @@
 - name: Make temp directory for console templates
   command: mktemp -d /tmp/console-ansible-XXXXXX
   register: mktemp
-  changed_when: False
+  changed_when: false
 
 - name: Copy console templates to temp directory
   copy:
@@ -79,6 +79,6 @@
   file:
     state: absent
     name: "{{ mktemp.stdout }}"
-  changed_when: False
+  changed_when: false
 
 - include_tasks: start.yml

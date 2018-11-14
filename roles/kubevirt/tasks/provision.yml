@@ -29,25 +29,25 @@
   stat:
     path: "{{ offline_template_dir }}/v{{ version }}/kubevirt.yaml.j2"
   register: offline_templates
-  when: byo_template.stat.exists == False
+  when: byo_template.stat.exists == false
 
 - name: Download KubeVirt Template
   get_url:
     url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
     dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
-  when: byo_template.stat.exists == False and offline_templates.stat.exists == False
+  when: byo_template.stat.exists == false and offline_templates.stat.exists == false
 
 - name: Render offline template
   template:
     src: "{{ offline_template_dir }}/v{{ version }}/kubevirt.yaml.j2"
     dest: "/tmp/kubevirt.yaml"
-  when: (offline_templates is not skipped) and (offline_templates.stat.exists == True)
+  when: (offline_templates is not skipped) and (offline_templates.stat.exists == true)
 
 - name: Render KubeVirt Yaml
   template:
     src: "kubevirt.yaml.j2"
     dest: "/tmp/kubevirt.yaml"
-  when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
+  when: (offline_templates is skipped) or (offline_templates.stat.exists == false)
 
 - name: Create KubeVirt Resources
   command: kubectl apply -f /tmp/kubevirt.yaml
@@ -65,25 +65,25 @@
       stat:
         path: "{{ offline_template_dir }}/v{{ version }}/demo-content.yaml"
       register: offline_demo_content
-      when: byo_demo_content.stat.exists == False
+      when: byo_demo_content.stat.exists == false
 
     - name: Download Demo Content
       get_url:
         url: "{{ release_manifest_url }}/v{{ version }}/demo-content.yaml"
         dest: "{{ kubevirt_template_dir }}/demo-content.yaml"
-      when: byo_demo_content.stat.exists == False and offline_demo_content.stat.exists == False
+      when: byo_demo_content.stat.exists == false and offline_demo_content.stat.exists == false
 
     - name: Copy Offline Demo Content to /tmp
       copy:
         src: "{{ offline_template_dir }}/v{{ version }}/demo-content.yaml"
         dest: "/tmp/demo-content.yaml"
-      when: offline_demo_content is not skipped and offline_demo_content.stat.exists == True
+      when: offline_demo_content is not skipped and offline_demo_content.stat.exists == true
 
     - name: Copy BYO Demo Content to /tmp
       copy:
         src: "{{ kubevirt_template_dir }}/demo-content.yaml"
         dest: "/tmp/demo-content.yaml"
-      when: byo_demo_content.stat.exists == False and (offline_demo_content is skipped or offline_demo_content.stat.exists == False)
+      when: byo_demo_content.stat.exists == false and (offline_demo_content is skipped or offline_demo_content.stat.exists == false)
 
     - name: Create Demo Content
       command: kubectl apply -f /tmp/demo-content.yaml

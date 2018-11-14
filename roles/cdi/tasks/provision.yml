@@ -35,25 +35,25 @@
   stat:
     path: "{{ cdi_offline_template_dir }}/v{{ version }}/cdi-controller.yaml.j2"
   register: offline_templates
-  when: byo_template.stat.exists == False
+  when: byo_template.stat.exists == false
 
 - name: Download CDI Template
   get_url:
     url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
     dest: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
-  when: byo_template.stat.exists == False and offline_templates.stat.exists == False
+  when: byo_template.stat.exists == false and offline_templates.stat.exists == false
 
 - name: Render offline template
   template:
     src: "{{ cdi_offline_template_dir }}/v{{ version }}/cdi-controller.yaml.j2"
     dest: "/tmp/cdi-provision.yaml"
-  when: (offline_templates is not skipped) and (offline_templates.stat.exists == True)
+  when: (offline_templates is not skipped) and (offline_templates.stat.exists == true)
 
 - name: Render CDI deployment yaml
   template:
     src: "cdi-controller.yaml.j2"
     dest: "/tmp/cdi-provision.yml"
-  when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
+  when: (offline_templates is skipped) or (offline_templates.stat.exists == false)
 
 - name: Create CDI deployment
   command: "kubectl apply -f /tmp/cdi-provision.yml"

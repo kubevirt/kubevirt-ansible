@@ -9,19 +9,19 @@
   stat:
     path: "{{ kubevirt_template_dir }}/demo-content.yaml"
   register: byo_demo_content
-  when: demo_content_manifest.stat.exists == False
+  when: demo_content_manifest.stat.exists == false
 
 - name: Download Demo Content
   get_url:
     url: "{{ release_manifest_url }}/v{{ version }}/demo-content.yaml"
     dest: "{{ kubevirt_template_dir }}/demo-content.yaml"
-  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
+  when: demo_content_manifest.stat.exists == false and byo_demo_content.stat.exists == false
 
 - name: Copy BYO Demo Content to /tmp
   copy:
     src: "{{ kubevirt_template_dir }}/demo-content.yaml"
     dest: "/tmp/demo-content.yaml"
-  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
+  when: demo_content_manifest.stat.exists == false and byo_demo_content.stat.exists == true
 
 - name: Delete Demo Content
   command: kubectl delete --ignore-not-found=true -f /tmp/demo-content.yaml
@@ -36,19 +36,19 @@
   stat:
     path: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
   register: byo_template
-  when: kubevirt_template.stat.exists == False
+  when: kubevirt_template.stat.exists == false
 
 - name: Download KubeVirt Template
   get_url:
     url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
     dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
-  when: (kubevirt_template.stat.exists == False) and (byo_template.stat.exists == False)
+  when: (kubevirt_template.stat.exists == false) and (byo_template.stat.exists == false)
 
 - name: Render KubeVirt template
   template:
     src: "kubevirt.yaml.j2"
     dest: "/tmp/kubevirt.yaml"
-  when: kubevirt_template.stat.exists == False
+  when: kubevirt_template.stat.exists == false
 
 - name: Delete KubeVirt Resources
   command: kubectl delete -f /tmp/kubevirt.yaml --ignore-not-found=true
