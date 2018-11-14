@@ -16,13 +16,13 @@
   stat:
     path: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
   register: byo_template
-  when: cdi_template.stat.exists == False
+  when: cdi_template.stat.exists == false
 
 - name: Download CDI Template
   get_url:
     url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
     dest: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
-  when: (cdi_template.stat.exists == False) and (byo_template.stat.exists == False)
+  when: (cdi_template.stat.exists == false) and (byo_template.stat.exists == false)
 
 - name: Render CDI deprovision yaml
   template:
