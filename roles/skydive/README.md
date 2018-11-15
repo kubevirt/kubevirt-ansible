@@ -7,6 +7,7 @@ This role deploys the [skydive-project](http://skydive.network/)
 |:-------------|:-------------|:----------|:----------|
 |skydive_namespace | skydive |  |Namespace into which the skydive components should be installed.|
 |cluster|openshift|<ul><li>openshift</li><li>kubernetes</li></ul> |Cluster type.|
+|es_java_opts| -Xms512m -Xmx512m |  | Environment variable to set heap size.|
 
 
 ### Usage
