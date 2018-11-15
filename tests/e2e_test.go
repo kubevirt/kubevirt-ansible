@@ -38,7 +38,7 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 		tests.CreateResourceWithFilePathTestNamespace(dstPVCFilePath)
 	})
 
-	Context("PVC with valid image url", func() {
+	PContext("PVC with valid image url", func() {
 
 		It("will succeed", func() {
 			tests.WaitUntilResourceReadyByNameTestNamespace("pvc", pvcName, "-o=jsonpath='{.metadata.annotations}'", "pv.kubernetes.io/bind-completed:yes")
