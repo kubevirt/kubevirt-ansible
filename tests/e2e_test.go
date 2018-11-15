@@ -50,7 +50,7 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 		})
 	})
 
-	Context("PVC with invalid image url", func() {
+	PContext("PVC with invalid image url", func() {
 		BeforeEach(func() {
 			newPVCName = pvcName1
 			url = invalidPVCURL
