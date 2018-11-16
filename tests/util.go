@@ -93,6 +93,29 @@ func RemoveNamespaces() {
 	}
 }
 
+func CreateNamespaceWithParameter(namespace string) error {
+	output, stderr, err := ktests.RunCommandWithNS("", "oc", "new-project", namespace)
+	if err != nil {
+		if strings.Contains(stderr, fmt.Sprintf("Error from server (AlreadyExists): project.project.openshift.io \"%s\" already exists", namespace)) {
+			err = nil
+		} else {
+			err = fmt.Errorf("create user: command os new-project %s: output: %s, stderr: %s: %v", namespace, output, stderr, err)
+		}
+	}
+	return err
+}
+func RemoveNamespaceWithParameter(namespace string) error {
+	output, stderr, err := ktests.RunCommandWithNS("", "oc", "delete", "project", namespace)
+	if err != nil {
+		if strings.Contains(stderr, fmt.Sprintf("Error from server (NotFound): namespaces \"%s\" not found", namespace)) {
+			err = nil
+		} else {
+			err = fmt.Errorf("delete project: command os delete project %s: output: %s, stderr: %s: %v", namespace, output, stderr, err)
+		}
+	}
+	return err
+}
+
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
 	By(fmt.Sprintf("Overriding the template from %s to %s", srcFilePath, dstFilePath))
 	out := execute(Result{cmd: "oc", verb: "process", filePath: srcFilePath, params: params})
@@ -121,14 +144,30 @@ func WaitUntilResourceReadyByLabelTestNamespace(resourceType, label, query, expe
 	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceLabel: label, query: query, expectOut: expectOut, nameSpace: NamespaceTestDefault})
 }
 
-func CreateUser(username string) {
+func CreateUserWithParameter(username string) error {
 	By(fmt.Sprintf("Wait until user %s is created ", username))
-	execute(Result{cmd: "oc", verb: "create", resourceType: "user", resourceName: username})
+	output, stderr, err := ktests.RunCommandWithNS("", "oc", "create", "user", username)
+	if err != nil {
+		if strings.Contains(stderr, fmt.Sprintf("Error from server (AlreadyExists): users.user.openshift.io \"%s\" already exists", username)) {
+			err = nil
+		} else {
+			err = fmt.Errorf("create user: command oc create user %s: output: %s, stderr: %s: %v", username, output, stderr, err)
+		}
+	}
+	return err
 }
 
-func DeleteUser(username string) {
+func DeleteUserWithParameter(username string) error {
 	By(fmt.Sprintf("Wait until user %s is deleted", username))
-	execute(Result{cmd: "oc", verb: "delete", resourceType: "user", resourceName: username})
+	output, stderr, err := ktests.RunCommandWithNS("", "oc", "delete", "user", username)
+	if err != nil {
+		if strings.Contains(stderr, fmt.Sprintf("Error from server (NotFound): users.user.openshift.io \"%s\" not found", username)) {
+			err = nil
+		} else {
+			err = fmt.Errorf("delete user: command oc delete user %s: output: %s, stderr: %s: %v", username, output, stderr, err)
+		}
+	}
+	return err
 }
 
 func VNCConnection(namespace, vmname string) (string, error) {
