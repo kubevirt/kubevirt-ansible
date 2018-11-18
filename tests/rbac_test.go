@@ -33,7 +33,10 @@ var _ = Describe("RBAC", func() {
 		Expect(err).ToNot(HaveOccurred(), "Should login as %s user", tests.UsernameAdminUser)
 
 		ktests.BeforeTestCleanup()
-		tests.CreateUser(tests.UsernameTestUser)
+
+		By("Creating a user")
+		err = tests.CreateUserWithParameter(tests.UsernameTestUser)
+		Expect(err).ToNot(HaveOccurred(), "Creating user %s should not fail: %v", tests.UsernameTestUser, err)
 	})
 
 	AfterEach(func() {
@@ -41,7 +44,9 @@ var _ = Describe("RBAC", func() {
 		_, _, err := ktests.RunCommandWithNS("", "oc", "login", "-u", tests.UsernameAdminUser, "-p", "123456")
 		Expect(err).ToNot(HaveOccurred(), "Should login as %s user", tests.UsernameAdminUser)
 
-		tests.DeleteUser(tests.UsernameTestUser)
+		By("Deleting a user")
+		err = tests.DeleteUserWithParameter(tests.UsernameTestUser)
+		Expect(err).ToNot(HaveOccurred(), "Deleting user %s should not fail: %v", tests.UsernameTestUser, err)
 
 		By(fmt.Sprintf("Deleting the identity associated with %s user", tests.UsernameTestUser))
 		_, _, err = ktests.RunCommandWithNS("", "oc", "delete", "identity", "allow_all_auth:"+tests.UsernameTestUser)
@@ -55,8 +60,8 @@ var _ = Describe("RBAC", func() {
 			Expect(err).ToNot(HaveOccurred(), "Should login as %s user", tests.UsernameTestUser)
 
 			By("Creating a project/namespace")
-			_, _, err = ktests.RunCommandWithNS("", "oc", "new-project", NamespaceTestSystem)
-			Expect(err).ToNot(HaveOccurred(), "Should create %s project/namespace", NamespaceTestSystem)
+			err = tests.CreateNamespaceWithParameter(NamespaceTestSystem)
+			Expect(err).ToNot(HaveOccurred(), "Should create %s project/namespace: %v", NamespaceTestSystem, err)
 
 			By("Creating a VM from manifest")
 			_, _, err = ktests.RunCommandWithNS(NamespaceTestSystem, "oc", "create", "-f", vm.Manifest)
@@ -94,8 +99,8 @@ var _ = Describe("RBAC", func() {
 			Expect(err).ToNot(HaveOccurred(), "VM %q in %s namespace should be deleted", vm.Name, NamespaceTestSystem)
 
 			By("Deleting the namespace")
-			_, _, err = ktests.RunCommandWithNS("", "oc", "delete", "project", NamespaceTestSystem)
-			Expect(err).ToNot(HaveOccurred(), "Namespace %s should be deleted", NamespaceTestSystem)
+			err = tests.RemoveNamespaceWithParameter(NamespaceTestSystem)
+			Expect(err).ToNot(HaveOccurred(), "Namespace %s should be deleted: %v", NamespaceTestSystem, err)
 		})
 	})
 
