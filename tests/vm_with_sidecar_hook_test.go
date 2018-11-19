@@ -7,7 +7,7 @@ import (
 	"github.com/google/goexpect"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"kubevirt.io/kubevirt-ansible/tests"
+	tests "kubevirt.io/kubevirt-ansible/tests/framework"
 )
 
 const (

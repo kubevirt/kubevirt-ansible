@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
-	"kubevirt.io/kubevirt-ansible/tests"
+	tests "kubevirt.io/kubevirt-ansible/tests/framework"
 )
 
 // template parameters

@@ -4,7 +4,7 @@ import (
 	"os"
 
 	. "github.com/onsi/ginkgo"
-	"kubevirt.io/kubevirt-ansible/tests"
+	tests "kubevirt.io/kubevirt-ansible/tests/framework"
 )
 
 // template parameters

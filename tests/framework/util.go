@@ -1,4 +1,4 @@
-package tests
+package framework
 
 import (
 	"fmt"
@@ -33,25 +33,6 @@ type Result struct {
 	actualOut     string
 	params        []string
 }
-
-const (
-	UsernameTestUser     = "kubevirt-test-user"
-	NamespaceTestDefault = "kubevirt-test-default"
-	UsernameAdminUser    = "test_admin"
-	PasswordAdminUser    = "123456"
-)
-
-const (
-	CDI_LABEL_KEY      = "app"
-	CDI_LABEL_VALUE    = "containerized-data-importer"
-	CDI_LABEL_SELECTOR = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
-	paramFlag          = "-p"
-)
-
-const (
-	ShortTimeout = time.Duration(2) * time.Minute
-	LongTimeout  = time.Duration(4) * time.Minute
-)
 
 func CreateNamespaces() {
 	virtCli, err := kubecli.GetKubevirtClient()

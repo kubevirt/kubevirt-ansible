@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"kubevirt.io/kubevirt-ansible/tests"
+	tests "kubevirt.io/kubevirt-ansible/tests/framework"
 	ktests "kubevirt.io/kubevirt/tests"
 	"kubevirt.io/qe-tools/pkg/ginkgo-reporters"
 )
