@@ -4,6 +4,7 @@ import (
 	"os"
 
 	. "github.com/onsi/ginkgo"
+
 	tests "kubevirt.io/kubevirt-ansible/tests/framework"
 )
 

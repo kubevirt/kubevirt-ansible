@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
+
 	tests "kubevirt.io/kubevirt-ansible/tests/framework"
 )
 
