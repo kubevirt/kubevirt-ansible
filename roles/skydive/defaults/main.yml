@@ -1,0 +1,5 @@
+skydive_namespace: "skydive"
+cluster: "openshift"
+apb_action: "provision"
+deploy_skydive: False
+es_java_opts: "-Xms512m -Xmx512m"

@@ -43,6 +43,8 @@ spec:
                     cores:
                       format: int64
                       type: integer
+                    dedicatedCpuPlacement:
+                      type: boolean
                     model:
                       type: string
                 devices:
@@ -51,12 +53,16 @@ spec:
                       type: boolean
                     autoattachPodInterface:
                       type: boolean
+                    blockMultiQueue:
+                      type: boolean
                     disks:
                       items:
                         properties:
                           bootOrder:
                             format: int32
                             type: integer
+                          cache:
+                            type: string
                           cdrom:
                             properties:
                               bus:
@@ -65,9 +71,13 @@ spec:
                                 type: boolean
                               tray:
                                 type: string
+                          dedicatedIOThread:
+                            type: boolean
                           disk:
                             properties:
                               bus:
+                                type: string
+                              pciAddress:
                                 type: string
                               readonly:
                                 type: boolean
@@ -125,6 +135,8 @@ spec:
                         required:
                         - name
                       type: array
+                    networkInterfaceMultiqueue:
+                      type: boolean
                     rng: {}
                     watchdog:
                       properties:
@@ -195,6 +207,8 @@ spec:
                   properties:
                     uuid:
                       type: string
+                ioThreadsPolicy:
+                  type: string
                 machine:
                   properties:
                     type:
@@ -223,6 +237,12 @@ spec:
             networks:
               items:
                 properties:
+                  genie:
+                    properties:
+                      networkName:
+                        type: string
+                    required:
+                    - networkName
                   multus:
                     properties:
                       networkName:
@@ -258,6 +278,12 @@ spec:
                         type: string
                       userDataBase64:
                         type: string
+                  configMap:
+                    properties:
+                      name:
+                        type: string
+                      optional:
+                        type: boolean
                   dataVolume:
                     properties:
                       name:
@@ -272,6 +298,16 @@ spec:
                   ephemeral:
                     properties:
                       persistentVolumeClaim: {}
+                  hostDisk:
+                    properties:
+                      capacity: {}
+                      path:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                    - path
+                    - type
                   name:
                     type: string
                   persistentVolumeClaim: {}
@@ -283,6 +319,16 @@ spec:
                         type: string
                     required:
                     - image
+                  secret:
+                    properties:
+                      optional:
+                        type: boolean
+                      secretName:
+                        type: string
+                  serviceAccount:
+                    properties:
+                      serviceAccountName:
+                        type: string
                 required:
                 - name
               type: array
@@ -315,8 +361,11 @@ spec:
                   mac:
                     type: string
               type: array
+            migrationState: {}
             nodeName:
               type: string
             phase:
+              type: string
+            reason:
               type: string
   version: v1alpha2

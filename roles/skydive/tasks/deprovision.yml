@@ -1,0 +1,14 @@
+---
+- name: Check if namespace "{{ skydive_namespace }}" exists
+  shell: "kubectl get ns | grep -w {{ skydive_namespace }} | awk \'{ print $1 }\'"
+  register: ns
+
+- name: Delete {{ skydive_namespace }} namespace on the kubernetes cluster
+  shell: kubectl delete namespaces {{ skydive_namespace }}
+  when: ns.stdout == skydive_namespace
+    and platform=="kubernetes"
+
+- name: Delete {{ skydive_namespace }} project on the openshift cluster
+  shell: oc delete project {{ skydive_namespace }}
+  when: ns.stdout == skydive_namespace
+    and platform=="openshift"

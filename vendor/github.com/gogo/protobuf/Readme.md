@@ -1,6 +1,7 @@
 # Protocol Buffers for Go with Gadgets
 
 [![Build Status](https://travis-ci.org/gogo/protobuf.svg?branch=master)](https://travis-ci.org/gogo/protobuf)
+[![GoDoc](https://godoc.org/github.com/gogo/protobuf?status.svg)](http://godoc.org/github.com/gogo/protobuf)
 
 gogoprotobuf is a fork of <a href="https://github.com/golang/protobuf">golang/protobuf</a> with extra code generation features.
 
@@ -62,7 +63,7 @@ Please let us know if you are using gogoprotobuf by posting on our <a href="http
   - <a href="https://jbrandhorst.com/post/gogoproto/">So you want to use GoGo Protobuf - Johan Brandhorst</a>
   - <a href="https://jbrandhorst.com/post/grpc-errors/">Advanced gRPC Error Usage - Johan Brandhorst</a>
   - <a href="https://www.udemy.com/grpc-golang/?couponCode=GITHUB10">gRPC Golang Course on Udemy - Stephane Maarek</a>
-
+  
 ## Getting Started
 
 There are several ways to use gogoprotobuf, but for all you need to install go and protoc.
@@ -74,7 +75,7 @@ After that you can choose:
 
 ### Installation
 
-To install it, you must first have Go (at least version 1.6.3 or 1.9 if you are using gRPC) installed (see [http://golang.org/doc/install](http://golang.org/doc/install)).
+To install it, you must first have Go (at least version 1.6.3 or 1.9 if you are using gRPC) installed (see [http://golang.org/doc/install](http://golang.org/doc/install)). 
 Latest patch versions of 1.9 and 1.10 are continuously tested.
 
 Next, install the standard protocol buffer implementation from [https://github.com/google/protobuf](https://github.com/google/protobuf).
@@ -155,4 +156,4 @@ See [https://github.com/gogo/grpc-example](https://github.com/gogo/grpc-example)
 This software is licensed under the 3-Clause BSD License
 ("BSD License 2.0", "Revised BSD License", "New BSD License", or "Modified BSD License").
 
-
+  

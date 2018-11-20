@@ -1,4 +1,25 @@
 ---
+- hosts: all
+  connection: local
+  gather_facts: False
+  environment:
+    http_proxy: ""
+  tasks:
+    - name: Identify cluster
+      command: "oc get projects"
+      register: result
+
+    - name: Set cluster variable
+      set_fact:
+        platform: "openshift"
+      when: "{{ result.rc }} == 0"
+
+    - name: Login As Super User
+      command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+      when: platform == "openshift"
+            and admin_user is defined
+            and admin_password is defined
+
 - hosts: masters[0]
   connection: local
   gather_facts: False
@@ -9,6 +30,7 @@
     http_proxy: ""
   roles:
     - { role: "network-multus", when: network_role == 'network-multus'}
+    - { role: "skydive", when: deploy_skydive == 'True'}
 
 - hosts: masters[0]
   connection: local
@@ -21,7 +43,10 @@
 
 - hosts: masters[0]
   connection: local
+  gather_facts: False
   environment:
     http_proxy: ""
   roles:
     - role: "cdi"
+
+- import_playbook: kubevirt-web-ui/config.yml

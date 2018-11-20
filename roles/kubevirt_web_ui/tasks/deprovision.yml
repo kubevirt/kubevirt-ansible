@@ -1,0 +1,7 @@
+---
+- name: Remove kubevirt-web-ui project
+  shell: "{{ openshift_client_binary }} delete project {{ kubevirt_web_ui_namespace }}"
+
+- name: Remove Kubevirt Web UI OAuth client
+  shell: "{{ openshift_client_binary }} delete oauthclient kubevirt-web-ui"
+

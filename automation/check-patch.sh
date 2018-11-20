@@ -208,13 +208,14 @@ run() {
         "ansible_modules_version=$ansible_modules_version"
         "kubevirt_openshift_version=$kubevirt_openshift_version"
         "openshift_playbook_path=$openshift_playbook_path"
+        "deploy_skydive=True"
 	"storage_role=$storage_role"
     )
 
     timeout \
         --kill-after 5m \
         20m \
-        make generate-tests &> "${ARTIFACTS_PATH}/generate-tests.log" &
+        make build-tests &> "${ARTIFACTS_PATH}/generate-tests.log" &
     readonly MAKE_TESTS_PID="$!"
 
     ansible-playbook \
@@ -240,6 +241,7 @@ run() {
         -i "$inventory_file" \
         -v \
         -e "apb_action=deprovision" \
+        -e "${args[*]}" \
         playbooks/automation/deprovision.yml
 }
 
@@ -324,6 +326,8 @@ main() {
 
     mkdir -p "$ARTIFACTS_PATH"
     mkdir -p "$VMS_LOGS_PATH"
+
+    make check
 
     run "$run_path" "$cluster"
 }

@@ -1,64 +1,73 @@
 package tests
 
 import (
+	"errors"
 	"io/ioutil"
 	"strings"
 
 	ktests "kubevirt.io/kubevirt/tests"
 )
 
-// A VMManifest contains a name and a manifest of
-// a virtual machine or virtual machine instance.
-type VMManifest struct {
-	Name     string
-	Manifest string
-}
-
 // VirtualMachine can be a vm, vmi, vmirs, vmiPreset.
 type VirtualMachine struct {
 	Name              string
 	Type              string
+	UID               string
 	Manifest          string
 	TemplateInCluster string
 	TemplateFromFile  string
 	TemplateParams    []string
 }
 
-func (vm VirtualMachine) Create() (string, error) {
+func (vm VirtualMachine) Create() (string, string, error) {
 	args := []string{"create", "-n", ktests.NamespaceTestDefault, "-f", vm.Manifest}
-	return ktests.RunCommand("oc", args...)
+	return ktests.RunCommand(ktests.KubeVirtOcPath, args...)
 }
 
-func (vm VirtualMachine) Start() (string, error) {
+func (vm VirtualMachine) Start() (string, string, error) {
 	args := []string{"start", "-n", ktests.NamespaceTestDefault, vm.Name}
-	return ktests.RunCommand("virtctl", args...)
+	return ktests.RunCommand(ktests.KubeVirtVirtctlPath, args...)
 }
 
-func (vm VirtualMachine) Stop() (string, error) {
+func (vm VirtualMachine) Stop() (string, string, error) {
 	args := []string{"stop", "-n", ktests.NamespaceTestDefault, vm.Name}
-	return ktests.RunCommand("virtctl", args...)
+	return ktests.RunCommand(ktests.KubeVirtVirtctlPath, args...)
 }
 
-func (vm VirtualMachine) Delete() (string, error) {
+func (vm VirtualMachine) Delete() (string, string, error) {
 	args := []string{"delete", "-n", ktests.NamespaceTestDefault, vm.Type, vm.Name}
-	return ktests.RunCommand("oc", args...)
+	return ktests.RunCommand(ktests.KubeVirtOcPath, args...)
 }
 
 func (vm VirtualMachine) IsRunning() (bool, error) {
-	output, err := vm.GetVMInfo("{{.status.phase}}")
+	output, cmderr, err := vm.GetVMInfo("{{.status.phase}}")
 	if err != nil {
 		return false, err
+	}
+	if cmderr != "" {
+		return false, errors.New(cmderr)
 	}
 	if output == "Running" {
 		return true, nil
 	}
-
 	return false, nil
 }
 
-func (vm VirtualMachine) GetVMInfo(spec string) (string, error) {
+func (vm VirtualMachine) GetVMInfo(spec string) (string, string, error) {
 	args := []string{"get", "-n", ktests.NamespaceTestDefault, vm.Type, vm.Name, "--template", spec}
-	return ktests.RunCommand("oc", args...)
+	return ktests.RunCommand(ktests.KubeVirtOcPath, args...)
+}
+
+func (vm VirtualMachine) GetVMUID() (string, error) {
+	output, cmderr, err := vm.GetVMInfo("{{.metadata.uid}}")
+	if err != nil {
+		return "", err
+	}
+	if cmderr != "" {
+		return "", errors.New(cmderr)
+	}
+	vm.UID = output
+	return output, nil
 }
 
 func (vm VirtualMachine) ProcessTemplate() (string, error) {
@@ -73,9 +82,12 @@ func (vm VirtualMachine) ProcessTemplate() (string, error) {
 
 	args = append(args, vm.TemplateParams...)
 
-	output, err := ktests.RunCommand("oc", args...)
+	output, cmderr, err := ktests.RunCommand(ktests.KubeVirtOcPath, args...)
 	if err != nil {
-		return output, err
+		return "", err
+	}
+	if cmderr != "" {
+		return "", errors.New(cmderr)
 	}
 	// TODO：if the image is pullable naturally, will remove the string replacement.
 	if strings.Contains(output, "registry:5000/") {
@@ -86,5 +98,5 @@ func (vm VirtualMachine) ProcessTemplate() (string, error) {
 	}
 	err = ioutil.WriteFile(vm.Manifest, []byte(output), 0644)
 
-	return "", err
+	return "", nil
 }

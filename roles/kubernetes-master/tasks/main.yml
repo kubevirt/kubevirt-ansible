@@ -13,6 +13,20 @@
     state: started
     enabled: yes
 
+- name: copy weavenet script
+  copy:
+    src: weavenet.sh
+    dest: /root/weavenet.sh
+    mode: 0755
+
+- name: execute weavenet.sh script 
+  shell: /root/weavenet.sh
+  register: weavenet
+
+- name: set ipalloc_range variable
+  set_fact:
+    ipalloc_range: weavenet.stdout
+
 - name: copy kubernetes deployment script
   template:
     src: deploy_kubernetes.j2

@@ -93,6 +93,7 @@ rules:
       - admissionregistration.k8s.io
     resources:
       - validatingwebhookconfigurations
+      - mutatingwebhookconfigurations
     verbs:
       - get
       - create
@@ -115,6 +116,16 @@ rules:
   - apiGroups:
       - ''
     resources:
+      - configmaps
+    resourceNames:
+      - extension-apiserver-authentication
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ''
+    resources:
       - pods/exec
     verbs:
       - create
@@ -122,8 +133,24 @@ rules:
       - kubevirt.io
     resources:
       - virtualmachineinstances
+      - virtualmachineinstancemigrations
     verbs:
       - get
+      - list
+      - watch
+  - apiGroups:
+      - ''
+    resources:
+      - limitranges
+    verbs:
+      - watch
+      - list
+  - apiGroups:
+      - kubevirt.io
+    resources:
+      - virtualmachineinstancepresets
+    verbs:
+      - watch
       - list
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -140,7 +167,6 @@ rules:
       - pods
       - configmaps
       - endpoints
-      - limitranges
     verbs:
       - get
       - list

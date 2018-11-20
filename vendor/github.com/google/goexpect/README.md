@@ -30,7 +30,7 @@ with the device.
 The VerboseWriter option can be used to change where the verbose session logs are written.
 Using this option will start writing verbose output to the provided io.Writer instead of the log default.
 
-See the [ExampleVerbose](https://github.com/google/goexpect/blob/5c8d637b0287a2ae7bb805554056728c453871e4/expect_test.go#L585) code for an example of how to use this.
+See the [ExampleVerbose](https://github.com/google/goexpect/blob/5c8d637b0287a2ae7bb805554056728c453871e4/expect_test.go#L585) code for an example of how to use this. 
 
 ### NoCheck
 
@@ -50,7 +50,7 @@ The ChangeCheck option makes it possible to replace the Spawner Check function w
 
 ### networkbit.ch
 
-An [article](http://networkbit.ch/golang-regular-expression/) with some examples was written about goexpect on [networkbit.ch](http://networkbit.ch).
+An [article](http://networkbit.ch/golang-regular-expression/) with some examples was written about goexpect on [networkbit.ch](http://networkbit.ch). 
 
 ### The [Wikipedia Expect](https://en.wikipedia.org/wiki/Expect) examples.
 
@@ -299,7 +299,7 @@ func main() {
 ### Generic Spawner
 
 The Go Expect package supports adding new Spawners with the `func SpawnGeneric(opt *GenOptions, timeout time.Duration, opts ...Option) (*GExpect, <-chan error, error)`
-function.
+function. 
 
 *telnet spawner*
 
@@ -331,7 +331,7 @@ func telnetSpawn(addr string, timeout time.Duration, opts ...expect.Option) (exp
 
 ### Fake Spawner
 
-The Go Expect package includes a Fake Spawner `func SpawnFake(b []Batcher, timeout time.Duration, opt ...Option) (*GExpect, <-chan error, error)`.
+The Go Expect package includes a Fake Spawner `func SpawnFake(b []Batcher, timeout time.Duration, opt ...Option) (*GExpect, <-chan error, error)`. 
 This is expected to be used to simplify testing and faking of interactive workflows.
 
 *Fake Spawner*

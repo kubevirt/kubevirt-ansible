@@ -31,34 +31,49 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"kubevirt.io/kubevirt/pkg/api/v1"
+	"kubevirt.io/kubevirt/pkg/config"
 	"kubevirt.io/kubevirt/pkg/hooks"
+	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/precond"
 	"kubevirt.io/kubevirt/pkg/registry-disk"
+	"kubevirt.io/kubevirt/pkg/util"
 	"kubevirt.io/kubevirt/pkg/util/net/dns"
+	"kubevirt.io/kubevirt/pkg/util/types"
 )
 
-const configMapName = "kube-system/kubevirt-config"
+const configMapName = "kubevirt-config"
 const UseEmulationKey = "debug.useEmulation"
 const ImagePullPolicyKey = "dev.imagePullPolicy"
 const KvmDevice = "devices.kubevirt.io/kvm"
 const TunDevice = "devices.kubevirt.io/tun"
+const VhostNetDevice = "devices.kubevirt.io/vhost-net"
 
 const CAP_NET_ADMIN = "NET_ADMIN"
+const CAP_SYS_NICE = "SYS_NICE"
 
 type TemplateService interface {
 	RenderLaunchManifest(*v1.VirtualMachineInstance) (*k8sv1.Pod, error)
 }
 
 type templateService struct {
-	launcherImage   string
-	virtShareDir    string
-	imagePullSecret string
-	store           cache.Store
+	launcherImage              string
+	virtShareDir               string
+	ephemeralDiskDir           string
+	imagePullSecret            string
+	configMapStore             cache.Store
+	persistentVolumeClaimStore cache.Store
 }
+
+type PvcNotFoundError error
 
 func getConfigMapEntry(store cache.Store, key string) (string, error) {
 
-	if obj, exists, err := store.GetByKey(configMapName); err != nil {
+	namespace, err := util.GetNamespace()
+	if err != nil {
+		return "", err
+	}
+
+	if obj, exists, err := store.GetByKey(namespace + "/" + configMapName); err != nil {
 		return "", err
 	} else if !exists {
 		return "", nil
@@ -99,6 +114,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	precond.MustNotBeNil(vmi)
 	domain := precond.MustNotBeEmpty(vmi.GetObjectMeta().GetName())
 	namespace := precond.MustNotBeEmpty(vmi.GetObjectMeta().GetNamespace())
+	nodeSelector := map[string]string{}
 
 	initialDelaySeconds := 2
 	timeoutSeconds := 5
@@ -107,9 +123,10 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	failureThreshold := 5
 
 	var volumes []k8sv1.Volume
+	var volumeDevices []k8sv1.VolumeDevice
 	var userId int64 = 0
 	var privileged bool = false
-	var volumesMounts []k8sv1.VolumeMount
+	var volumeMounts []k8sv1.VolumeMount
 	var imagePullSecrets []k8sv1.LocalObjectReference
 
 	gracePeriodSeconds := v1.DefaultGracePeriodSeconds
@@ -117,21 +134,48 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		gracePeriodSeconds = *vmi.Spec.TerminationGracePeriodSeconds
 	}
 
-	volumesMounts = append(volumesMounts, k8sv1.VolumeMount{
+	volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
+		Name:      "ephemeral-disks",
+		MountPath: t.ephemeralDiskDir,
+	})
+
+	volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
 		Name:      "virt-share-dir",
 		MountPath: t.virtShareDir,
 	})
-	volumesMounts = append(volumesMounts, k8sv1.VolumeMount{
+
+	volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
 		Name:      "libvirt-runtime",
 		MountPath: "/var/run/libvirt",
 	})
+
+	serviceAccountName := ""
+
 	for _, volume := range vmi.Spec.Volumes {
 		volumeMount := k8sv1.VolumeMount{
 			Name:      volume.Name,
 			MountPath: filepath.Join("/var/run/kubevirt-private", "vmi-disks", volume.Name),
 		}
 		if volume.PersistentVolumeClaim != nil {
-			volumesMounts = append(volumesMounts, volumeMount)
+			logger := log.DefaultLogger()
+			claimName := volume.PersistentVolumeClaim.ClaimName
+			_, exists, isBlock, err := types.IsPVCBlockFromStore(t.persistentVolumeClaimStore, namespace, claimName)
+			if err != nil {
+				logger.Errorf("error getting PVC: %v", claimName)
+				return nil, err
+			} else if !exists {
+				logger.Errorf("didn't find PVC %v", claimName)
+				return nil, PvcNotFoundError(fmt.Errorf("didn't find PVC %v", claimName))
+			} else if isBlock {
+				devicePath := filepath.Join(string(filepath.Separator), "dev", volume.Name)
+				device := k8sv1.VolumeDevice{
+					Name:       volume.Name,
+					DevicePath: devicePath,
+				}
+				volumeDevices = append(volumeDevices, device)
+			} else {
+				volumeMounts = append(volumeMounts, volumeMount)
+			}
 			volumes = append(volumes, k8sv1.Volume{
 				Name: volume.Name,
 				VolumeSource: k8sv1.VolumeSource{
@@ -140,7 +184,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			})
 		}
 		if volume.Ephemeral != nil {
-			volumesMounts = append(volumesMounts, volumeMount)
+			volumeMounts = append(volumeMounts, volumeMount)
 			volumes = append(volumes, k8sv1.Volume{
 				Name: volume.Name,
 				VolumeSource: k8sv1.VolumeSource{
@@ -153,8 +197,32 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 				Name: volume.RegistryDisk.ImagePullSecret,
 			})
 		}
+		if volume.HostDisk != nil {
+			var hostPathType k8sv1.HostPathType
+
+			switch hostType := volume.HostDisk.Type; hostType {
+			case v1.HostDiskExists:
+				hostPathType = k8sv1.HostPathDirectory
+			case v1.HostDiskExistsOrCreate:
+				hostPathType = k8sv1.HostPathDirectoryOrCreate
+			}
+
+			volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
+				Name:      volume.Name,
+				MountPath: filepath.Dir(volume.HostDisk.Path),
+			})
+			volumes = append(volumes, k8sv1.Volume{
+				Name: volume.Name,
+				VolumeSource: k8sv1.VolumeSource{
+					HostPath: &k8sv1.HostPathVolumeSource{
+						Path: filepath.Dir(volume.HostDisk.Path),
+						Type: &hostPathType,
+					},
+				},
+			})
+		}
 		if volume.DataVolume != nil {
-			volumesMounts = append(volumesMounts, volumeMount)
+			volumeMounts = append(volumeMounts, volumeMount)
 			volumes = append(volumes, k8sv1.Volume{
 				Name: volume.Name,
 				VolumeSource: k8sv1.VolumeSource{
@@ -163,6 +231,45 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 					},
 				},
 			})
+		}
+		if volume.ConfigMap != nil {
+			// attach a ConfigMap to the pod
+			volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
+				Name:      volume.Name,
+				MountPath: filepath.Join(config.ConfigMapSourceDir, volume.Name),
+				ReadOnly:  true,
+			})
+			volumes = append(volumes, k8sv1.Volume{
+				Name: volume.Name,
+				VolumeSource: k8sv1.VolumeSource{
+					ConfigMap: &k8sv1.ConfigMapVolumeSource{
+						LocalObjectReference: volume.ConfigMap.LocalObjectReference,
+						Optional:             volume.ConfigMap.Optional,
+					},
+				},
+			})
+		}
+
+		if volume.Secret != nil {
+			// attach a Secret to the pod
+			volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
+				Name:      volume.Name,
+				MountPath: filepath.Join(config.SecretSourceDir, volume.Name),
+				ReadOnly:  true,
+			})
+			volumes = append(volumes, k8sv1.Volume{
+				Name: volume.Name,
+				VolumeSource: k8sv1.VolumeSource{
+					Secret: &k8sv1.SecretVolumeSource{
+						SecretName: volume.Secret.SecretName,
+						Optional:   volume.Secret.Optional,
+					},
+				},
+			})
+		}
+
+		if volume.ServiceAccount != nil {
+			serviceAccountName = volume.ServiceAccount.ServiceAccountName
 		}
 	}
 
@@ -213,7 +320,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		resources.Limits[hugepageType] = resources.Requests[k8sv1.ResourceMemory]
 
 		// Configure hugepages mount on a pod
-		volumesMounts = append(volumesMounts, k8sv1.VolumeMount{
+		volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
 			Name:      "hugepages",
 			MountPath: filepath.Join("/dev/hugepages"),
 		})
@@ -258,29 +365,54 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 				EmptyDir: &k8sv1.EmptyDirVolumeSource{},
 			},
 		})
-		volumesMounts = append(volumesMounts, k8sv1.VolumeMount{
+		volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
 			Name:      "hook-sidecar-sockets",
 			MountPath: hooks.HookSocketsSharedDirectory,
 		})
 	}
 
-	command := []string{"/usr/share/kubevirt/virt-launcher/entrypoint.sh",
+	// Handle CPU pinning
+	if vmi.IsCPUDedicated() {
+		// schedule only on nodes with a running cpu manager
+		nodeSelector[v1.CPUManager] = "true"
+
+		if resources.Limits == nil {
+			resources.Limits = make(k8sv1.ResourceList)
+		}
+		cores := uint32(0)
+		if vmi.Spec.Domain.CPU != nil {
+			cores = vmi.Spec.Domain.CPU.Cores
+		}
+		if cores != 0 {
+			resources.Limits[k8sv1.ResourceCPU] = *resource.NewQuantity(int64(cores), resource.BinarySI)
+		} else {
+			if cpuLimit, ok := resources.Limits[k8sv1.ResourceCPU]; ok {
+				resources.Requests[k8sv1.ResourceCPU] = cpuLimit
+			} else if cpuRequest, ok := resources.Requests[k8sv1.ResourceCPU]; ok {
+				resources.Limits[k8sv1.ResourceCPU] = cpuRequest
+			}
+		}
+		resources.Limits[k8sv1.ResourceMemory] = *resources.Requests.Memory()
+	}
+
+	command := []string{"/usr/bin/virt-launcher",
 		"--qemu-timeout", "5m",
 		"--name", domain,
 		"--uid", string(vmi.UID),
 		"--namespace", namespace,
 		"--kubevirt-share-dir", t.virtShareDir,
+		"--ephemeral-disk-dir", t.ephemeralDiskDir,
 		"--readiness-file", "/tmp/healthy",
 		"--grace-period-seconds", strconv.Itoa(int(gracePeriodSeconds)),
 		"--hook-sidecars", strconv.Itoa(len(requestedHookSidecarList)),
 	}
 
-	useEmulation, err := IsEmulationAllowed(t.store)
+	useEmulation, err := IsEmulationAllowed(t.configMapStore)
 	if err != nil {
 		return nil, err
 	}
 
-	imagePullPolicy, err := GetImagePullPolicy(t.store)
+	imagePullPolicy, err := GetImagePullPolicy(t.configMapStore)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +421,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		resources.Limits = make(k8sv1.ResourceList)
 	}
 
-	extraResources := getRequiredResources(vmi)
+	extraResources := getRequiredResources(vmi, useEmulation)
 	for key, val := range extraResources {
 		resources.Limits[key] = val
 	}
@@ -318,8 +450,9 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 				Add: capabilities,
 			},
 		},
-		Command:      command,
-		VolumeMounts: volumesMounts,
+		Command:       command,
+		VolumeDevices: volumeDevices,
+		VolumeMounts:  volumeMounts,
 		ReadinessProbe: &k8sv1.Probe{
 			Handler: k8sv1.Handler{
 				Exec: &k8sv1.ExecAction{
@@ -338,8 +471,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		Resources: resources,
 		Ports:     ports,
 	}
-
-	containers := registrydisk.GenerateContainers(vmi, "libvirt-runtime", "/var/run/libvirt")
+	containers := registrydisk.GenerateContainers(vmi, "ephemeral-disks", t.ephemeralDiskDir)
 
 	volumes = append(volumes, k8sv1.Volume{
 		Name: "virt-share-dir",
@@ -355,8 +487,13 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			EmptyDir: &k8sv1.EmptyDirVolumeSource{},
 		},
 	})
+	volumes = append(volumes, k8sv1.Volume{
+		Name: "ephemeral-disks",
+		VolumeSource: k8sv1.VolumeSource{
+			EmptyDir: &k8sv1.EmptyDirVolumeSource{},
+		},
+	})
 
-	nodeSelector := map[string]string{}
 	for k, v := range vmi.Spec.NodeSelector {
 		nodeSelector[k] = v
 
@@ -374,10 +511,19 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	containers = append(containers, container)
 
 	for i, requestedHookSidecar := range requestedHookSidecarList {
+		resources := k8sv1.ResourceRequirements{}
+		// add default cpu and memory limits to enable cpu pinning if requested
+		// TODO(vladikr): make the hookSidecar express resources
+		if vmi.IsCPUDedicated() {
+			resources.Limits = make(k8sv1.ResourceList)
+			resources.Limits[k8sv1.ResourceCPU] = resource.MustParse("200m")
+			resources.Limits[k8sv1.ResourceMemory] = resource.MustParse("64M")
+		}
 		containers = append(containers, k8sv1.Container{
 			Name:            fmt.Sprintf("hook-sidecar-%d", i),
 			Image:           requestedHookSidecar.Image,
 			ImagePullPolicy: requestedHookSidecar.ImagePullPolicy,
+			Resources:       resources,
 			VolumeMounts: []k8sv1.VolumeMount{
 				k8sv1.VolumeMount{
 					Name:      "hook-sidecar-sockets",
@@ -394,9 +540,9 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		v1.OwnedByAnnotation: "virt-controller",
 	}
 
-	multusNetworks := getMultusInterfaceList(vmi)
-	if len(multusNetworks) > 0 {
-		annotationsList["k8s.v1.cni.cncf.io/networks"] = multusNetworks
+	cniNetworks, cniAnnotation := getCniInterfaceList(vmi)
+	if len(cniNetworks) > 0 {
+		annotationsList[cniAnnotation] = cniNetworks
 	}
 
 	// TODO use constants for podLabels
@@ -446,6 +592,16 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			pod.Spec.Tolerations = append(pod.Spec.Tolerations, v)
 		}
 	}
+
+	if len(serviceAccountName) > 0 {
+		pod.Spec.ServiceAccountName = serviceAccountName
+		automount := true
+		pod.Spec.AutomountServiceAccountToken = &automount
+	} else {
+		automount := false
+		pod.Spec.AutomountServiceAccountToken = &automount
+	}
+
 	return &pod, nil
 }
 
@@ -456,13 +612,26 @@ func getRequiredCapabilities(vmi *v1.VirtualMachineInstance) []k8sv1.Capability 
 		(*vmi.Spec.Domain.Devices.AutoattachPodInterface == true) {
 		res = append(res, CAP_NET_ADMIN)
 	}
+	// add a CAP_SYS_NICE capability to allow setting cpu affinity
+	res = append(res, CAP_SYS_NICE)
 	return res
 }
 
-func getRequiredResources(vmi *v1.VirtualMachineInstance) k8sv1.ResourceList {
+func getRequiredResources(vmi *v1.VirtualMachineInstance, useEmulation bool) k8sv1.ResourceList {
 	res := k8sv1.ResourceList{}
-	if (vmi.Spec.Domain.Devices.AutoattachPodInterface == nil) || (*vmi.Spec.Domain.Devices.AutoattachPodInterface == true) {
+	if (len(vmi.Spec.Domain.Devices.Interfaces) > 0) ||
+		(vmi.Spec.Domain.Devices.AutoattachPodInterface == nil) ||
+		(*vmi.Spec.Domain.Devices.AutoattachPodInterface == true) {
 		res[TunDevice] = resource.MustParse("1")
+	}
+	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
+		if !useEmulation && (iface.Model == "" || iface.Model == "virtio") {
+			// Note that about network interface, useEmulation does not make
+			// any difference on eventual Domain xml, but uniformly making
+			// /dev/vhost-net unavailable and libvirt implicitly fallback
+			// to use QEMU userland NIC emulation.
+			res[VhostNetDevice] = resource.MustParse("1")
+		}
 	}
 	return res
 }
@@ -540,25 +709,44 @@ func getPortsFromVMI(vmi *v1.VirtualMachineInstance) []k8sv1.ContainerPort {
 	return ports
 }
 
-func getMultusInterfaceList(vmi *v1.VirtualMachineInstance) string {
+func getCniInterfaceList(vmi *v1.VirtualMachineInstance) (ifaceListString string, cniAnnotation string) {
 	ifaceList := make([]string, 0)
 
 	for _, network := range vmi.Spec.Networks {
+		// set the type for the first network
+		// all other networks must have same type
 		if network.Multus != nil {
 			ifaceList = append(ifaceList, network.Multus.NetworkName)
+			if cniAnnotation == "" {
+				cniAnnotation = "k8s.v1.cni.cncf.io/networks"
+			}
+		} else if network.Genie != nil {
+			ifaceList = append(ifaceList, network.Genie.NetworkName)
+			if cniAnnotation == "" {
+				cniAnnotation = "cni"
+			}
 		}
 	}
 
-	return strings.Join(ifaceList, ",")
+	ifaceListString = strings.Join(ifaceList, ",")
+	return
 }
 
-func NewTemplateService(launcherImage string, virtShareDir string, imagePullSecret string, configMapCache cache.Store) TemplateService {
+func NewTemplateService(launcherImage string,
+	virtShareDir string,
+	ephemeralDiskDir string,
+	imagePullSecret string,
+	configMapCache cache.Store,
+	persistentVolumeClaimCache cache.Store) TemplateService {
+
 	precond.MustNotBeEmpty(launcherImage)
 	svc := templateService{
-		launcherImage:   launcherImage,
-		virtShareDir:    virtShareDir,
-		imagePullSecret: imagePullSecret,
-		store:           configMapCache,
+		launcherImage:              launcherImage,
+		virtShareDir:               virtShareDir,
+		ephemeralDiskDir:           ephemeralDiskDir,
+		imagePullSecret:            imagePullSecret,
+		configMapStore:             configMapCache,
+		persistentVolumeClaimStore: persistentVolumeClaimCache,
 	}
 	return &svc
 }

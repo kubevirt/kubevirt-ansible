@@ -132,17 +132,23 @@ spec:
           volumeMounts:
           - name: images
             mountPath: /hostImages
+          - name: local-storage
+            mountPath: /local-storage
           securityContext:
             privileged: true
-          readinessProbe:
-            exec:
-              command:
-              - cat
+          readinessProbe:	
+            exec:	
+              command:	
+              - cat	
               - /ready
-            initialDelaySeconds: 10
+            initialDelaySeconds: 10	
             periodSeconds: 5
       volumes:
         - name: images
           hostPath:
             path: /tmp/hostImages
+            type: DirectoryOrCreate
+        - name: local-storage
+          hostPath:
+            path: /mnt/local-storage
             type: DirectoryOrCreate

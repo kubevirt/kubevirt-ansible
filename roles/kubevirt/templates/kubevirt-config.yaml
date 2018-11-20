@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kubevirt-config
+  labels:
+    kubevirt.io: ""
+data:
+  feature-gates: "DataVolumes"

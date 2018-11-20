@@ -42,6 +42,8 @@ spec:
                     cores:
                       format: int64
                       type: integer
+                    dedicatedCpuPlacement:
+                      type: boolean
                     model:
                       type: string
                 devices:
@@ -50,12 +52,16 @@ spec:
                       type: boolean
                     autoattachPodInterface:
                       type: boolean
+                    blockMultiQueue:
+                      type: boolean
                     disks:
                       items:
                         properties:
                           bootOrder:
                             format: int32
                             type: integer
+                          cache:
+                            type: string
                           cdrom:
                             properties:
                               bus:
@@ -64,9 +70,13 @@ spec:
                                 type: boolean
                               tray:
                                 type: string
+                          dedicatedIOThread:
+                            type: boolean
                           disk:
                             properties:
                               bus:
+                                type: string
+                              pciAddress:
                                 type: string
                               readonly:
                                 type: boolean
@@ -124,6 +134,8 @@ spec:
                         required:
                         - name
                       type: array
+                    networkInterfaceMultiqueue:
+                      type: boolean
                     rng: {}
                     watchdog:
                       properties:
@@ -194,6 +206,8 @@ spec:
                   properties:
                     uuid:
                       type: string
+                ioThreadsPolicy:
+                  type: string
                 machine:
                   properties:
                     type:
@@ -215,6 +229,8 @@ spec:
                       type: boolean
                     requests:
                       type: object
+              required:
+              - devices
             selector: {}
           required:
           - selector

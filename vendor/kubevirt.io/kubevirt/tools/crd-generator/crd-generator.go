@@ -25,7 +25,6 @@ import (
 
 	crdutils "github.com/ant31/crd-validation/pkg"
 	"github.com/go-openapi/spec"
-
 	extensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	common "k8s.io/kube-openapi/pkg/common"
@@ -130,6 +129,27 @@ func generateReplicaSetCrd() {
 	crdutils.MarshallCrd(crd, "yaml")
 }
 
+func generateVirtualMachineInstanceMigrationCrd() {
+	crd := generateBlankCrd()
+
+	crd.ObjectMeta.Name = "virtualmachineinstancemigrations." + v1.VirtualMachineInstanceMigrationGroupVersionKind.Group
+	crd.Spec = extensionsv1.CustomResourceDefinitionSpec{
+		Group:   v1.VirtualMachineInstanceMigrationGroupVersionKind.Group,
+		Version: v1.VirtualMachineInstanceMigrationGroupVersionKind.Version,
+		Scope:   "Namespaced",
+
+		Names: extensionsv1.CustomResourceDefinitionNames{
+			Plural:     "virtualmachineinstancemigrations",
+			Singular:   "virtualmachineinstancemigration",
+			Kind:       v1.VirtualMachineInstanceMigrationGroupVersionKind.Kind,
+			ShortNames: []string{"vmim", "vmims"},
+		},
+		Validation: crdutils.GetCustomResourceValidation("kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigration", definitionWrapper),
+	}
+
+	crdutils.MarshallCrd(crd, "yaml")
+}
+
 func generateVirtualMachineInstanceCrd() {
 	crd := generateBlankCrd()
 
@@ -152,7 +172,7 @@ func generateVirtualMachineInstanceCrd() {
 }
 
 func main() {
-	crdType := flag.String("crd-type", "", "Type of crd to generate. vmi | vmipreset | vmirs | vm")
+	crdType := flag.String("crd-type", "", "Type of crd to generate. vmi | vmipreset | vmirs | vm | vmim")
 	flag.Parse()
 
 	switch *crdType {
@@ -164,6 +184,8 @@ func main() {
 		generateReplicaSetCrd()
 	case "vm":
 		generateVirtualMachineCrd()
+	case "vmim":
+		generateVirtualMachineInstanceMigrationCrd()
 	default:
 		panic(fmt.Errorf("unknown crd type %s", *crdType))
 	}
