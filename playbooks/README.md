@@ -100,7 +100,16 @@ See [OpenShift parameters documentation](./cluster/openshift/README.md) for more
 
 ### Kubernetes cluster
 
-Currently we don't have a playbook which installs KubeVirt on a Kubernetes cluster.
+Install KubeVirt on your Kubernetes cluster using the command below. Here we use
+"kubernetes" as the value for the "cluster" variable. Alternatively, you can edit
+the value in vars/all.yml.
+
+Ansible v2.7 or greater is required. A tag in the playbook was not recognized with
+ansible v2.4.2.
+
+```bash
+$ ansible-playbook -i inventory playbooks/kubevirt.yml -e@vars/all.yml -e cluster=kubernetes
+```
 
 ### OpenShift cluster
 
@@ -146,7 +155,7 @@ create the StorageClass.
 **network-multus**
 Deploy additional multus cni plugin.
 
-***Note***  This is a dev preview, not OpenShift officially supported. 
+***Note***  This is a dev preview, not OpenShift officially supported.
 
 ***Note***  For a kubernetes cluster if you are using a network plugin different than flannel you need to edit the `kubernetes_cni_config` variable inside the file:         
 ```
@@ -159,7 +168,7 @@ No additional cni plugin will be deployed.
 ### SELinux
 
 In case you are experiencing permission or SELinux issues, please consider
-creating an issue for [kubevirt](https://github.com/kubevirt/kubevirt/issues/) 
+creating an issue for [kubevirt](https://github.com/kubevirt/kubevirt/issues/)
 and report what is not working for you.
 
 As a temporary workaround, you can disable SELinux by running following playbook.
