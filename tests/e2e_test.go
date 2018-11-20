@@ -14,7 +14,7 @@ const (
 	pvcName            = "golden-pvc"
 	pvcName1           = "golden-pvc1"
 	vmName             = "test-vm"
-	vmAPIVersion       = "kubevirt.io/v1alpha2"
+	vmAPIVersion       = "kubevirt.io/v1alpha3"
 	rawPVCFilePath     = "tests/manifests/golden-pvc.yml"
 	rawVMFilePath      = "tests/manifests/test-vm.yml"
 )

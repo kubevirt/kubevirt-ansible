@@ -1,4 +1,4 @@
-apiVersion: kubevirt.io/v1alpha2
+apiVersion: kubevirt.io/v1alpha3
 kind: VirtualMachineInstance
 metadata:
   annotations:
@@ -15,11 +15,9 @@ spec:
       - disk:
           bus: virtio
         name: registrydisk
-        volumeName: registryvolume
       - disk:
           bus: virtio
         name: cloudinitdisk
-        volumeName: cloudinitvolume
     machine:
       type: ""
     resources:
@@ -27,7 +25,7 @@ spec:
         memory: 1024M
   terminationGracePeriodSeconds: 0
   volumes:
-  - name: registryvolume
+  - name: registrydisk
     registryDisk:
       image: kubevirt/fedora-cloud-registry-disk-demo:latest
   - cloudInitNoCloud:
@@ -37,5 +35,5 @@ spec:
         chpasswd: { expire: False }
         bootcmd:          
           - "sudo dnf install dmidecode -y"
-    name: cloudinitvolume
+    name: cloudinitdisk
 status: {}

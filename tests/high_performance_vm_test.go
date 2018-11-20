@@ -26,7 +26,7 @@ var _ = Describe("High performance vm test", func() {
 		overcommitGuestOverheadStr = "Overcommit Guest Overhead:  true"
 		memoryOvercommit           = "true"
 		headless                   = "false"
-		vmAPIVersion               = "kubevirt.io/v1alpha2"
+		vmAPIVersion               = "kubevirt.io/v1alpha3"
 	)
 
 	flag.Parse()
