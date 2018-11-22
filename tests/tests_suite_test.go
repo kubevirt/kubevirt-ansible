@@ -29,9 +29,12 @@ func TestTests(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	tests.CreateNamespaces()
+	err := tests.CreateNamespaces()
+	Expect(err).ToNot(HaveOccurred())
+
 })
 
 var _ = AfterSuite(func() {
-	tests.RemoveNamespaces()
+	err := tests.RemoveNamespaces()
+	Expect(err).ToNot(HaveOccurred())
 })
