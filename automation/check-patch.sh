@@ -164,6 +164,7 @@ run() {
     local run_path="${1:?}"
     local cluster="${2:?}"
 
+    local openshift_ansible_url="${OPENSHIFT_ANSIBLE_URL:-https://github.com/openshift/openshift-ansible}"
     local ansible_modules_version="${ANSIBLE_MODULES_VERSION:-openshift-ansible-3.7.29-1}"
     local kubevirt_openshift_version="${OPENSHIFT_VERSION:-3.7}"
     local openshift_playbook_path="${OPENSHIFT_PLAYBOOK_PATH:-playbooks/byo/config.yml}"
@@ -177,8 +178,8 @@ run() {
     ansible --version
 
     if [[ "$cluster" == "openshift" ]]; then
-        [[ -e openshift-ansible ]] \
-        || git clone https://github.com/openshift/openshift-ansible
+        rm -rf openshift-ansible
+        git clone "$openshift_ansible_url"
 
         pushd openshift-ansible
         git fetch origin
