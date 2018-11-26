@@ -29,12 +29,17 @@ func TestTests(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	err := tests.CreateNamespaces()
-	Expect(err).ToNot(HaveOccurred())
-
+	testNamespaces := []string{ktests.NamespaceTestDefault, ktests.NamespaceTestAlternative}
+	for _, v := range testNamespaces {
+		err := tests.CreateNamespaceWithParameter(v)
+		Expect(err).ToNot(HaveOccurred())
+	}
 })
 
 var _ = AfterSuite(func() {
-	err := tests.RemoveNamespaces()
-	Expect(err).ToNot(HaveOccurred())
+	testNamespaces := []string{ktests.NamespaceTestDefault, ktests.NamespaceTestAlternative}
+	for _, v := range testNamespaces {
+		err := tests.RemoveNamespaceWithParameter(v)
+		Expect(err).ToNot(HaveOccurred())
+	}
 })
