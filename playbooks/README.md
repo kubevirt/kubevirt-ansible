@@ -107,7 +107,7 @@ The playbook expects you have ```oc```, rpm package ```origin-clients```,
 installed and a config file in ```$HOME/.kube/config```.  Also make sure you
 indentified with the cluster using ```oc login```.
 
-Be sure to update the [inventory file](../inventory) according to your OpenSift cluster configuration or use the file you used to deploy the cluster.
+Be sure to update the [inventory file](../inventory) according to your OpenShift cluster configuration or use the file you used to deploy the cluster.
 
 Install KubeVirt on your OpenShift cluster:
 
@@ -167,7 +167,7 @@ As a temporary workaround, you can disable SELinux by running following playbook
 $ ansible-playbook -i inventory -e "selinux=permissive" playbooks/selinux.yml
 ```
 
-Be sure to update the [inventory file](../inventory) according to your OpenSift cluster configuration or use the file you used to deploy the cluster.
+Be sure to update the [inventory file](../inventory) according to your OpenShift cluster configuration or use the file you used to deploy the cluster.
 
 [container_runtime]: https://github.com/openshift/openshift-ansible/tree/master/roles/container_runtime
 [docker-storage-setup]: https://docs.openshift.org/latest/install_config/install/host_preparation.html#configuring-docker-storage
