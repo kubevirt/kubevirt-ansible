@@ -66,7 +66,7 @@ master.example.com
 [etcd]
 master.example.com
 [nodes]
-master.example.com openshift_node_labels="{'region': 'infra','zone': 'default'}" openshift_schedulable=true
+master.example.com openshift_node_labels="{'region': 'infra','zone': 'default'}" openshift_schedulable=true openshift_node_group_name='node-config-infra-compute'
 [nfs]
 master.example.com
 ```
