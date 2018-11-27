@@ -24,15 +24,11 @@ $ export ANSIBLE_ROLES_PATH=$HOME/galaxy-roles
 For OpenShift deployment clone [**OpenShift Ansible**](openshift-ansible-project)
 
 ```bash
-$ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
+$ git clone -b release-3.10 https://github.com/openshift/openshift-ansible
 ```
 
 Once cloned, you should configure `openshift_ansible_dir` to point to the local
 repo.
-
-> **NOTE:** For OpenShift 3.10 there is no release yet,
-please read [this file](../automation/check-patch.openshift_3-10.sh) to see
-what branch is currently used for automation.
 
 ## Cluster configuration
 This section describes how to set up a new cluster on given machines. [Skip](#install-kubevirt-on-an-existing-cluster) this part if you already have a cluster.
