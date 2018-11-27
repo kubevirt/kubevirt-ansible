@@ -35,6 +35,10 @@ var _ = Describe("High performance vm test", func() {
 	registryDisk := ktests.RegistryDiskFor(ktests.RegistryDiskCirros)
 	ktests.PanicOnError(err)
 
+	ktests.BeforeAll(func() {
+		ktests.BeforeTestCleanup()
+	})
+
 	Context("Headless vm test", func() {
 		headlessDstVMFilePath := "/tmp/headlesstest-vm.json"
 		headlesstestVMName := "headlesstest"

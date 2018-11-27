@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	tests "kubevirt.io/kubevirt-ansible/tests/framework"
+	ktests "kubevirt.io/kubevirt/tests"
 )
 
 const (
@@ -20,6 +21,10 @@ const (
 var _ = Describe("VMI with sidecar hook test", func() {
 
 	flag.Parse()
+
+	ktests.BeforeAll(func() {
+		ktests.BeforeTestCleanup()
+	})
 
 	Context("Check package installtion with hook", func() {
 		It("will succeed", func() {

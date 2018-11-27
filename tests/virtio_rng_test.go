@@ -34,6 +34,10 @@ var _ = Describe("VIRT RNG test", func() {
 	ktests.PanicOnError(err)
 	setCommands()
 
+	ktests.BeforeAll(func() {
+		ktests.BeforeTestCleanup()
+	})
+
 	Context("With VirtIO RNG device", func() {
 		var withRngVmi *v1.VirtualMachineInstance
 		withRngVmi = ktests.NewRandomVMIWithEphemeralDisk(ktests.RegistryDiskFor(ktests.RegistryDiskAlpine))
