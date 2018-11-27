@@ -7,11 +7,25 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/crypto/ssh"
 )
+
+func ReplaceImageURL(originalURL string) string {
+	envURL, ok := os.LookupEnv("STREAM_IMAGE_URL")
+	if ok {
+		return envURL
+	}
+	return originalURL
+}
+
+func CreateResourceWithFilePath(filePath string) {
+	By("Creating resource from the json file with the oc-create command")
+	execute(Result{cmd: "oc", verb: "create", filePath: filePath})
+}
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
 	By(fmt.Sprintf("Overriding the template from %s to %s", srcFilePath, dstFilePath))

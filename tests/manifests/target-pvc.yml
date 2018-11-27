@@ -10,10 +10,9 @@ objects:
   metadata:
     name: ${RESOURCE_NAME}
     labels:
-      test: cdi-manifests
+      app: Host-Assisted-Cloning
     annotations:
-      cdi.kubevirt.io/storage.import.endpoint: "${EP_URL}"
-      cdi.kubevirt.io/storage.import.secretName: "${EP_SECRET}"
+      k8s.io/CloneRequest: "${SOURCE_NS}/${SOURCE_NAME}"
   spec:
     accessModes:
     - ReadWriteOnce
@@ -22,5 +21,5 @@ objects:
         storage: 500Mi
 parameters:
 - name: RESOURCE_NAME
-- name: EP_URL
-- name: EP_SECRET
+- name: SOURCE_NS
+- name: SOURCE_NAME
