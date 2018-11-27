@@ -16,3 +16,4 @@ _out/
 
 # CDI template
 roles/cdi/templates/cdi-controller.yaml.j2
+exported-artifacts/

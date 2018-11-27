@@ -10,14 +10,14 @@ import (
 
 // template parameters
 const (
-	pvcEPHTTPNOAUTHURL = "https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img"
-	invalidPVCURL      = "https://noneexist.com"
-	pvcName            = "golden-pvc"
-	pvcName1           = "golden-pvc1"
-	vmName             = "test-vm"
-	vmAPIVersion       = "kubevirt.io/v1alpha3"
-	rawPVCFilePath     = "tests/manifests/golden-pvc.yml"
-	rawVMFilePath      = "tests/manifests/test-vm.yml"
+	invalidPVCURL  = "https://noneexist.com"
+	pvcName        = "golden-pvc"
+	pvcName1       = "golden-pvc1"
+	vmName         = "test-vm"
+	vmAPIVersion   = "kubevirt.io/v1alpha3"
+	rawPVCFilePath = "tests/manifests/golden-pvc.yml"
+	rawVMFilePath  = "tests/manifests/test-vm.yml"
+	cirrosImgURL   = "https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img"
 )
 
 var _ = Describe("Importing and starting a VM using CDI", func() {
@@ -30,7 +30,7 @@ var _ = Describe("Importing and starting a VM using CDI", func() {
 		newPVCName = pvcName
 		url, ok = os.LookupEnv("STREAM_IMAGE_URL")
 		if !ok {
-			url = pvcEPHTTPNOAUTHURL
+			url = cirrosImgURL
 		}
 	})
 

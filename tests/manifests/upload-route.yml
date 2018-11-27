@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Route
+metadata:
+  name: cdi-uploadproxy
+  namespace: cdi
+spec:
+  to:
+    kind: Service
+    name: cdi-uploadproxy
+  tls:
+    termination: passthrough
