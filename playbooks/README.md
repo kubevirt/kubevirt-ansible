@@ -27,6 +27,9 @@ For OpenShift deployment clone [**OpenShift Ansible**](openshift-ansible-project
 $ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
 ```
 
+Once cloned, you should configure `openshift_ansible_dir` to point to the local
+repo.
+
 > **NOTE:** For OpenShift 3.10 there is no release yet,
 please read [this file](../automation/check-patch.openshift_3-10.sh) to see
 what branch is currently used for automation.
@@ -92,7 +95,7 @@ Please follow [docker-storage-setup] documentation for more details.
 
 
 ```bash
-$ ansible-playbook -i inventory -e@vars/all.yml playbooks/cluster/openshift/config.yml
+$ ansible-playbook -i inventory -e@vars/all.yml playbooks/cluster/openshift/config.yml -e "openshift_ansible_dir=$PWD/openshift-ansible/"
 ```
 See [OpenShift parameters documentation](./cluster/openshift/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
 
