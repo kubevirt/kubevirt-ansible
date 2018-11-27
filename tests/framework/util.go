@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,6 +17,24 @@ import (
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	ktests "kubevirt.io/kubevirt/tests"
 )
+
+func ReplaceImageURL(originalURL string) string {
+	envURL, ok := os.LookupEnv("STREAM_IMAGE_URL")
+	if ok {
+		return envURL
+	}
+	return originalURL
+}
+
+func CreateResourceWithFilePathWithNamespace(filePath, nameSpace string) {
+	By("Creating resource from the json file with the oc-create command")
+	execute(Result{cmd: "oc", verb: "create", filePath: filePath, nameSpace: nameSpace})
+}
+
+func CreateResourceWithFilePath(filePath string) {
+	By("Creating resource from the json file with the oc-create command")
+	execute(Result{cmd: "oc", verb: "create", filePath: filePath})
+}
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
 	By(fmt.Sprintf("Overriding the template from %s to %s", srcFilePath, dstFilePath))
@@ -30,18 +49,14 @@ func CreateResourceWithFilePathTestNamespace(filePath string) {
 	execute(Result{cmd: "oc", verb: "create", filePath: filePath})
 }
 
-func DeleteResourceWithLabelTestNamespace(resourceType, resourceLabel string) {
-	By(fmt.Sprintf("Deleting %s:%s from the json file with the oc-delete command", resourceType, resourceLabel))
-	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel})
-}
 func DeleteResourceByName(resourceType, nameSpace, resourceName string) {
 	By(fmt.Sprintf("Deleting %s:%s  from %s with oc-delete command", resourceType, resourceName, nameSpace))
 	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, nameSpace: nameSpace, resourceName: resourceName})
 }
 
-func CreateResourceWithFilePath(filePath string) {
-	By("Creating resource from the json file with the oc-create command")
-	execute(Result{cmd: "oc", verb: "create", filePath: filePath})
+func WaitUntilResourceReadyByNameWithNamespace(resourceType, resourceName, query, expectOut, nameSpace string) {
+	By(fmt.Sprintf("Wait until %s with name %s ready", resourceType, resourceName))
+	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut, nameSpace: nameSpace})
 }
 
 func WaitUntilResourceReadyByNameTestNamespace(resourceType, resourceName, query, expectOut string) {

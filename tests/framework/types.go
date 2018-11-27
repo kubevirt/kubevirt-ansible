@@ -16,10 +16,14 @@ const (
 	UsernameAdminUser     = "test_admin"
 	PasswordAdminUser     = "123456"
 
-	CDI_LABEL_KEY      = "app"
-	CDI_LABEL_VALUE    = "containerized-data-importer"
-	CDI_LABEL_SELECTOR = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
-	paramFlag          = "-p"
+	CDI_LABEL_KEY           = "app"
+	CDI_LABEL_VALUE         = "containerized-data-importer"
+	CDI_LABEL_SELECTOR      = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
+	CDI_TEST_LABEL_KEY      = "test"
+	CDI_TEST_LABEL_VALUE    = "cdi-manifests"
+	CDI_TEST_LABEL_SELECTOR = CDI_TEST_LABEL_KEY + "=" + CDI_TEST_LABEL_VALUE
+
+	paramFlag = "-p"
 
 	ShortTimeout = time.Duration(2) * time.Minute
 	LongTimeout  = time.Duration(4) * time.Minute
