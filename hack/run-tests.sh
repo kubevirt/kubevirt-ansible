@@ -12,5 +12,9 @@ webdriver=${WEBDRIVER:-chromedriver}
 [ -z "$KUBECTL_PATH" ] && KUBECTL_PATH=$(which kubectl)
 [ -z "$VIRTCTL_PATH" ] && VIRTCTL_PATH=$(which virtctl)
 
+# turn off exit on error, so below test can be run.
+set +e
+
 ${TESTS_OUT_DIR}/tests.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -oc-path=${OC_PATH} -kubectl-path=${KUBECTL_PATH} -virtctl-path=${VIRTCTL_PATH} ${FUNC_TEST_ARGS}
+
 ${TESTS_OUT_DIR}/ui.test -webDriver=$webdriver
