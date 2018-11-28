@@ -52,9 +52,6 @@ func executeWithCustomTimeout(r Result, timeout time.Duration) string {
 	if r.query != "" {
 		cmd = append(cmd, r.query)
 	}
-	if r.nameSpace != "" {
-		cmd = append(cmd, "-n", r.nameSpace)
-	}
 	if len(r.params) > 0 {
 		for _, v := range r.params {
 			cmd = append(cmd, paramFlag, v)
