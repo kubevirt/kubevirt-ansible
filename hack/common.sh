@@ -14,4 +14,7 @@ function build_func_tests() {
     go vet ./tests/...
     ginkgo build ${KUBEVIRT_ANSIBLE_DIR}/tests
     mv ${KUBEVIRT_ANSIBLE_DIR}/tests/tests.test ${TESTS_OUT_DIR}/
+    go vet ./tests/ui/...
+    ginkgo build ${KUBEVIRT_ANSIBLE_DIR}/tests/ui
+    mv ${KUBEVIRT_ANSIBLE_DIR}/tests/ui/ui.test ${TESTS_OUT_DIR}/
 }

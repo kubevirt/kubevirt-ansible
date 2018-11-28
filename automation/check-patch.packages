@@ -2,3 +2,5 @@ lago
 ansible-2.6.3-1.el7
 origin-clients
 docker
+chromedriver
+chromium

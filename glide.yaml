@@ -10,3 +10,9 @@ import:
 - package: kubevirt.io/qe-tools
   version: v0.1.2
   repo: https://github.com/kubevirt/qe-tools.git
+- package: github.com/jmcvetta/randutil
+  version: 2bb1b664bcff821e02b2a0644cd29c7e824d54f8
+  repo: https://github.com/jmcvetta/randutil
+- package: github.com/sclevine/agouti
+  version: 5e39ce136dd6bafe76094887339bed399ad23a9d
+  repo: https://github.com/sclevine/agouti
