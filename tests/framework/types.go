@@ -1,11 +1,28 @@
-package tests
+package framework
 
 import (
 	"errors"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	ktests "kubevirt.io/kubevirt/tests"
+)
+
+const (
+	NamespaceTestDefault = "kubevirt-test-default"
+	NamespaceTestTemplate = "openshift"
+	UsernameTestUser     = "kubevirt-test-user"
+	UsernameAdminUser    = "test_admin"
+	PasswordAdminUser    = "123456"
+
+	CDI_LABEL_KEY      = "app"
+	CDI_LABEL_VALUE    = "containerized-data-importer"
+	CDI_LABEL_SELECTOR = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
+	paramFlag          = "-p"
+
+	ShortTimeout = time.Duration(2) * time.Minute
+	LongTimeout  = time.Duration(4) * time.Minute
 )
 
 // VirtualMachine can be a vm, vmi, vmirs, vmiPreset.
