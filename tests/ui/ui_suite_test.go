@@ -19,7 +19,7 @@ const uinamespace = "kubevirt-web-ui"
 const url = "https://kubevirt-web-ui.cloudapps.example.com"
 const username = "test_admin"
 const password = "123456"
-const timeout = 60 * time.Second
+const timeout = 120 * time.Second
 const pollInterval = 2 * time.Second
 
 var agoutiDriver *agouti.WebDriver

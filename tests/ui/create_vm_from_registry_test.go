@@ -34,6 +34,10 @@ var _ = Describe("Create VM from Registry via Create With Wizard", func() {
 	It("Create virtual machine from registry", func() {
 		By("Launch the console page", func() {
 			Expect(page.Navigate(url)).To(Succeed())
+			time.Sleep(1 * time.Second)
+			page.Screenshot("exported-artifacts/registry_login.png")
+			time.Sleep(30 * time.Second)
+			page.Screenshot("exported-artifacts/registry_login2.png")
 		})
 		By("Fill username and password", func() {
 			Eventually(page.FindByName("username"), timeout, pollInterval).Should(BeFound())
