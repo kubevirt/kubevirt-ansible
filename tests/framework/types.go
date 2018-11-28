@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	NamespaceTestDefault = "kubevirt-test-default"
+	NamespaceTestDefault  = "kubevirt-test-default"
 	NamespaceTestTemplate = "openshift"
-	UsernameTestUser     = "kubevirt-test-user"
-	UsernameAdminUser    = "test_admin"
-	PasswordAdminUser    = "123456"
+	UsernameTestUser      = "kubevirt-test-user"
+	UsernameAdminUser     = "test_admin"
+	PasswordAdminUser     = "123456"
 
 	CDI_LABEL_KEY      = "app"
 	CDI_LABEL_VALUE    = "containerized-data-importer"
