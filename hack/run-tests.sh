@@ -18,3 +18,6 @@ set +e
 ${TESTS_OUT_DIR}/tests.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -oc-path=${OC_PATH} -kubectl-path=${KUBECTL_PATH} -virtctl-path=${VIRTCTL_PATH} ${FUNC_TEST_ARGS}
 
 ${TESTS_OUT_DIR}/ui.test -webDriver=$webdriver
+
+find . | grep png
+mv *.png $ARTIFACTS_PATH/
