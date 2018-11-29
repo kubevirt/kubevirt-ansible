@@ -14,6 +14,7 @@ webdriver=${WEBDRIVER:-chromedriver}
 
 # turn off exit on error, so below test can be run.
 set +e
+yum install chromium -y
 
 ${TESTS_OUT_DIR}/tests.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -oc-path=${OC_PATH} -kubectl-path=${KUBECTL_PATH} -virtctl-path=${VIRTCTL_PATH} ${FUNC_TEST_ARGS}
 
