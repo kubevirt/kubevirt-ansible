@@ -19,5 +19,7 @@ ${TESTS_OUT_DIR}/tests.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -o
 
 ${TESTS_OUT_DIR}/ui.test -webDriver=$webdriver
 
+rpm -qa | grep chrom
+
 find . | grep png
 mv *.png $ARTIFACTS_PATH/
