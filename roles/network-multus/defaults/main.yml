@@ -18,8 +18,17 @@ origin_node_provisioner_name: "ovs-vsctl-amd64"
 origin_node_provisioner_repo: "docker.io/openshift/origin-node"
 origin_node_provisioner_release: "latest"
 
+sriovdp_provisioner_name: "kube-sriov-device-plugin-amd64"
+sriovdp_provisioner_repo: "docker.io/nfvpe/sriov-device-plugin"
+sriovdp_provisioner_release: "latest"
+
+sriovcni_provisioner_name: "kube-sriov-cni-amd64"
+sriovcni_provisioner_repo: "docker.io/nfvpe/sriov-cni"
+sriovcni_provisioner_release: "latest"
+
 deploy_cni_plugins: true
 deploy_ovs_plugin: true
+deploy_sriov_plugin: true
 
 openshift_cni_config: |
   '{

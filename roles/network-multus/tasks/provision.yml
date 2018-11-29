@@ -74,6 +74,28 @@
     when: platform == "openshift"
   when: deploy_ovs_plugin
 
+- name: Deploy SR-IOV device plugin
+  block:
+  - name: Render SR-IOV DP deployment yaml
+    template:
+      src: sriovdp.yml
+      dest: /tmp/sriovdp.yml
+
+  - name: Create SR-IOV DP resources
+    shell: "{{ cluster_command }} apply -f /tmp/sriovdp.yml"
+  when: deploy_sriov_plugin
+
+- name: Deploy SR-IOV CNI plugin
+  block:
+  - name: Render SR-IOV CNI deployment yaml
+    template:
+      src: sriov-cni.yml
+      dest: /tmp/sriov-cni.yml
+
+  - name: Create SR-IOV CNI resources
+    shell: "{{ cluster_command }} apply -f /tmp/sriov-cni.yml"
+  when: deploy_sriov_plugin
+
 - name: Wait until multus is running
   shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ multus_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
@@ -96,3 +118,19 @@
   retries: 20
   delay: 5
   when: deploy_ovs_plugin
+
+- name: Wait until SR-IOV DP plugin is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ sriovdp_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 20
+  delay: 5
+  when: deploy_sriov_plugin
+
+- name: Wait until SR-IOV CNI plugin is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ sriovcni_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 20
+  delay: 5
+  when: deploy_sriov_plugin
