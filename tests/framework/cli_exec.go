@@ -22,10 +22,7 @@ type Result struct {
 	expectOut     string
 	actualOut     string
 	params        []string
-<<<<<<< HEAD
-=======
 	args          []string
->>>>>>> Add regression tests
 }
 
 func execute(r Result) string {
@@ -65,8 +62,7 @@ func executeWithCustomTimeout(r Result, timeout time.Duration) string {
 			cmd = append(cmd, paramFlag, v)
 		}
 	}
-<<<<<<< HEAD
-=======
+
 	if len(r.args) > 0 {
 		args := []string{r.verb}
 		for _, a := range r.args {
@@ -74,7 +70,6 @@ func executeWithCustomTimeout(r Result, timeout time.Duration) string {
 			cmd = args
 		}
 	}
->>>>>>> Add regression tests
 	if r.expectOut != "" {
 		Eventually(func() bool {
 			r.actualOut, _, err = ktests.RunCommandWithNS(r.nameSpace, r.cmd, cmd...)
