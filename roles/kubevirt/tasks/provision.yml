@@ -1,0 +1,142 @@
+---
+- name: Check if {{ namespace }} exists
+  shell: kubectl get ns | grep -w {{ namespace }} | awk '{ print $1 }'
+  register: ns
+
+- name: Create {{ namespace }} namespace
+  shell: kubectl create namespace {{ namespace }}
+  when: ns.stdout != namespace
+
+- name: Add Privileged Policy
+  command: "oc adm policy add-scc-to-user privileged -z {{ item }} -n {{ namespace }}"
+  with_items: "{{ kubevirt_privileged_policies | list }}"
+  when: platform=="openshift"
+
+- name: Add Hostmount-anyuid Policy
+  command: "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
+  when: platform=="openshift"
+
+- name: Enable kubevirt feature gates
+  shell: "oc apply -f {{ kubevirt_template_dir }}/kubevirt-config.yaml -n {{ namespace }}"
+
+# Kubevirt manifest
+- name: Check for kubevirt.yaml.j2 template in {{ kubevirt_template_dir }}
+  stat:
+    path: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+  register: byo_template
+
+- name: Check for kubevirt.yaml.j2 version v{{ version }} in {{ offline_template_dir }}
+  stat:
+    path: "{{ offline_template_dir }}/v{{ version }}/kubevirt.yaml.j2"
+  register: offline_templates
+  when: byo_template.stat.exists == False
+
+- name: Download KubeVirt Template
+  get_url:
+    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
+    dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+  when: byo_template.stat.exists == False and offline_templates.stat.exists == False
+
+- name: Render offline template
+  template:
+    src: "{{ offline_template_dir }}/v{{ version }}/kubevirt.yaml.j2"
+    dest: "/tmp/kubevirt.yaml"
+  when: (offline_templates is not skipped) and (offline_templates.stat.exists == True)
+
+- name: Render KubeVirt Yaml
+  template:
+    src: "kubevirt.yaml.j2"
+    dest: "/tmp/kubevirt.yaml"
+  when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
+
+- name: Create KubeVirt Resources
+  command: kubectl apply -f /tmp/kubevirt.yaml --validate=false
+
+# Skipping because of https://github.com/kubevirt/kubevirt/issues/1628
+- name: Demo Content manifest
+  tags: never
+  block:
+    - name: Check for demo-content.yaml template in {{ kubevirt_template_dir }}
+      stat:
+        path: "{{ kubevirt_template_dir }}/demo-content.yaml"
+      register: byo_demo_content
+
+    - name: Check for demo-content.yaml version v{{ version }} in {{ offline_template_dir }}
+      stat:
+        path: "{{ offline_template_dir }}/v{{ version }}/demo-content.yaml"
+      register: offline_demo_content
+      when: byo_demo_content.stat.exists == False
+
+    - name: Download Demo Content
+      get_url:
+        url: "{{ release_manifest_url }}/v{{ version }}/demo-content.yaml"
+        dest: "{{ kubevirt_template_dir }}/demo-content.yaml"
+      when: byo_demo_content.stat.exists == False and offline_demo_content.stat.exists == False
+
+    - name: Copy Offline Demo Content to /tmp
+      copy:
+        src: "{{ offline_template_dir }}/v{{ version }}/demo-content.yaml"
+        dest: "/tmp/demo-content.yaml"
+      when: offline_demo_content is not skipped and offline_demo_content.stat.exists == True
+
+    - name: Copy BYO Demo Content to /tmp
+      copy:
+        src: "{{ kubevirt_template_dir }}/demo-content.yaml"
+        dest: "/tmp/demo-content.yaml"
+      when: byo_demo_content.stat.exists == False and (offline_demo_content is skipped or offline_demo_content.stat.exists == False)
+
+    - name: Create Demo Content
+      command: kubectl apply -f /tmp/demo-content.yaml
+
+# VM Templates manifests
+- name: Check for vm templates in {{ kubevirt_template_dir }}
+  stat:
+    path: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
+  with_items:
+    - "{{ default_vm_templates }}"
+  register: byo_vm_templates
+
+- name: Copy VM templates to /tmp
+  copy:
+    src: "{{ kubevirt_template_dir }}/{{ item }}.yaml"
+    dest: "/tmp/{{ item }}.yaml"
+  with_items: "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+  when: "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length > 0 }}"
+
+- name: Check for vm templates in {{ offline_template_dir }}
+  stat:
+    path: "{{ offline_template_dir }}/v{{ version }}/{{ item }}.yaml"
+  with_items:
+    - "{{ default_vm_templates }}"
+  register: offline_vm_templates
+
+- name: Copy VM templates to /tmp
+  copy:
+    src: "{{ offline_template_dir }}/v{{ version }}/{{ item }}.yaml"
+    dest: "/tmp/{{ item }}.yaml"
+  with_items: "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list }}"
+  when: "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length > 0 }}"
+
+- name: Set the default VM templates URL
+  set_fact:
+    templates_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster/examples"
+  when: "{{ '0.6.0' is version(version, '<') }}"
+
+- name: Set the default VM templates URL
+  set_fact:
+    templates_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster"
+  when: "{{ '0.6.0' is version(version, '>=') }}"
+
+- name: Download KubeVirt default VM templates
+  get_url:
+    url: "{{ templates_url }}/{{ item }}.yaml"
+    dest: "/tmp/{{ item }}.yaml"
+  with_items:
+    - "{{ default_vm_templates }}"
+  when: platform == "openshift" and "{{ byo_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}" and "{{ offline_vm_templates.results | selectattr('stat.exists') | map(attribute='item') | list | length == 0 }}"
+
+- name: Create default VM templates in OpenShift Namespace
+  shell: "oc apply -f /tmp/{{ item }}.yaml -n openshift"
+  with_items:
+    - "{{ default_vm_templates }}"
+  when: platform == "openshift"

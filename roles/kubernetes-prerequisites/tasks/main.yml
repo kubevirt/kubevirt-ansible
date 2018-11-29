@@ -1,0 +1,97 @@
+---
+- name: set SELinux to permissive mode
+  command: setenforce 0
+
+- name: set SELinux to permissive mode under configuration file
+  selinux:
+    policy: targeted
+    state: permissive
+
+- name: stop and disable firewalld
+  register: result
+  service:
+    state: stopped
+    enabled: no
+    name: firewalld
+  failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
+
+- name: remove firewalld package
+  package:
+    name: firewalld
+    state: absent
+
+- name: Remove current swaps from fstab
+  lineinfile:
+    dest: /etc/fstab
+    regexp: '^/[\S]+\s+none\s+swap '
+    state: absent
+
+- name: Disable swap
+  command: swapoff --all
+  ignore_errors: yes
+
+- name: install epel repository
+  package:
+    name: "{{ epel_repo_rpm }}"
+    state: present
+  when:
+    - ansible_distribution in ["CentOS","RedHat"]
+
+- name: import kubernetes rpm keys
+  rpm_key:
+    state: present
+    key: "{{ item }}"
+  with_items:
+    - "{{ kubernetes_gpgkeys }}"
+
+- name: add kubernetes repository
+  yum_repository:
+    name: kubernetes
+    description: "Kubernetes repository"
+    baseurl: "{{ kubernetes_repo }}"
+    enabled: yes
+    gpgcheck: yes
+    repo_gpgcheck: yes
+    gpgkey: "{{ kubernetes_gpgkeys | join(' ') }}"
+
+- name: update repo cache for kubernetes repo
+  command: yum -q makecache -y --disablerepo=* --enablerepo=kubernetes
+
+- name: install all kubernetes packages
+  package: 
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - "{{ kubernetes_packages }}"
+
+- name: use systemd as cgroup driver
+  copy:
+    src: 09-kubeadm.conf
+    dest: /etc/systemd/system/kubelet.service.d/09-kubeadm.conf
+
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+    name: "{{ item }}"
+    state: started
+    enabled: yes
+  with_items:
+    - docker
+    - kubelet
+
+- name: enable bridge kernel module
+  modprobe:
+    name: bridge
+    state: present
+
+- name: enable bridge-nf-call-iptables
+  sysctl:
+    name: "{{ item }}"
+    value: 1
+    sysctl_set: yes
+    state: present
+  with_items:
+    - net.bridge.bridge-nf-call-iptables
+    - net.bridge.bridge-nf-call-ip6tables
+    - net.ipv4.ip_forward
+

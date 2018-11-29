@@ -1,0 +1,12 @@
+# Namespace to create for the GlusterFS and Heketi resources
+openshift_storage_glusterfs_namespace: glusterfs
+# use opneshift glusterfs StorageClass
+openshift_storage_glusterfs_storageclass: true
+# set glusterfs as default StorageClass
+openshift_storage_glusterfs_storageclass_default: true
+# glusterblock functionality is not supported outside of Logging/Metrics
+openshift_storage_glusterfs_block_deploy: false
+# Disable any other default StorageClass
+openshift_storageclass_default: false
+openshift_storage_glusterfs_timeout: 900
+openshift_storage_glusterfs_image: gluster/gluster-centos:gluster4u0_centos7

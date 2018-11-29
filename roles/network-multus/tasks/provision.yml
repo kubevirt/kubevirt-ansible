@@ -1,0 +1,98 @@
+---
+- name: oc Command
+  set_fact:
+    cluster_command: oc
+  when: platform=="openshift"
+
+- name: kubectl Command
+  set_fact:
+    cluster_command: kubectl
+  when: platform=="kubernetes"
+
+- name: Check if namespace "{{ namespace }}" exists
+  shell: "{{ cluster_command }} get ns | grep -w {{ namespace }} | awk \'{ print $1 }\'"
+  register: ns
+
+- name: Create {{ namespace }} namespace
+  shell: kubectl create namespace {{ namespace }}
+  when: ns.stdout != namespace
+
+- name: check if the CRD is already deployed
+  shell: "{{ cluster_command }} get crd --no-headers | grep network-attachment-definitions.k8s.cni.cncf.io | wc -l"
+  register: crd
+
+- name: Deploy Multus
+  block:
+  - name: openshift cni config
+    set_fact:
+      cni_config: "{{ openshift_cni_config }}"
+    when: platform=="openshift"
+
+  - name: kubernetes cni config
+    set_fact:
+      cni_config: "{{ kubernetes_cni_config }}"
+    when: platform=="kubernetes"
+
+  - name: Render multus deployment yaml
+    template:
+      src: multus.yml
+      dest: /tmp/multus.yml
+
+  - name: Create multus Resources
+    shell: "{{ cluster_command }} apply -f /tmp/multus.yml"
+  when: crd.stdout=="0"
+
+- name: Deploy CNI plugins
+  block:
+  - name: Render cni plugins deployment yaml
+    template:
+      src: cni-plugins.yml
+      dest: /tmp/cni-plugins.yml
+
+  - name: Create cni plugins Resources
+    shell: "{{ cluster_command }} apply -f /tmp/cni-plugins.yml"
+  when: deploy_cni_plugins
+
+- name: Deploy OVS Plugin
+  block:
+  - name: Render OVS deployment yaml
+    template:
+      src: ovs-cni.yml
+      dest: /tmp/ovs-cni.yml
+
+  - name: Create ovs Resources
+    shell: "{{ cluster_command }} apply -f /tmp/ovs-cni.yml"
+
+  - name: Render and create ovs-vsctl
+    block:
+    - name: Render ovs-vsctl deployment yaml
+      template:
+        src: ovs-vsctl.yml
+        dest: /tmp/ovs-vsctl.yml
+    - name: Create ovs-vsctl resources
+      shell: "{{ cluster_command }} apply -f /tmp/ovs-vsctl.yml"
+    when: platform == "openshift"
+  when: deploy_ovs_plugin
+
+- name: Wait until multus is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ multus_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 20
+  delay: 5
+
+- name: Wait until CNI plugins are running
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ cni_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 20
+  delay: 5
+  when: deploy_cni_plugins
+
+- name: Wait until OVS Plugin is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ ovs_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 20
+  delay: 5
+  when: deploy_ovs_plugin

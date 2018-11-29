@@ -1,0 +1,89 @@
+---
+- hosts: masters nodes
+  remote_user: root
+  strategy: free
+  vars:
+    epel_release_rpm_url: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+    openshift_ansible_dir: "openshift-ansible/"
+    openshift_playbook_path: "playbooks/byo/config.yml"
+    kubevirt_openshift_version: "3.10"
+  tasks:
+    - name: include_vars
+      include_vars:
+        file: "{{ item }}"
+      with_items:
+        - "{{ playbook_dir }}/../../../vars/all.yml"
+        - "{{ playbook_dir }}/vars/{{ kubevirt_openshift_version }}.yml"
+
+    - name: include Gluster vars
+      include_vars:
+        file: "{{ playbook_dir }}/vars/gluster.yml"
+      when:
+        - storage_role is defined
+        - storage_role == 'storage-glusterfs'
+
+    - name: Include lib_utils
+      import_role:
+        name: lib_utils
+
+    - name: set SELinux to enforcing mode
+      command: setenforce 1
+
+    - name: set SELinux to permissive mode under configuration file
+      selinux:
+        policy: targeted
+        state: enforcing
+
+    - name: stop and disable firewalld
+      register: result
+      service:
+        state: stopped
+        enabled: no
+        name: firewalld
+      failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
+
+    - name: install epel repository
+      block:
+        - package:
+            name: "{{ epel_release_rpm_url }}"
+            state: present
+        - shell: rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
+      when:
+        - ansible_distribution in ["CentOS","RedHat"]
+
+    - name: Install openshift requirements
+      yum:
+        name:
+          - python-yaml
+          - python-ipaddress
+          - wget
+          - git
+          - net-tools
+          - bind-utils
+          - iptables-services
+          - bridge-utils
+          - bash-completion
+          - kexec-tools
+          - sos
+          - psacct
+          - NetworkManager
+
+    - name: Enable and start NetworkManager service
+      service:
+        state: started
+        enabled: yes
+        name: NetworkManager
+
+- import_playbook: "{{ openshift_ansible_dir }}/playbooks/prerequisites.yml"
+
+- import_playbook: "{{ openshift_ansible_dir | join_paths(openshift_playbook_path | default('playbooks/deploy_cluster.yml')) }}"
+
+- hosts: masters
+  tasks:
+    - name: Configure oc admin user for testing
+      shell: |
+        user_name="{{ admin_test_user_name | default('test_admin') }}"
+        kubeconfig="/etc/origin/master/admin.kubeconfig"
+        oc login -u system:admin --config=$kubeconfig
+        oc get user "$user_name" --config=$kubeconfig || oc create user "$user_name" --config=$kubeconfig
+        oc adm policy add-cluster-role-to-user cluster-admin "$user_name" --config=$kubeconfig

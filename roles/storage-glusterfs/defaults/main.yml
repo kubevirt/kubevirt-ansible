@@ -1,0 +1,5 @@
+cluster: "openshift"
+apb_action: "provision"
+glusterfs_namespace: "glusterfs"
+glusterfs_name: "storage"
+external_provisioner: false

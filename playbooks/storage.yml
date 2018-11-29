@@ -1,0 +1,20 @@
+---
+- hosts: masters[0]
+  vars:
+    storage_role: storage-demo
+  # unset http_proxy. required for running in the CI
+  environment:
+    http_proxy: ""
+  roles:
+    - role: "{{ storage_role }}"
+
+- hosts: masters nodes
+  vars:
+    storage_role: storage-demo
+  gather_facts: False
+  # unset http_proxy. required for running in the CI
+  environment:
+    http_proxy: ""
+  roles:
+    - role: storage-demo-nodeconfig
+      when: storage_role == 'storage-demo'

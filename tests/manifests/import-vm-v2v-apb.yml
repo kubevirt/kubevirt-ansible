@@ -1,0 +1,44 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: v2v-template
+  annotations:
+    description: "Template for v2v import from VMWare"
+objects:
+- apiVersion: servicecatalog.k8s.io/v1beta1
+  kind: ServiceInstance
+  metadata:
+    name: v2v-${APB_PLAN_NAME}
+  spec:
+    clusterServiceClassExternalName: ${APB_NAME}
+    clusterServicePlanExternalName: ${APB_PLAN_NAME}
+    parameters:
+      admin_user: ${OCP_ID}
+      admin_password: ${OCP_PASS}
+      url: ${VMWARE_URL}
+      vm_name: ${VM_NAME}
+      username: ${VMWARE_ID}
+      password: ${VMWARE_PASS}
+      os_type: ${V2V_OS_TYPE}
+parameters:
+- name: APB_NAME
+  description: name of the apb
+  value: dh-import-vm-apb
+- name: APB_PLAN_NAME
+  description: name of the plan in apb
+- name: OCP_ID
+  description: OCP username
+- name: OCP_PASS
+  description: password of the OCP user
+- name: VMWARE_URL
+  description: VMWare url for v2v
+- name: VM_NAME
+  description: name of the vm to import
+- name: VMWARE_ID
+  description: username of VMWare
+- name: VMWARE_PASS
+  description: password of VMWare user
+- name: V2V_OS_TYPE
+  description: type of the OS
+  value: linux

@@ -1,0 +1,42 @@
+---
+- name: install cockpit packages
+  package:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - cockpit
+    - cockpit-kubernetes
+
+- name: enable and start cockpit service
+  service:
+    name: "cockpit.socket"
+    state: started
+    enabled: yes
+
+- name: copy weavenet script
+  copy:
+    src: weavenet.sh
+    dest: /root/weavenet.sh
+    mode: 0755
+
+- name: execute weavenet.sh script 
+  shell: /root/weavenet.sh
+  register: weavenet
+
+- name: set ipalloc_range variable
+  set_fact:
+    ipalloc_range: weavenet.stdout
+
+- name: copy kubernetes deployment script
+  template:
+    src: deploy_kubernetes.j2
+    dest: /root/deploy_kubernetes.sh
+    mode: 0755
+
+- name: deploy kubernetes
+  shell: /root/deploy_kubernetes.sh | grep "kubeadm join"
+  register: kubeadm_join_command
+
+- name: set join command as fact
+  set_fact: joincommand="{{kubeadm_join_command.stdout}}"
+

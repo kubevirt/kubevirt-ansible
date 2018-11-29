@@ -1,0 +1,17 @@
+---
+epel_repo_rpm: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+kubernetes_repo: http://yum.kubernetes.io/repos/kubernetes-el7-x86_64
+kubernetes_gpgkeys: 
+  - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+  - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+kubernetes_packages:
+  - jq
+  - sshpass
+  - bind-utils
+  - net-tools
+  - docker
+  - kubeadm
+  - kubelet
+  - kubectl
+  - kubernetes-cni
+

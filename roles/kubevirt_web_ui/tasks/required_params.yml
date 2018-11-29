@@ -1,0 +1,47 @@
+---
+#### Verify/set kubevirt-web-ui image:tag
+
+- set_fact: kubevirt_web_ui_image_tag="v1.3.0"
+  when: version is defined and "0.9." in version
+
+- set_fact: kubevirt_web_ui_image_tag="v{{ docker_tag }}"
+  when: docker_tag is defined
+
+- set_fact: kubevirt_web_ui_image_name="{{ registry_url }}/{{ registry_namespace }}/kubevirt-web-ui:{{ kubevirt_web_ui_image_tag | default("latest")}}"
+  when: kubevirt_web_ui_image_name is not defined and registry_url is defined and registry_namespace is defined
+
+- name: Verify required kubevirt_web_ui_image_name variable is set
+  fail:
+    msg: kubevirt_web_ui_image_name must be set to deploy kubevirt-web-ui. Alternatively registry_url, registry_namespace and docker_tag (or version) can be used for automated composition.
+  when: kubevirt_web_ui_image_name is not defined
+
+#### Autodiscovery of missing variables
+# Assumptions for autodiscovery:
+# - console's namespace is hardcoded to "openshift-console" (as done in openshift-ansible)
+# - the openshift console is mandatory part of OKD installation
+
+- name: Discover public_master_hostname from openshift console deployment
+  shell: "{{ openshift_client_binary }} get configmap console-config -n openshift-console -o jsonpath='{.data}' | grep 'masterPublicURL:' | sed 's/^.*masterPublicURL: *http.*:\\/\\///g'"
+  register: parsedMasterPublicURL
+  when: public_master_hostname | default("") | string == ""
+
+- set_fact: public_master_hostname="{{ parsedMasterPublicURL.stdout }}"
+  when: public_master_hostname | default("") | string == "" and parsedMasterPublicURL.stdout != ""
+
+- name: Discover openshift_master_default_subdomain from openshift console deployment
+  shell: "{{ openshift_client_binary }} get configmap console-config -n openshift-console -o jsonpath='{.data}' | grep 'consoleBaseAddress:' | sed 's/^.*consoleBaseAddress: *http.*:\\/\\/console\\.//g'"
+  register: parsedBaseAddress
+  when: openshift_master_default_subdomain | default("") | string == ""
+
+- set_fact: openshift_master_default_subdomain="{{ parsedBaseAddress.stdout }}"
+  when: openshift_master_default_subdomain | default("") | string == "" and parsedBaseAddress.stdout != ""
+
+#### Set derived constants
+
+- set_fact: kubevirt_web_ui_hostname="kubevirt-web-ui.{{openshift_master_default_subdomain}}"
+
+# Mimic openshift-ansible
+- set_fact: openshift_master_public_console_url="https://{{ public_master_hostname }}/console" # Example: https://master.mycluster.com:8443/console
+- set_fact: openshift_master_public_api_url="https://{{ public_master_hostname }}"
+- set_fact: openshift_master_logout_url="" # TODO: not needed so far
+

@@ -1,0 +1,34 @@
+---
+- name: Render {{ cdi_namespace }} ResourceQuota deprovision yaml
+  template:
+    src:  cdi-resourcequota.yml
+    dest: /tmp/cdi-deprovision-resourcequota.yml
+
+- name: Delete {{ cdi_namespace }} ResourceQuota
+  command: kubectl delete -f /tmp/cdi-deprovision-resourcequota.yml -n {{ cdi_namespace }} --ignore-not-found
+
+- name: Check that cdi-provision.yml still exists in /tmp
+  stat:
+    path: "/tmp/cdi-provision.yml"
+  register: cdi_template
+
+- name: Check for cdi-controller.yml.j2 template in {{ cdi_template_dir }}
+  stat:
+    path: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
+  register: byo_template
+  when: cdi_template.stat.exists == False
+
+- name: Download CDI Template
+  get_url:
+    url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
+    dest: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
+  when: (cdi_template.stat.exists == False) and (byo_template.stat.exists == False)
+
+- name: Render CDI deprovision yaml
+  template:
+    src: "cdi-controller.yaml.j2"
+    dest: "/tmp/cdi-deprovision.yml"
+
+- name: Delete CDI Resources
+  command: kubectl delete -f /tmp/cdi-deprovision.yml -n {{ cdi_namespace }} --ignore-not-found
+

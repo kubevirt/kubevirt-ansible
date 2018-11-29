@@ -1,0 +1,63 @@
+---
+# Demo content
+- name: Check that demo-content.yaml still exists in /tmp
+  stat:
+    path: "/tmp/demo-content.yaml"
+  register: demo_content_manifest
+
+- name: Check for demo-content.yaml template in {{ kubevirt_template_dir }}
+  stat:
+    path: "{{ kubevirt_template_dir }}/demo-content.yaml"
+  register: byo_demo_content
+  when: demo_content_manifest.stat.exists == False
+
+- name: Download Demo Content
+  get_url:
+    url: "{{ release_manifest_url }}/v{{ version }}/demo-content.yaml"
+    dest: "{{ kubevirt_template_dir }}/demo-content.yaml"
+  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
+
+- name: Copy BYO Demo Content to /tmp
+  copy:
+    src: "{{ kubevirt_template_dir }}/demo-content.yaml"
+    dest: "/tmp/demo-content.yaml"
+  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
+
+- name: Delete Demo Content
+  command: kubectl delete --ignore-not-found=true -f /tmp/demo-content.yaml
+
+# KubeVirt manifests
+- name: Check that kubevirt.yaml still exists in /tmp
+  stat:
+    path: "/tmp/kubevirt.yaml"
+  register: kubevirt_template
+
+- name: Check for kubevirt.yml.j2 template in {{ kubevirt_template_dir }}
+  stat:
+    path: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+  register: byo_template
+  when: kubevirt_template.stat.exists == False
+
+- name: Download KubeVirt Template
+  get_url:
+    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
+    dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
+  when: (kubevirt_template.stat.exists == False) and (byo_template.stat.exists == False)
+
+- name: Render KubeVirt template
+  template:
+    src: "kubevirt.yaml.j2"
+    dest: "/tmp/kubevirt.yaml"
+  when: kubevirt_template.stat.exists == False
+
+- name: Delete KubeVirt Resources
+  command: kubectl delete -f /tmp/kubevirt.yaml --ignore-not-found=true
+
+- name: Delete Privileged Policy
+  command: "oc adm policy remove-scc-from-user privileged -z {{ item }} -n {{ namespace }}"
+  with_items: "{{ kubevirt_privileged_policies | list }}"
+  when: platform=="openshift"
+
+- name: Delete Hostmount-anyuid Policy
+  command: "oc adm policy remove-scc-from-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
+  when: platform=="openshift"

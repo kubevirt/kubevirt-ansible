@@ -1,0 +1,27 @@
+---
+openshift_client_binary: "oc"
+apb_action: "provision"
+kubevirt_web_ui_namespace: "kubevirt-web-ui"
+
+# Deviation from openshift-console: the kubevirt/web-ui is installed to an _existing_ openshift cluster,
+# so "defaultNodeSelector" (see master config) takes effect causing scheduler to find no "master and compute" node.
+## kubevirt_web_ui_nodeselector: {"node-role.kubernetes.io/master":"true"}
+kubevirt_web_ui_nodeselector: {}
+
+__console_template_file: "console-template.yaml"
+__console_config_file: "console-config.yaml"
+
+# Default the replica count to the number of masters.
+kubevirt_web_ui_replica_count: "1"
+
+kubevirt_web_ui_cert: ""
+kubevirt_web_ui_key: ""
+kubevirt_web_ui_ca: ""
+
+kubevirt_web_ui_auth_ca_file: "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+
+kubevirt_web_ui_documentation_base_url: "https://docs.openshift.com/container-platform/3.11/"
+
+openshift:
+  common:
+    config_base: "/etc/origin" # as hardcoded in playbooks/cluster/openshift/config.yml

@@ -1,0 +1,31 @@
+---
+- hosts: nodes masters
+  remote_user: root
+  vars:
+    network_role: network-multus
+  tasks:
+    - name: make sure OVS is installed & enabled
+      block:
+      - name: make sure ovs is installed
+        package:
+          name: openvswitch
+          state: installed
+      - name: enable and start OVS
+        service:
+          state: started
+          enabled: yes
+          name: openvswitch
+      when: network_role == 'network-multus' and deploy_ovs_plugin and cluster == "kubernetes"
+
+- hosts: masters[0]
+  connection: local
+  gather_facts: False
+  vars:
+    network_role: network-multus
+    deploy_skydive: False
+  # unset http_proxy. required for running in the CI
+  environment:
+    http_proxy: ""
+  roles:
+  - { role: "network-multus", when: network_role == 'network-multus'}
+  - { role: "skydive", when: deploy_skydive == 'True'}

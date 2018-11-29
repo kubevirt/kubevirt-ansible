@@ -1,0 +1,10 @@
+.idea
+_out/*
+bin/*
+manifests/generated/*
+.coverprofile
+release-announcement
+.project
+.vscode
+cluster/.*
+.history

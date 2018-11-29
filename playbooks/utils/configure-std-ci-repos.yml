@@ -1,0 +1,7 @@
+- name: Configure std-ci repos
+  hosts: all
+  tasks:
+  - name: Configure std-ci repos
+    copy:
+      src: "{{ std_ci_yum_repos }}"
+      dest: "/etc/yum.repos.d/{{ std_ci_yum_repos | basename }}.repo"

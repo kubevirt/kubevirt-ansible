@@ -1,0 +1,115 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kubevirt-heketi-secret
+data:
+  key: {{ heketi_admin_key }}
+{% if external_provisioner %}
+type: gluster.org/glusterfile
+{% else %}
+type: kubernetes.io/glusterfs
+{% endif %}
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1beta1
+metadata:
+  name: kubevirt
+{% if external_provisioner %}
+provisioner: gluster.org/glusterfile
+{% else %}
+provisioner: kubernetes.io/glusterfs
+{% endif %}
+reclaimPolicy: Delete
+parameters:
+  resturl: "http://{{ heketi_url | default(omit) }}"
+  restuser: admin
+  secretName: "kubevirt-heketi-secret"
+  secretNamespace: "{{ glusterfs_namespace }}"
+{% if external_provisioner %}
+  snapfactor: "3.0"
+{% endif %}
+  volumeoptions: "group virt"
+{% if external_provisioner %}
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: glusterfile-provisioner-runner
+  labels:
+    glusterfs: file-provisioner-runner-clusterrole
+    glusterfile: provisioner-runner-clusterrole
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get","create","delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["routes"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "create","delete"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: glusterfile-provisioner
+  labels:
+    glusterfs: file-provisioner-sa
+    glusterfile: provisioner-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: glusterfile-provisioner
+roleRef:
+  name: glusterfile-provisioner-runner
+subjects:
+- kind: ServiceAccount
+  name: glusterfile-provisioner
+  namespace: "{{ glusterfs_namespace }}"
+---
+kind: Deployment
+apiVersion: v1
+metadata:
+  name: glusterfile-provisioner
+  labels:
+    glusterfs: file-provisioner-deployment
+    glusterfile: provisioner-deployment
+  annotations:
+    description: Defines how to deploy the glusterfile provisioner pod.
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      name: glusterfile-provisioner
+      labels:
+        glusterfs: file-provisioner-pod
+        glusterfile: provisioner-pod
+    spec:
+      serviceAccountName: glusterfile-provisioner
+      containers:
+      - name: glusterfile-provisioner
+        image: gluster/glusterfileclone:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: PROVISIONER_NAME
+          value: gluster.org/glusterfile
+{% endif %}

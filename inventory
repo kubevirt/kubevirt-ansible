@@ -1,0 +1,66 @@
+[OSEv3:children]
+masters
+nodes
+etcd
+
+[OSEv3:vars]
+openshift_deployment_type=origin
+openshift_use_crio=true
+openshift_service_catalog_retries=150
+ansible_ssh_user=root
+openshift_master_identity_providers=[{'name': 'allow_all_auth', 'login': 'true', 'challenge': 'true', 'kind': 'AllowAllPasswordIdentityProvider'}]
+openshift_disable_check=memory_availability,disk_availability,docker_image_availability
+openshift_enable_excluders=false
+template_service_broker_install=false
+openshift_install_examples=false
+# Domain name that will be used by the Openshift router
+openshift_master_default_subdomain=cloudapps.example.com
+
+# Image used for the kubevirt/web-ui deployment
+kubevirt_web_ui_image_name=quay.io/kubevirt/kubevirt-web-ui:v1.3-9
+# Master public API URL
+public_master_hostname=openshift.cloudapps.example.com:443
+
+# Enabling KubeVirt Admission Controller (https://www.kubevirt.io/user-guide/#/installation/api-validation?id=kubevirt-api-validation)
+openshift_master_admission_plugin_config={"ValidatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}},"MutatingAdmissionWebhook":{"configuration":{"kind": "DefaultAdmissionConfig","apiVersion": "v1","disable": false}}}
+
+# Docker
+container_runtime_docker_storage_type=overlay2
+
+# OC 3.10 node and master labeling
+openshift_node_groups=[{'name': 'node-config-infra-compute', 'labels': ['node-role.kubernetes.io/infra=true', 'node-role.kubernetes.io/compute=true']}, {'name': 'node-config-master', 'labels': ['node-role.kubernetes.io/master=true']}]
+
+# BEGIN ANSIBLE BROKER CONFIG
+ansible_service_broker_refresh_interval=20s
+ansible_service_broker_registry_whitelist=[".*-apb$"]
+ansible_service_broker_local_registry_whitelist=[".*-apb$"]
+ansible_service_broker_image_prefix=ansibleplaybookbundle/origin-
+ansible_service_broker_image_tag=latest
+
+ansible_service_broker_etcd_image_prefix=quay.io/coreos/
+ansible_service_broker_etcd_image_tag=latest
+# END ANSIBLE BROKER CONFIG
+
+# BEGIN CUSTOM SETTINGS
+[masters]
+# Your master FQDN
+
+[etcd]
+# Your etcd FQDN
+
+[nodes]
+# Your nodes FQDN's
+
+[nfs]
+# Your nfs server FQDN
+
+[glusterfs]
+# Your glusterfs nodes FQDN
+# Each node should have the "glusterfs_devices" variable, which
+# points to the block device that will be used by gluster.
+
+#
+# If you run openshift deployment
+# Add at least one node with infra annotation to run router and docker containers there.
+# openshift_node_group_name=node-config-infra
+# END CUSTOM SETTINGS
