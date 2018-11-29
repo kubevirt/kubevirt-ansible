@@ -8,6 +8,7 @@
     - name: Identify cluster
       command: "oc get projects"
       register: result
+      ignore_errors: True
 
     - name: Set cluster variable
       set_fact:
