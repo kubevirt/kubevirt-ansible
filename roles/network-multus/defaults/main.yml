@@ -4,7 +4,7 @@ apb_action: "provision"
 
 multus_provisioner_name: "kube-multus-amd64"
 multus_provisioner_repo: "docker.io/nfvpe/multus"
-multus_provisioner_release: "latest"
+multus_provisioner_release: "snapshot"
 
 cni_provisioner_repo: "quay.io/schseba/cni-plugins"
 cni_provisioner_name: "kube-cni-plugins-amd64"
