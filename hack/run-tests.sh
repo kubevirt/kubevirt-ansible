@@ -12,15 +12,20 @@ webdriver=${WEBDRIVER:-chromedriver}
 [ -z "$KUBECTL_PATH" ] && KUBECTL_PATH=$(which kubectl)
 [ -z "$VIRTCTL_PATH" ] && VIRTCTL_PATH=$(which virtctl)
 
+yum install chromium -y
+oc get route -n kubevirt-web-ui
+
 # turn off exit on error, so below test can be run.
 set +e
-yum install chromium -y
 
 ${TESTS_OUT_DIR}/tests.test -kubeconfig=$kubeconfig -tag=$tag -prefix=$prefix -oc-path=${OC_PATH} -kubectl-path=${KUBECTL_PATH} -virtctl-path=${VIRTCTL_PATH} ${FUNC_TEST_ARGS}
 
 ${TESTS_OUT_DIR}/ui.test -webDriver=$webdriver
 
 rpm -qa | grep chrom
+
+yum install chromium -y
+oc get route -n kubevirt-web-ui
 
 find . | grep png
 mv *.png $ARTIFACTS_PATH/
