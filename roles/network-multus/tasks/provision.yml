@@ -96,6 +96,17 @@
     shell: "{{ cluster_command }} apply -f /tmp/sriov-cni.yml"
   when: deploy_sriov_plugin
 
+- name: Create SR-IOV network
+  block:
+  - name: Render SR-IOV network CRD yaml
+    template:
+      src: sriov-crd.yml
+      dest: /tmp/sriov-crd.yml
+
+  - name: Create SR-IOV network CRD
+    shell: "{{ cluster_command }} apply -f /tmp/sriov-crd.yml"
+  when: deploy_sriov_plugin
+
 - name: Wait until multus is running
   shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ multus_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
