@@ -34,26 +34,27 @@ type VirtualMachine struct {
 	TemplateInCluster string
 	TemplateFromFile  string
 	TemplateParams    []string
+	Namespace         string
 }
 
 func (vm VirtualMachine) Create() (string, string, error) {
-	args := []string{"create", "-n", ktests.NamespaceTestDefault, "-f", vm.Manifest}
-	return ktests.RunCommand(ktests.KubeVirtOcPath, args...)
+	args := []string{"create", "-f", vm.Manifest}
+	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtOcPath, args...)
 }
 
 func (vm VirtualMachine) Start() (string, string, error) {
-	args := []string{"start", "-n", ktests.NamespaceTestDefault, vm.Name}
-	return ktests.RunCommand(ktests.KubeVirtVirtctlPath, args...)
+	args := []string{"start", vm.Name}
+	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtVirtctlPath, args...)
 }
 
 func (vm VirtualMachine) Stop() (string, string, error) {
-	args := []string{"stop", "-n", ktests.NamespaceTestDefault, vm.Name}
-	return ktests.RunCommand(ktests.KubeVirtVirtctlPath, args...)
+	args := []string{"stop", vm.Name}
+	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtVirtctlPath, args...)
 }
 
 func (vm VirtualMachine) Delete() (string, string, error) {
-	args := []string{"delete", "-n", ktests.NamespaceTestDefault, vm.Type, vm.Name}
-	return ktests.RunCommand(ktests.KubeVirtOcPath, args...)
+	args := []string{"delete", vm.Type, vm.Name}
+	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtVirtctlPath, args...)
 }
 
 func (vm VirtualMachine) IsRunning() (bool, error) {
@@ -71,8 +72,8 @@ func (vm VirtualMachine) IsRunning() (bool, error) {
 }
 
 func (vm VirtualMachine) GetVMInfo(spec string) (string, string, error) {
-	args := []string{"get", "-n", ktests.NamespaceTestDefault, vm.Type, vm.Name, "--template", spec}
-	return ktests.RunCommand(ktests.KubeVirtOcPath, args...)
+	args := []string{"get", vm.Type, vm.Name, "--template", spec}
+	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtOcPath, args...)
 }
 
 func (vm VirtualMachine) GetVMUID() (string, error) {
@@ -90,7 +91,7 @@ func (vm VirtualMachine) GetVMUID() (string, error) {
 func (vm VirtualMachine) ProcessTemplate() (string, error) {
 	var args []string
 	if vm.TemplateInCluster != "" {
-		args = append(args, []string{"process", "-n", NamespaceTestTemplate, vm.TemplateInCluster}...)
+		args = append(args, []string{"process", vm.TemplateInCluster}...)
 	}
 
 	if vm.TemplateFromFile != "" {
@@ -99,7 +100,7 @@ func (vm VirtualMachine) ProcessTemplate() (string, error) {
 
 	args = append(args, vm.TemplateParams...)
 
-	output, cmderr, err := ktests.RunCommand(ktests.KubeVirtOcPath, args...)
+	output, cmderr, err := ktests.RunCommandWithNS(NamespaceTestTemplate, ktests.KubeVirtOcPath, args...)
 	if err != nil {
 		return "", err
 	}
