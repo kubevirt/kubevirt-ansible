@@ -11,6 +11,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/crypto/ssh"
+	k8sv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"kubevirt.io/kubevirt/pkg/kubecli"
+	ktests "kubevirt.io/kubevirt/tests"
 )
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
@@ -99,4 +103,27 @@ func EncodePrivateKeyToPEM(privateKey *rsa.PrivateKey) []byte {
 	privatePEM := pem.EncodeToMemory(&privateBlock)
 
 	return privatePEM
+}
+
+func CreateServiceAccount(saName string) {
+	virtCli, err := kubecli.GetKubevirtClient()
+	ktests.PanicOnError(err)
+
+	sa := k8sv1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      saName,
+			Namespace: NamespaceTestDefault,
+		},
+	}
+
+	_, err = virtCli.CoreV1().ServiceAccounts(NamespaceTestDefault).Create(&sa)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func DeleteServiceAccount(saName string) {
+	virtCli, err := kubecli.GetKubevirtClient()
+	ktests.PanicOnError(err)
+
+	err = virtCli.CoreV1().ServiceAccounts(NamespaceTestDefault).Delete(saName, nil)
+	Expect(err).ToNot(HaveOccurred())
 }
