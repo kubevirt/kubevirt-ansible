@@ -26,6 +26,9 @@ rpm -qa | grep chrom
 
 yum install chromium -y
 oc get route -n kubevirt-web-ui
+ping kubevirt-web-ui.cloudapps.example.com
+nslookup kubevirt-web-ui.cloudapps.example.com
+ifconfig
 
 find . | grep png
 mv *.png $ARTIFACTS_PATH/
