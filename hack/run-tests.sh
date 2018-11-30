@@ -27,6 +27,8 @@ rpm -qa | grep chrom
 
 yum install chromium net-tools -y
 oc get route -n kubevirt-web-ui
+ping openshift.cloudapps.example.com
+ls ./
 ping kubevirt-web-ui.cloudapps.example.com
 cat /etc/hosts
 cat .kube/config
