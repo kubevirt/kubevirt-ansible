@@ -11,17 +11,18 @@ import (
 )
 
 type Result struct {
-	cmd           string
-	verb          string
-	resourceType  string
-	resourceName  string
-	resourceLabel string
-	filePath      string
-	nameSpace     string
-	query         string
-	expectOut     string
-	actualOut     string
-	params        []string
+	cmd            string
+	verb           string
+	resourceType   string
+	resourceName   string
+	resourceLabel  string
+	filePath       string
+	nameSpace      string
+	query          string
+	expectOut      string
+	actualOut      string
+	params         []string
+	ignoreNotFound bool
 }
 
 func execute(r Result) string {
@@ -60,6 +61,9 @@ func executeWithCustomTimeout(r Result, timeout time.Duration) string {
 		for _, v := range r.params {
 			cmd = append(cmd, paramFlag, v)
 		}
+	}
+	if r.ignoreNotFound {
+		cmd = append(cmd, "--ignore-not-found")
 	}
 	if r.expectOut != "" {
 		Eventually(func() bool {

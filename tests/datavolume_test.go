@@ -2,7 +2,6 @@ package tests_test
 
 import (
 	"fmt"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -17,7 +16,7 @@ const rawDataVolumeVMFilePath = "tests/manifests/template/datavolume-vm.yml"
 const rawDataVolumeVMIFilePath = "tests/manifests/template/datavolume-vmi.yml"
 const rawDataVolumeFilePath = "tests/manifests/template/datavolume.yml"
 
-var _ = Describe("DataVolume Integration Test", func() {
+var _ = FDescribe("DataVolume Integration Test", func() {
 	var dataVolumeName, vmName, dstDataVolumeFilePath, url, dstVMIFilePath string
 
 	Context("Datavolume with VM", func() {
@@ -31,8 +30,7 @@ var _ = Describe("DataVolume Integration Test", func() {
 		It("Creating VM and start VMI multiple times will be succeed", func() {
 			tests.ProcessTemplateWithParameters(rawDataVolumeVMFilePath, dstDataVolumeFilePath, "VM_APIVERSION="+kubev1.GroupVersion.String(), "VM_NAME="+vmName, "IMG_URL="+tests.ReplaceImageURL(url), "DATAVOLUME_NAME="+dataVolumeName)
 			tests.CreateResourceWithFilePathTestNamespace(dstDataVolumeFilePath)
-
-			tests.StartVirtualMachine(vmName, ktests.NamespaceTestDefault)
+			tests.WaitUntilResourceExists("vm", vmName)
 
 			num := 2
 			By("Starting and stopping the VirtualMachine number of times")
@@ -43,7 +41,7 @@ var _ = Describe("DataVolume Integration Test", func() {
 				// after being restarted multiple times
 				if i == num {
 					By("Checking that the VirtualMachineInstance console has expected output")
-					expecter, err := tests.LoggedInAlpineExpecter(vmName, tests.NamespaceTestDefault, 360)
+					expecter, err := tests.LoggedInCirrosExpecter(vmName, tests.NamespaceTestDefault, 360)
 					Expect(err).ToNot(HaveOccurred())
 					defer expecter.Close()
 				}
@@ -51,13 +49,8 @@ var _ = Describe("DataVolume Integration Test", func() {
 			}
 			tests.DeleteResourceByNameTestNamespace("vm", vmName)
 
-			Eventually(func() string {
-				By("Observe the PVC being deleted")
-				args := []string{"get", "pvc", dataVolumeName, "-n", ktests.NamespaceTestDefault}
-				out, _, err := ktests.RunCommand("oc", args...)
-				Expect(err).ToNot(HaveOccurred())
-				return out
-			}, 300*time.Second, 1*time.Second).Should(Equal(fmt.Sprintf("Error from server (NotFound): persistentvolumeclaims \"%s\" not found", dataVolumeName)), "The vmi did not disappear")
+			By("Ensuring that the PVC is deleted")
+			tests.WaitUntilResourceDoesNotExist("pvc", dataVolumeName)
 		})
 	})
 
@@ -75,22 +68,17 @@ var _ = Describe("DataVolume Integration Test", func() {
 			tests.CreateResourceWithFilePathTestNamespace(dstDataVolumeFilePath)
 			tests.ProcessTemplateWithParameters(rawDataVolumeVMIFilePath, dstVMIFilePath, "VM_APIVERSION="+kubev1.GroupVersion.String(), "VM_NAME="+vmName, "DATAVOLUME_NAME="+dataVolumeName)
 			tests.CreateResourceWithFilePathTestNamespace(dstVMIFilePath)
+			tests.WaitUntilResourceExists("vmi", vmName)
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmName, "-o=jsonpath='{.status.phase}'", "Running")
 			By("Checking that the VirtualMachineInstance console has expected output")
-			expecter, err := tests.LoggedInAlpineExpecter(vmName, tests.NamespaceTestDefault, 360)
+			expecter, err := tests.LoggedInCirrosExpecter(vmName, tests.NamespaceTestDefault, 360)
 			Expect(err).ToNot(HaveOccurred())
 			defer expecter.Close()
 
 			tests.DeleteResourceByNameTestNamespace("vmi", vmName)
 
-			Eventually(func() string {
-				By("Observe the PVC being deleted")
-				args := []string{"get", "pvc", dataVolumeName, "-n", ktests.NamespaceTestDefault}
-				out, _, err := ktests.RunCommand("oc", args...)
-				Expect(err).ToNot(HaveOccurred())
-				return out
-			}, 300*time.Second, 1*time.Second).Should(Equal(fmt.Sprintf("Error from server (NotFound): persistentvolumeclaims \"%s\" not found", dataVolumeName)), "The vmi did not disappear")
-
+			By("Ensuring that the PVC is deleted")
+			tests.WaitUntilResourceDoesNotExist("pvc", dataVolumeName)
 		})
 	})
 

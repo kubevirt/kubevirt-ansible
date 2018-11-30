@@ -19,6 +19,9 @@ objects:
             bus: virtio
           name: disk1
           volumeName: volume1
+        - name: mynoclouddisk
+          volumeName: mynocloudvolume
+          disk: {}
       machine:
         type: ""
       resources:
@@ -29,6 +32,11 @@ objects:
     - name: volume1
       dataVolume:
         name: ${DATAVOLUME_NAME}
+    - name: mynocloudvolume
+      cloudInitNoCloud:
+        userData: |
+          #!/bin/bash
+          echo "Hello world!"
 parameters:
 - name: VM_APIVERSION
 - name: VM_NAME

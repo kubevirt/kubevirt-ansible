@@ -58,6 +58,36 @@ func DeleteResourceByNameTestNamespace(resourceType, resourceName string) {
 	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceName: resourceName, nameSpace: NamespaceTestDefault})
 }
 
+func WaitUntilResourceExists(resourceType, resourceName string) {
+	r := Result{
+		cmd:            "oc",
+		verb:           "get",
+		resourceType:   resourceType,
+		resourceName:   resourceName,
+		query:          "-o=jsonpath='{.metadata.name}'",
+		expectOut:      resourceName,
+		nameSpace:      NamespaceTestDefault,
+		ignoreNotFound: true,
+	}
+	By(fmt.Sprintf("Wait until resource %s with type %s exists", resourceName, resourceType))
+	execute(r)
+}
+
+func WaitUntilResourceDoesNotExist(resourceType, resourceName string) {
+	r := Result{
+		cmd:            "oc",
+		verb:           "get",
+		resourceType:   resourceType,
+		resourceName:   resourceName,
+		query:          "-o=jsonpath='{.metadata.name}'",
+		expectOut:      "",
+		nameSpace:      NamespaceTestDefault,
+		ignoreNotFound: true,
+	}
+	By(fmt.Sprintf("Wait until resource %s with type %s no longer exists", resourceName, resourceType))
+	execute(r)
+}
+
 func WaitUntilResourceReadyByNameTestNamespace(resourceType, resourceName, query, expectOut string) {
 	By(fmt.Sprintf("Wait until %s with name %s ready", resourceType, resourceName))
 	execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query, expectOut: expectOut})
