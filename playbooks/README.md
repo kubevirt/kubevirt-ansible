@@ -78,7 +78,7 @@ Make sure that you have **passwordless ssh access** to all machines of the clust
 
 
 ```bash
-$ ansible-playbook -i inventory playbooks/cluster/kubernetes/config.yml
+$ ansible-playbook -i inventory playbooks/cluster/kubernetes/config.yml --skip-tags=never
 ```
 
 ### OpenShift cluster
@@ -92,7 +92,7 @@ Please follow [docker-storage-setup] documentation for more details.
 
 
 ```bash
-$ ansible-playbook -i inventory -e@vars/all.yml playbooks/cluster/openshift/config.yml
+$ ansible-playbook -i inventory -e@vars/all.yml playbooks/cluster/openshift/config.yml --skip-tags=never
 ```
 See [OpenShift parameters documentation](./cluster/openshift/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
 
@@ -113,7 +113,7 @@ Be sure to update the [inventory file](../inventory) according to your OpenSift 
 Install KubeVirt on your OpenShift cluster:
 
 ```bash
-$ ansible-playbook -i localhost playbooks/kubevirt.yml -e@vars/all.yml
+$ ansible-playbook -i localhost playbooks/kubevirt.yml -e@vars/all.yml --skip-tags=never
 ```
 
 See [KubeVirt parameters documentation](../roles/kubevirt/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
