@@ -121,12 +121,12 @@
 - name: Set the default VM templates URL
   set_fact:
     templates_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster/examples"
-  when: "{{ '0.6.0' is version(version, '<') }}"
+  when: "{{ '0.6.0' is version_compare(version, '<') }}"
 
 - name: Set the default VM templates URL
   set_fact:
     templates_url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster"
-  when: "{{ '0.6.0' is version(version, '>=') }}"
+  when: "{{ '0.6.0' is version_compare(version, '>=') }}"
 
 - name: Download KubeVirt default VM templates
   get_url:
