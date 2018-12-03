@@ -21,8 +21,9 @@ const (
 	CDI_LABEL_SELECTOR = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
 	paramFlag          = "-p"
 
-	ShortTimeout = time.Duration(2) * time.Minute
-	LongTimeout  = time.Duration(4) * time.Minute
+	ShortTimeout    = time.Duration(2) * time.Minute
+	LongTimeout     = time.Duration(4) * time.Minute
+	LongLongTimeout = time.Duration(10) * time.Minute
 )
 
 // VirtualMachine can be a vm, vmi, vmirs, vmiPreset.

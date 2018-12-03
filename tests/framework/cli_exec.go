@@ -26,7 +26,7 @@ type Result struct {
 }
 
 func execute(r Result) string {
-	return executeWithCustomTimeout(r, LongTimeout)
+	return executeWithCustomTimeout(r, LongLongTimeout)
 }
 
 func executeWithCustomTimeout(r Result, timeout time.Duration) string {

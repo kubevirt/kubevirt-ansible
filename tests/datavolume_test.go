@@ -2,7 +2,6 @@ package tests_test
 
 import (
 	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -16,7 +15,7 @@ const rawDataVolumeVMFilePath = "tests/manifests/template/datavolume-vm.yml"
 const rawDataVolumeVMIFilePath = "tests/manifests/template/datavolume-vmi.yml"
 const rawDataVolumeFilePath = "tests/manifests/template/datavolume.yml"
 
-var _ = FDescribe("DataVolume Integration Test", func() {
+var _ = Describe("DataVolume Integration Test", func() {
 	var dataVolumeName, vmName, dstDataVolumeFilePath, url, dstVMIFilePath string
 
 	Context("Datavolume with VM", func() {

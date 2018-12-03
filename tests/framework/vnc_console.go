@@ -84,19 +84,19 @@ func LoggedInCirrosExpecter(vmiName string, vmiNamespace string, timeout int64) 
 	ktests.PanicOnError(err)
 	vmi, err := virtClient.VirtualMachineInstance(vmiNamespace).Get(vmiName, &metav1.GetOptions{})
 	ktests.PanicOnError(err)
-	expecter, _, err := ktests.NewConsoleExpecter(virtClient, vmi, 10*time.Second)
+	expecter, _, err := ktests.NewConsoleExpecter(virtClient, vmi, 30*time.Second)
 	if err != nil {
 		return nil, err
 	}
 	b := append([]expect.Batcher{
 		&expect.BSnd{S: "\n"},
 		&expect.BSnd{S: "\n"},
-		&expect.BExp{R: "cirros login:"},
+		&expect.BExp{R: "login:"},
 		&expect.BSnd{S: "cirros\n"},
 		&expect.BExp{R: "Password:"},
 		&expect.BSnd{S: "gocubsgo\n"},
 		&expect.BExp{R: "$"}})
-	res, err := expecter.ExpectBatch(b, 180*time.Second)
+	res, err := expecter.ExpectBatch(b, time.Duration(timeout)*time.Second)
 	if err != nil {
 		log.DefaultLogger().Object(vmi).Infof("Login: %v", res)
 		expecter.Close()
