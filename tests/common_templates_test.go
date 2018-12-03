@@ -109,7 +109,7 @@ var _ = Describe("Common templates", func() {
 				//output, _ := exec.Command("/bin/bash", "-c", ).Output()
 
 				// The workaround
-				_, err := exec.Command("/bin/bash", "-c", "/usr/bin/oc apply -f tests/manifests/vm.yaml").Output()
+				_, err := exec.Command("/bin/bash", "-c", "/usr/bin/oc apply -f tests/manifests/vm-fedora-workaround.yaml").Output()
 				Expect(err).ToNot(HaveOccurred())
 
 				By("Getting VM")
