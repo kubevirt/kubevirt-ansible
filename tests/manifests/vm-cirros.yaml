@@ -28,12 +28,14 @@ spec:
           type: ""
         resources:
           requests:
-            memory: 64M
+#            memory: 64M
+            memory: 2024M
       terminationGracePeriodSeconds: 0
       volumes:
       - name: registryvolume
         registryDisk:
-          image: kubevirt/cirros-registry-disk-demo:latest
+#          image: kubevirt/cirros-registry-disk-demo:latest
+          image: kubevirt/fedora-cloud-registry-disk-demo:latest
       - cloudInitNoCloud:
           userData: |
             #!/bin/sh
