@@ -109,7 +109,6 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 			})
 		})
 
-
 		Context("Create VM with existing name", func() {
 			It("Try to create VM with existing name", func() {
 				By("Creating first VM")
