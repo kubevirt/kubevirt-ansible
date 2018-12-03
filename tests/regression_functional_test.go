@@ -108,5 +108,21 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 				Expect(err).To(HaveOccurred(), "Should get an error, as VM does not exists")
 			})
 		})
+
+
+		Context("Create VM with existing name", func() {
+			It("Try to create VM with existing name", func() {
+				By("Creating first VM")
+				tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME=new-vm")
+				_, err := tests.RunClientFullCommands("oc", "create", "-f", temporaryJson)
+				Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
+
+				By("Creating second VM with the same name")
+				_, _, err = ktests.RunCommand("oc", "create", "-f", temporaryJson)
+				Expect(err).To(HaveOccurred(), "Should get an error, as VM with the same name already exists")
+			})
+		})
+
 	})
+
 })

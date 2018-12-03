@@ -47,10 +47,10 @@ parameters:
   name: NAME
 - description: Amount of memory
   name: MEMORY
-  value: 4096Mi
+  value: 1024Mi
 - description: Amount of cores
   name: CPU_CORES
-  value: "4"
+  value: "1"
 - description: path to image, default - for Fedora
   name: IMAGE_NAME
   value: "kubevirt/fedora-cloud-registry-disk-demo:latest"
