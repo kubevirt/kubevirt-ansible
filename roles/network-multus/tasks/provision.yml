@@ -76,6 +76,16 @@
 
 - name: Deploy SR-IOV device plugin
   block:
+  - name: Create /etc/pcidp
+    file: path=/etc/pcidp state=directory
+    become: yes
+
+  - name: Configure SR-IOV DP allocation pool
+    template:
+      src: sriovdp-config.json
+      dest: /etc/pcidp/config.json
+    become: yes
+
   - name: Render SR-IOV DP deployment yaml
     template:
       src: sriovdp.yml
