@@ -113,7 +113,7 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 			It("Try to create VM with existing name", func() {
 				By("Creating first VM")
 				tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME=new-vm")
-				_, err := tests.RunClientFullCommands("oc", "create", "-f", temporaryJson)
+				_, _, err := ktests.RunCommand("oc", "create", "-f", temporaryJson)
 				Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
 
 				By("Creating second VM with the same name")
