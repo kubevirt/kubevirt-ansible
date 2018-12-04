@@ -18,6 +18,8 @@ const (
 	emptyURL               = ""
 	rawDataVolumePath      = "tests/manifests/datavolume.yml"
 	rawPVCPath             = "tests/manifests/golden-pvc.yml"
+	rawBlankDiskPVCPath    = "tests/manifests/blankdisk-pvc.yml"
+	rawBlankDiskDataVolumePath = "tests/manifests/blankdisk-datavolume.yml"
 	rawVMPath              = "tests/manifests/test-vm.yml"
 	rawDataVolumeClonePath = "tests/manifests/datavolume-clone.yml"
 	rawPVCClonePath        = "tests/manifests/target-pvc.yml"
@@ -82,7 +84,7 @@ var _ = Describe("Importing and starting a VMI using CDI", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	table.FDescribeTable("with different cases:", func(manifest, url, cloneManifest string) {
+	table.DescribeTable("with different cases:", func(manifest, url, cloneManifest string) {
 		resourceName := prepareCDIResource(manifest, url, "", "")
 		switch url {
 		case invalidURL:
@@ -100,9 +102,11 @@ var _ = Describe("Importing and starting a VMI using CDI", func() {
 		table.Entry("PVC with valid image url will succeed", rawPVCPath, cirrosURL, ""),
 		table.Entry("PVC with invalid image url will be failed", rawPVCPath, invalidURL, ""),
 		table.Entry("PVC with empty image url will be failed", rawPVCPath, emptyURL, ""),
+		table.Entry("PVC with blank disk will succeed", rawBlankDiskPVCPath, cirrosURL, ""),
 		table.Entry("DataVolume with valid image url will succeed", rawDataVolumePath, cirrosURL, ""),
 		table.Entry("DataVolume with invalid image url will be failed", rawDataVolumePath, invalidURL, ""),
 		table.Entry("DataVolume with empty image url will be failed", rawDataVolumePath, emptyURL, ""),
+		table.Entry("DataVolume with blank disk will succeed", rawBlankDiskDataVolumePath, cirrosURL, ""),
 		table.Entry("DataVolume cloning with source datavolume generated pvc", rawDataVolumePath, cirrosURL, rawDataVolumeClonePath),
 		table.Entry("DataVolume cloning with source pvc", rawPVCPath, cirrosURL, rawDataVolumeClonePath),
 		table.Entry("PVC cloning with source pvc", rawPVCPath, cirrosURL, rawPVCClonePath),
