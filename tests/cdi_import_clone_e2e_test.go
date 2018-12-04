@@ -23,7 +23,7 @@ const (
 	rawPVCClonePath        = "tests/manifests/target-pvc.yml"
 )
 
-var _ = FDescribe("Importing and starting a VMI using CDI", func() {
+var _ = Describe("Importing and starting a VMI using CDI", func() {
 	prepareCDIResource := func(manifest, url, sourceName, sourceNS string) string {
 		t, err := f.NewTestRandom()
 		Expect(err).ToNot(HaveOccurred())
@@ -82,7 +82,7 @@ var _ = FDescribe("Importing and starting a VMI using CDI", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	table.DescribeTable("with different cases:", func(manifest, url, cloneManifest string) {
+	table.FDescribeTable("with different cases:", func(manifest, url, cloneManifest string) {
 		resourceName := prepareCDIResource(manifest, url, "", "")
 		switch url {
 		case invalidURL:
