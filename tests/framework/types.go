@@ -39,22 +39,22 @@ type VirtualMachine struct {
 
 func (vm VirtualMachine) Create() (string, string, error) {
 	args := []string{"create", "-f", vm.Manifest}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtOcPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
 }
 
 func (vm VirtualMachine) Start() (string, string, error) {
 	args := []string{"start", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtVirtctlPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
 }
 
 func (vm VirtualMachine) Stop() (string, string, error) {
 	args := []string{"stop", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtVirtctlPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
 }
 
 func (vm VirtualMachine) Delete() (string, string, error) {
 	args := []string{"delete", vm.Type, vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtVirtctlPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
 }
 
 func (vm VirtualMachine) IsRunning() (bool, error) {
@@ -73,7 +73,7 @@ func (vm VirtualMachine) IsRunning() (bool, error) {
 
 func (vm VirtualMachine) GetVMInfo(spec string) (string, string, error) {
 	args := []string{"get", vm.Type, vm.Name, "--template", spec}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtOcPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
 }
 
 func (vm VirtualMachine) GetVMUID() (string, error) {
@@ -100,7 +100,7 @@ func (vm VirtualMachine) ProcessTemplate() (string, error) {
 
 	args = append(args, vm.TemplateParams...)
 
-	output, cmderr, err := ktests.RunCommandWithNS(NamespaceTestTemplate, ktests.KubeVirtOcPath, args...)
+	output, cmderr, err := ktests.RunCommandWithNS(NamespaceTestTemplate, "oc", args...)
 	if err != nil {
 		return "", err
 	}

@@ -12,9 +12,8 @@ import (
 )
 
 var _ = Describe("Node Eviction", func() {
-	ns := ktests.NamespaceTestDefault
-
 	var vmi tests.VirtualMachine
+	vmi.Namespace = ktests.NamespaceTestDefault
 
 	BeforeEach(func() {
 		ktests.BeforeTestCleanup()
@@ -49,34 +48,31 @@ var _ = Describe("Node Eviction", func() {
 		BeforeEach(func() {
 			vmi.Manifest = "tests/manifests/vmi-ephemeral.yaml"
 			vmi.Name = "vmi-ephemeral"
+			vmi.Type = "vmi"
 		})
 		It("virtualmachine instance will not be re-scheduled", func() {
 			By("Create the virtualmachine instance")
-			args := []string{"create", "-n", ns, "-f", vmi.Manifest}
-			_, _, err := ktests.RunCommand("oc", args...)
+			_, _, err := vmi.Create()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check that the virtualmachine instance is running")
-			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.phase}}"}
-			Eventually(func() string {
-				output, _, err := ktests.RunCommand("oc", args...)
+			Eventually(func() bool {
+				output, err := vmi.IsRunning()
 				Expect(err).ToNot(HaveOccurred())
 				return output
-			}, time.Minute*10).Should(Equal("Running"))
+			}, time.Minute*10).Should(BeTrue())
 
 			By("Retrieve the vmi's node")
-			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.nodeName}}"}
-			nodeName, _, err := ktests.RunCommand("oc", args...)
+			nodeName, _, err := vmi.GetVMInfo("{{.status.nodeName}}")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Drain the vmi's node")
-			args = []string{"adm", "drain", nodeName, "--delete-local-data", "--ignore-daemonsets", "--force", "--pod-selector=kubevirt.io=virt-launcher"}
+			args := []string{"adm", "drain", nodeName, "--delete-local-data", "--ignore-daemonsets", "--force", "--pod-selector=kubevirt.io=virt-launcher"}
 			_, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify that the virtual machine instance is Failed")
-			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.phase}}"}
-			output, _, err := ktests.RunCommand("oc", args...)
+			output, _, err := vmi.GetVMInfo("{{.status.phase}}")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(output).To(Equal("Failed"))
 
@@ -99,35 +95,34 @@ var _ = Describe("Node Eviction", func() {
 		})
 	})
 
-	PDescribe("VirtualMachineInstanceReplicaSet Eviction", func() {
+	Describe("VirtualMachineInstanceReplicaSet Eviction", func() {
 		BeforeEach(func() {
 			vmi.Name = "vmi-replicaset-cirros"
 			vmi.Manifest = "tests/manifests/vmi-replicaset-cirros.yaml"
+			vmi.Type = "vmi"
 		})
 		It("virtualmachineinstance owned by a replicaset will be re-scheduled", func() {
 			By("Create the virtualmachine instance replicaset")
-			args := []string{"create", "-n", ns, "-f", vmi.Manifest}
-			_, _, err := ktests.RunCommand("oc", args...)
+			_, _, err := vmi.Create()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check that the virtualmachine instance is running")
-			args = []string{"get", "-n", ns, "vmi", "--selector=kubevirt.io/vmReplicaSet=vmi-replicaset-cirros", "--output=jsonpath={.items..metadata.name}"}
-			vmis, _, err := ktests.RunCommand("oc", args...)
+			args := []string{"get", vmi.Type, "--selector=kubevirt.io/vmReplicaSet=vmi-replicaset-cirros", "--output=jsonpath={.items..metadata.name}"}
+			vmis, _, err := ktests.RunCommandWithNS(vmi.Namespace, "oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
 			vmiList := strings.Fields(vmis)
-			for _, vmi := range vmiList {
-				args = []string{"get", "-n", ns, "vmi", vmi, "--template", "{{.status.phase}}"}
-				Eventually(func() string {
-					output, _, err := ktests.RunCommand("oc", args...)
+			for _, vminame := range vmiList {
+				vmi.Name = vminame
+				Eventually(func() bool {
+					output, err := vmi.IsRunning()
 					Expect(err).ToNot(HaveOccurred())
 					return output
-				}, time.Minute*10).Should(Equal("Running"))
+				}, time.Minute*10).Should(BeTrue())
 			}
 
 			By("Retrieve the vmi's node")
-			args = []string{"get", "-n", ns, "vmi", vmiList[0], "--template", "{{.status.nodeName}}"}
-			nodeName, _, err := ktests.RunCommand("oc", args...)
+			nodeName, _, err := vmi.GetVMInfo("{{.status.nodeName}}")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Drain the vmi's node")
@@ -144,19 +139,22 @@ var _ = Describe("Node Eviction", func() {
 			}, time.Minute*2).Should(Equal("true"))
 
 			By("Verify that the vmi is running on other node")
-			args = []string{"get", "-n", ns, "vmi", "--selector=kubevirt.io/vmReplicaSet=vmi-replicaset-cirros", "--output=jsonpath={.items..metadata.name}"}
-			vmis, _, err = ktests.RunCommand("oc", args...)
+			args = []string{"get", vmi.Type, "--selector=kubevirt.io/vmReplicaSet=vmi-replicaset-cirros", "--output=jsonpath={.items..metadata.name}"}
+			vmis, _, err = ktests.RunCommandWithNS(vmi.Namespace, "oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
-			// It's verify all VM instance are running, not just verify new VM instance status.
 			vmiList = strings.Fields(vmis)
-			for _, vmi := range vmiList {
-				args = []string{"get", "-n", ns, "vmi", vmi, "--template", "{{.status.phase}}"}
-				Eventually(func() string {
-					output, _, err := ktests.RunCommand("oc", args...)
+			for _, vmiName := range vmiList {
+				vmi.Name = vmiName
+				Eventually(func() bool {
+					output, err := vmi.IsRunning()
 					Expect(err).ToNot(HaveOccurred())
 					return output
-				}, time.Minute*2).Should(Equal("Running"))
+				}, time.Minute*2).Should(BeTrue())
+
+				output, _, err := vmi.GetVMInfo("{{.status.nodeName}}")
+				Expect(err).ToNot(HaveOccurred())
+				Expect(output).ToNot(Equal(nodeName))
 			}
 
 			By("Uncordon the vmi's node")
@@ -176,33 +174,30 @@ var _ = Describe("Node Eviction", func() {
 		BeforeEach(func() {
 			vmi.Manifest = "tests/manifests/vm-cirros.yaml"
 			vmi.Name = "vm-cirros"
+			vmi.Type = "vmi"
 		})
 		It("virtualmachineinstance owned by a virtual machine will be re-scheduled", func() {
 			By("Create the virtualmachine instance's vm")
-			args := []string{"create", "-n", ns, "-f", vmi.Manifest}
-			_, _, err := ktests.RunCommand("oc", args...)
+			_, _, err := vmi.Create()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Start the virtual machine via virtctl")
-			args = []string{"-n", ns, "start", vmi.Name}
-			_, _, err = ktests.RunCommand("virtctl", args...)
+			_, _, err = vmi.Start()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check that the virtualmachine instance is running")
-			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.phase}}"}
-			Eventually(func() string {
-				output, _, err := ktests.RunCommand("oc", args...)
+			Eventually(func() bool {
+				output, err := vmi.IsRunning()
 				Expect(err).ToNot(HaveOccurred())
 				return output
-			}, time.Minute*10).Should(Equal("Running"))
+			}, time.Minute*10).Should(BeTrue())
 
 			By("Retrieve the vmi's node")
-			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.nodeName}}"}
-			nodeName, _, err := ktests.RunCommand("oc", args...)
+			nodeName, _, err := vmi.GetVMInfo("{{.status.nodeName}}")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Drain the vmi's node")
-			args = []string{"adm", "drain", nodeName, "--delete-local-data", "--ignore-daemonsets=true", "--force", "--pod-selector=kubevirt.io=virt-launcher"}
+			args := []string{"adm", "drain", nodeName, "--delete-local-data", "--ignore-daemonsets=true", "--force", "--pod-selector=kubevirt.io=virt-launcher"}
 			_, _, err = ktests.RunCommand("oc", args...)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -213,12 +208,11 @@ var _ = Describe("Node Eviction", func() {
 			}, time.Minute*2).Should(Equal("true"))
 
 			By("Verify that the vmi is running on other node")
-			args = []string{"get", "-n", ns, "vmi", vmi.Name, "--template", "{{.status.phase}}"}
-			Eventually(func() string {
-				output, _, err := ktests.RunCommand("oc", args...)
+			Eventually(func() bool {
+				output, err := vmi.IsRunning()
 				Expect(err).ToNot(HaveOccurred())
 				return output
-			}, time.Minute*2).Should(Equal("Running"))
+			}, time.Minute*2).Should(BeTrue())
 
 			By("Uncordon the vmi's node")
 			args = []string{"adm", "uncordon", nodeName}
