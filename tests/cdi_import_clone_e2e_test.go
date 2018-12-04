@@ -23,7 +23,7 @@ const (
 	rawPVCClonePath        = "tests/manifests/target-pvc.yml"
 )
 
-var _ = Describe("Importing and starting a VMI using CDI", func() {
+var _ = FDescribe("Importing and starting a VMI using CDI", func() {
 	prepareCDIResource := func(manifest, url, sourceName, sourceNS string) string {
 		t, err := f.NewTestRandom()
 		Expect(err).ToNot(HaveOccurred())
