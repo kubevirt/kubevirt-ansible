@@ -72,16 +72,6 @@ func GetVirtualMachineSpecificParameters(resourceType, resourceName, query strin
 	return execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query})
 }
 
-func RunClientFullCommands(cmd, verb string, arguments ...string) (string, error) {
-	result := ""
-	if cmd == "oc" || cmd == "kubectl" {
-		result = execute(Result{cmd: cmd, verb: verb, args: arguments})
-	} else {
-		return "", fmt.Errorf("Can't run %s, only oc and kubectl are supported", cmd)
-	}
-	return result, nil
-}
-
 func StartVirtualMachineVirtctl(resourceName string) string {
 	By(fmt.Sprintf("Start VM %s via virtctl command", resourceName))
 	args := []string{resourceName}

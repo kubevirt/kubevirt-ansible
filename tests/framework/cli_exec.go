@@ -62,7 +62,7 @@ func executeWithCustomTimeout(r Result, timeout time.Duration) string {
 			cmd = append(cmd, paramFlag, v)
 		}
 	}
-
+	// execution when the whole commands (verb + arguments) provided in a raw format
 	if len(r.args) > 0 {
 		args := []string{r.verb}
 		for _, a := range r.args {

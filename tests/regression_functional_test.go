@@ -55,7 +55,7 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 					It("Verify simple functionality of "+osName+" VM: create, start, check status, IP, stop and delete.", func() {
 						By("Creating VM via " + client)
 						tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME="+osName, "CPU_CORES="+cpuCores, "MEMORY="+memory, "IMAGE_NAME="+registryDisk, "CLOUD_INIT="+cloudInit)
-						_, err := tests.RunClientFullCommands(client, "create", "-f", temporaryJson)
+						_, _, err := ktests.RunCommand(client, "create", "-f", temporaryJson)
 						Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
 
 						By("Starting VM")
@@ -88,7 +88,7 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 						tests.StopVirtualMachineVirtctl(osName)
 
 						By("Deleting VM via " + client)
-						_, err = tests.RunClientFullCommands(client, "delete", "-f", temporaryJson)
+						_, _, err = ktests.RunCommand(client, "delete", "-f", temporaryJson)
 						Expect(err).ToNot(HaveOccurred(), "VM 'deleting' command should be executed without errors")
 
 						By("Verifying that VM was removed")
