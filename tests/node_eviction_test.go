@@ -52,7 +52,7 @@ var _ = Describe("Node Eviction", func() {
 		})
 		It("virtualmachine instance will not be re-scheduled", func() {
 			By("Create the virtualmachine instance")
-			_, _, err := vmi.Create()
+			_, err := vmi.Create()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check that the virtualmachine instance is running")
@@ -63,7 +63,7 @@ var _ = Describe("Node Eviction", func() {
 			}, time.Minute*10).Should(BeTrue())
 
 			By("Retrieve the vmi's node")
-			nodeName, _, err := vmi.GetVMInfo("{{.status.nodeName}}")
+			nodeName, err := vmi.GetVMInfo("{{.status.nodeName}}")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Drain the vmi's node")
@@ -72,7 +72,7 @@ var _ = Describe("Node Eviction", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Verify that the virtual machine instance is Failed")
-			output, _, err := vmi.GetVMInfo("{{.status.phase}}")
+			output, err := vmi.GetVMInfo("{{.status.phase}}")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(output).To(Equal("Failed"))
 
@@ -103,7 +103,7 @@ var _ = Describe("Node Eviction", func() {
 		})
 		It("virtualmachineinstance owned by a replicaset will be re-scheduled", func() {
 			By("Create the virtualmachine instance replicaset")
-			_, _, err := vmi.Create()
+			_, err := vmi.Create()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check that the virtualmachine instance is running")
@@ -122,7 +122,7 @@ var _ = Describe("Node Eviction", func() {
 			}
 
 			By("Retrieve the vmi's node")
-			nodeName, _, err := vmi.GetVMInfo("{{.status.nodeName}}")
+			nodeName, err := vmi.GetVMInfo("{{.status.nodeName}}")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Drain the vmi's node")
@@ -152,7 +152,7 @@ var _ = Describe("Node Eviction", func() {
 					return output
 				}, time.Minute*2).Should(BeTrue())
 
-				output, _, err := vmi.GetVMInfo("{{.status.nodeName}}")
+				output, err := vmi.GetVMInfo("{{.status.nodeName}}")
 				Expect(err).ToNot(HaveOccurred())
 				Expect(output).ToNot(Equal(nodeName))
 			}
@@ -178,11 +178,11 @@ var _ = Describe("Node Eviction", func() {
 		})
 		It("virtualmachineinstance owned by a virtual machine will be re-scheduled", func() {
 			By("Create the virtualmachine instance's vm")
-			_, _, err := vmi.Create()
+			_, err := vmi.Create()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Start the virtual machine via virtctl")
-			_, _, err = vmi.Start()
+			_, err = vmi.Start()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Check that the virtualmachine instance is running")
@@ -193,7 +193,7 @@ var _ = Describe("Node Eviction", func() {
 			}, time.Minute*10).Should(BeTrue())
 
 			By("Retrieve the vmi's node")
-			nodeName, _, err := vmi.GetVMInfo("{{.status.nodeName}}")
+			nodeName, err := vmi.GetVMInfo("{{.status.nodeName}}")
 			Expect(err).ToNot(HaveOccurred())
 
 			By("Drain the vmi's node")

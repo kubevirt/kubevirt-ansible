@@ -37,31 +37,56 @@ type VirtualMachine struct {
 	Namespace         string
 }
 
-func (vm VirtualMachine) Create() (string, string, error) {
+func (vm VirtualMachine) Create() (string, error) {
 	args := []string{"create", "-f", vm.Manifest}
-	return ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
+	output, stderr, err := ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
+	if stderr != "" {
+		return "", errors.New(stderr)
+	}
+	if err != nil {
+		return "", err
+	}
+	return output, nil
 }
 
-func (vm VirtualMachine) Start() (string, string, error) {
+func (vm VirtualMachine) Start() (string, error) {
 	args := []string{"start", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
+	output, stderr, err := ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
+	if stderr != "" {
+		return "", errors.New(stderr)
+	}
+	if err != nil {
+		return "", err
+	}
+	return output, nil
 }
 
-func (vm VirtualMachine) Stop() (string, string, error) {
+func (vm VirtualMachine) Stop() (string, error) {
 	args := []string{"stop", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
+	output, stderr, err := ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
+	if stderr != "" {
+		return "", errors.New(stderr)
+	}
+	if err != nil {
+		return "", err
+	}
+	return output, nil
 }
 
-func (vm VirtualMachine) Delete() (string, string, error) {
+func (vm VirtualMachine) Delete() (string, error) {
 	args := []string{"delete", vm.Type, vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
+	output, stderr, err := ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
+	if stderr != "" {
+		return "", errors.New(stderr)
+	}
+	if err != nil {
+		return "", err
+	}
+	return output, nil
 }
 
 func (vm VirtualMachine) IsRunning() (bool, error) {
-	output, cmderr, err := vm.GetVMInfo("{{.status.phase}}")
-	if cmderr != "" {
-		return false, errors.New(cmderr)
-	}
+	output, err := vm.GetVMInfo("{{.status.phase}}")
 	if err != nil {
 		return false, err
 	}
@@ -71,16 +96,20 @@ func (vm VirtualMachine) IsRunning() (bool, error) {
 	return false, nil
 }
 
-func (vm VirtualMachine) GetVMInfo(spec string) (string, string, error) {
+func (vm VirtualMachine) GetVMInfo(spec string) (string, error) {
 	args := []string{"get", vm.Type, vm.Name, "--template", spec}
-	return ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
+	output, stderr, err := ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
+	if stderr != "" {
+		return "", errors.New(stderr)
+	}
+	if err != nil {
+		return "", err
+	}
+	return output, nil
 }
 
 func (vm VirtualMachine) GetVMUID() (string, error) {
-	output, cmderr, err := vm.GetVMInfo("{{.metadata.uid}}")
-	if cmderr != "" {
-		return "", errors.New(cmderr)
-	}
+	output, err := vm.GetVMInfo("{{.metadata.uid}}")
 	if err != nil {
 		return "", err
 	}
