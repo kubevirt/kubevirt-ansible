@@ -59,11 +59,11 @@ func (vm VirtualMachine) Delete() (string, string, error) {
 
 func (vm VirtualMachine) IsRunning() (bool, error) {
 	output, cmderr, err := vm.GetVMInfo("{{.status.phase}}")
-	if err != nil {
-		return false, err
-	}
 	if cmderr != "" {
 		return false, errors.New(cmderr)
+	}
+	if err != nil {
+		return false, err
 	}
 	if output == "Running" {
 		return true, nil
@@ -78,11 +78,11 @@ func (vm VirtualMachine) GetVMInfo(spec string) (string, string, error) {
 
 func (vm VirtualMachine) GetVMUID() (string, error) {
 	output, cmderr, err := vm.GetVMInfo("{{.metadata.uid}}")
-	if err != nil {
-		return "", err
-	}
 	if cmderr != "" {
 		return "", errors.New(cmderr)
+	}
+	if err != nil {
+		return "", err
 	}
 	vm.UID = output
 	return output, nil
@@ -101,11 +101,11 @@ func (vm VirtualMachine) ProcessTemplate() (string, error) {
 	args = append(args, vm.TemplateParams...)
 
 	output, cmderr, err := ktests.RunCommandWithNS(NamespaceTestTemplate, "oc", args...)
-	if err != nil {
-		return "", err
-	}
 	if cmderr != "" {
 		return "", errors.New(cmderr)
+	}
+	if err != nil {
+		return "", err
 	}
 	// TODO：if the image is pullable naturally, will remove the string replacement.
 	if strings.Contains(output, "registry:5000/") {
