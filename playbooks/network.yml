@@ -26,7 +26,7 @@
         state: absent
       with_fileglob:
         - "/etc/cni/net.d/*-multus.conf"
-    when: network_role == 'network-multus' and apb_action == 'deprovision'
+      when: network_role == 'network-multus' and apb_action == 'deprovision'
 
 - hosts: masters[0]
   connection: local
