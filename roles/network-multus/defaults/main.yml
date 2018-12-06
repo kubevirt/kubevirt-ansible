@@ -1,5 +1,5 @@
 namespace: "kube-system"
-cluster: "openshift"
+platform: "openshift"
 apb_action: "provision"
 
 multus_provisioner_name: "kube-multus-amd64"

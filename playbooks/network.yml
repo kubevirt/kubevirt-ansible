@@ -3,6 +3,8 @@
   remote_user: root
   vars:
     network_role: network-multus
+    deploy_ovs_plugin: true
+    platform: openshift
   tasks:
     - name: make sure OVS is installed & enabled
       block:
@@ -15,7 +17,7 @@
           state: started
           enabled: yes
           name: openvswitch
-      when: network_role == 'network-multus' and deploy_ovs_plugin and cluster == "kubernetes"
+      when: network_role == 'network-multus' and deploy_ovs_plugin and platform == "kubernetes"
 
 - hosts: masters[0]
   connection: local
