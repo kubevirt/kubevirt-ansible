@@ -1,0 +1,17 @@
+apiVersion: cdi.kubevirt.io/v1alpha1
+kind: DataVolume
+metadata:
+  name: my-data-volume
+spec:
+  source:
+      http:
+         url: "http://www.example.com/img.img"
+      s3:
+         url: "http://s3.example.com/img.img"
+  pvc:
+    storageClassName: "hostpath"
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 500Mi

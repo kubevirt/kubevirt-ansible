@@ -1,0 +1,13 @@
+apiVersion: cdi.kubevirt.io/v1alpha1
+kind: DataVolume
+metadata:
+  name: my-data-volume
+spec:
+  source:
+  pvc:
+    storageClassName: "hostpath"
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 500Mi
