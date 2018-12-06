@@ -20,6 +20,28 @@
             and admin_user is defined
             and admin_password is defined
 
+# note: strictly speaking, we should avoid configuring sriovdp when
+# deploy_sriov_plugin is disabled but the fact is not defined on this level so
+# instead we fall back to deploying configuration file on all nodes. This
+# shouldn't affect runtime for clusters that opt out of SRIOV.
+- hosts: nodes
+  vars:
+    network_role: network-multus
+    sriov_pci_ids: ''
+  tasks:
+    - name: configure SR-IOV device plugin
+      block:
+      - name: Create /etc/pcidp
+        file: path=/etc/pcidp state=directory
+        become: yes
+
+      - name: Configure SR-IOV DP allocation pool
+        template:
+          src: sriovdp-config.json
+          dest: /etc/pcidp/config.json
+        become: yes
+      when: network_role == 'network-multus'
+
 - hosts: masters[0]
   connection: local
   gather_facts: False
