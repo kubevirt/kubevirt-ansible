@@ -29,26 +29,27 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
+	eventsclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
 
-	"github.com/libvirt/libvirt-go"
+	libvirt "github.com/libvirt/libvirt-go"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
-	"kubevirt.io/kubevirt/pkg/cloud-init"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
+	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
 	"kubevirt.io/kubevirt/pkg/config"
+	containerdisk "kubevirt.io/kubevirt/pkg/container-disk"
 	"kubevirt.io/kubevirt/pkg/emptydisk"
-	"kubevirt.io/kubevirt/pkg/ephemeral-disk"
+	ephemeraldisk "kubevirt.io/kubevirt/pkg/ephemeral-disk"
 	"kubevirt.io/kubevirt/pkg/hooks"
-	"kubevirt.io/kubevirt/pkg/host-disk"
+	hostdisk "kubevirt.io/kubevirt/pkg/host-disk"
 	"kubevirt.io/kubevirt/pkg/log"
-	"kubevirt.io/kubevirt/pkg/registry-disk"
 	"kubevirt.io/kubevirt/pkg/util/net/dns"
-	"kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
+	migrationproxy "kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	domainerrors "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
@@ -310,7 +311,7 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 
 	logger.Info("Executing PreStartHook on VMI pod environment")
 	// ensure registry disk files have correct ownership privileges
-	err := registrydisk.SetFilePermissions(vmi)
+	err := containerdisk.SetFilePermissions(vmi)
 	if err != nil {
 		return domain, err
 	}
@@ -380,6 +381,64 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 	return domain, err
 }
 
+// This function parses variables that are set by SR-IOV device plugin listing
+// PCI IDs for devices allocated to the pod. It also parses variables that
+// virt-controller sets mapping network names to their respective resource
+// names (if any).
+//
+// Format for PCI ID variables set by SR-IOV DP is:
+// "": for no allocated devices
+// PCIDEVICE_<resourceName>="0000:81:11.1": for a single device
+// PCIDEVICE_<resourceName>="0000:81:11.1 0000:81:11.2[ ...]": for multiple devices
+//
+// Since special characters in environment variable names are not allowed,
+// resourceName is mutated as follows:
+// 1. All dots and slashes are replaced with underscore characters.
+// 2. The result is upper cased.
+//
+// Example: PCIDEVICE_INTEL_COM_SRIOV_TEST=... for intel.com/sriov_test resources.
+//
+// Format for network to resource mapping variables is:
+// KUBEVIRT_RESOURCE_NAME_<networkName>=<resourceName>
+//
+func resourceNameToEnvvar(resourceName string) string {
+	varName := strings.ToUpper(resourceName)
+	varName = strings.Replace(varName, "/", "_", -1)
+	varName = strings.Replace(varName, ".", "_", -1)
+	return fmt.Sprintf("PCIDEVICE_%s", varName)
+}
+
+func getSRIOVPCIAddresses(ifaces []v1.Interface) map[string][]string {
+	networkToAddressesMap := map[string][]string{}
+	for _, iface := range ifaces {
+		if iface.SRIOV == nil {
+			continue
+		}
+		networkToAddressesMap[iface.Name] = []string{}
+		varName := fmt.Sprintf("KUBEVIRT_RESOURCE_NAME_%s", iface.Name)
+		resourceName, isSet := os.LookupEnv(varName)
+		if isSet {
+			varName := resourceNameToEnvvar(resourceName)
+			pciAddrString, isSet := os.LookupEnv(varName)
+			if isSet {
+				addrs := strings.Split(pciAddrString, ",")
+				naddrs := len(addrs)
+				if naddrs > 0 {
+					if addrs[naddrs-1] == "" {
+						addrs = addrs[:naddrs-1]
+					}
+				}
+				networkToAddressesMap[iface.Name] = addrs
+			} else {
+				log.DefaultLogger().Warningf("%s not set for SR-IOV interface %s", varName, iface.Name)
+			}
+		} else {
+			log.DefaultLogger().Warningf("%s not set for SR-IOV interface %s", varName, iface.Name)
+		}
+	}
+	return networkToAddressesMap
+}
+
 func (l *LibvirtDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, useEmulation bool) (*api.DomainSpec, error) {
 	l.domainModifyLock.Lock()
 	defer l.domainModifyLock.Unlock()
@@ -413,6 +472,7 @@ func (l *LibvirtDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, useEmulat
 		UseEmulation:   useEmulation,
 		CPUSet:         podCPUSet,
 		IsBlockPVC:     isBlockPVCMap,
+		SRIOVDevices:   getSRIOVPCIAddresses(vmi.Spec.Domain.Devices.Interfaces),
 	}
 	if err := api.Convert_v1_VirtualMachine_To_api_Domain(vmi, domain, c); err != nil {
 		logger.Error("Conversion failed.")

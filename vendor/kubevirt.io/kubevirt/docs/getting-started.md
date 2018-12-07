@@ -46,6 +46,15 @@ export KUBEVIRT_NUM_NODES=2 # schedulable master + one additional node
 make cluster-up
 ```
 
+You can use the `KUBEVIRT_MEMORY_SIZE` environment 
+variable to increase memory size per node. Normally you don't need it, 
+because default node memory size is set.
+
+```bash
+export KUBEVIRT_MEMORY_SIZE=8192M # node has 8GB memory size
+make cluster-up
+```
+
 You could also run some build steps individually:
 
 ```bash
@@ -215,6 +224,9 @@ First make sure you have `remote-viewer` installed. On Fedora run
 ```bash
 dnf install virt-viewer
 ```
+
+Windows users can [download remote-viewer from virt-manager.org](https://virt-manager.org/download/), and may need
+to add virt-viewer installation folder to their `PATH`.
 
 Then, after you made sure that the VMI `vmi-ephemeral` is running, type
 

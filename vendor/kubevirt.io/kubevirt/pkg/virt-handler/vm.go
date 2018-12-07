@@ -39,19 +39,19 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
-	"kubevirt.io/kubevirt/pkg/cloud-init"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
+	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
 	"kubevirt.io/kubevirt/pkg/controller"
-	"kubevirt.io/kubevirt/pkg/feature-gates"
-	"kubevirt.io/kubevirt/pkg/host-disk"
+	featuregates "kubevirt.io/kubevirt/pkg/feature-gates"
+	hostdisk "kubevirt.io/kubevirt/pkg/host-disk"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/precond"
-	"kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
-	"kubevirt.io/kubevirt/pkg/virt-handler/device-manager"
+	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	device_manager "kubevirt.io/kubevirt/pkg/virt-handler/device-manager"
 	"kubevirt.io/kubevirt/pkg/virt-handler/isolation"
-	"kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
-	"kubevirt.io/kubevirt/pkg/virt-launcher"
+	migrationproxy "kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
+	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/watchdog"
 )
@@ -230,12 +230,40 @@ func domainMigrated(domain *api.Domain) bool {
 
 func (d *VirtualMachineController) updateVMIStatus(vmi *v1.VirtualMachineInstance, domain *api.Domain, syncError error) (err error) {
 
+	condManager := controller.NewVirtualMachineInstanceConditionManager()
+
 	// Don't update the VirtualMachineInstance if it is already in a final state
 	if vmi.IsFinal() {
 		return nil
 	}
 
 	oldStatus := vmi.DeepCopy().Status
+
+	if domain != nil {
+
+		// This is needed to be backwards compatible with vmi's which have status interfaces
+		// with the name not being set
+		if len(vmi.Status.Interfaces) == 1 && vmi.Status.Interfaces[0].Name == "" {
+			for _, network := range vmi.Spec.Networks {
+				if network.NetworkSource.Pod != nil {
+					vmi.Status.Interfaces[0].Name = network.Name
+				}
+			}
+		}
+
+		interfacesByName := make(map[string]int)
+		for i, existingInterface := range vmi.Status.Interfaces {
+			interfacesByName[existingInterface.Name] = i
+		}
+
+		for _, domainInterface := range domain.Spec.Devices.Interfaces {
+			if i, exists := interfacesByName[domainInterface.Alias.Name]; exists {
+				vmi.Status.Interfaces[i].MAC = domainInterface.MAC.MAC
+			} else {
+				vmi.Status.Interfaces = append(vmi.Status.Interfaces, v1.VirtualMachineInstanceNetworkInterface{MAC: domainInterface.MAC.MAC, Name: domainInterface.Alias.Name})
+			}
+		}
+	}
 
 	// Only update the VMI's phase if this node owns the VMI.
 	if vmi.Status.NodeName != "" && vmi.Status.NodeName != d.host {
@@ -244,7 +272,7 @@ func (d *VirtualMachineController) updateVMIStatus(vmi *v1.VirtualMachineInstanc
 	}
 
 	// Update migration progress if domain reports anything in the migration metadata.
-	if domain != nil && domain.Spec.Metadata.KubeVirt.Migration != nil && vmi.Status.MigrationState != nil {
+	if domain != nil && domain.Spec.Metadata.KubeVirt.Migration != nil && vmi.Status.MigrationState != nil && d.isMigrationSource(vmi) {
 		migrationMetadata := domain.Spec.Metadata.KubeVirt.Migration
 		if migrationMetadata.UID == vmi.Status.MigrationState.MigrationUID {
 
@@ -336,7 +364,35 @@ func (d *VirtualMachineController) updateVMIStatus(vmi *v1.VirtualMachineInstanc
 		return err
 	}
 
-	controller.NewVirtualMachineInstanceConditionManager().CheckFailure(vmi, syncError, "Synchronizing with the Domain failed.")
+	// Update the condition when GA is connected
+	channelConnected := false
+	if domain != nil {
+		for _, channel := range domain.Spec.Devices.Channels {
+			if channel.Target != nil {
+				log.Log.V(4).Infof("Channel: %s, %s", channel.Target.Name, channel.Target.State)
+				if channel.Target.Name == "org.qemu.guest_agent.0" {
+					if channel.Target.State == "connected" {
+						channelConnected = true
+					}
+				}
+
+			}
+		}
+	}
+
+	switch {
+	case channelConnected && !condManager.HasCondition(vmi, v1.VirtualMachineInstanceAgentConnected):
+		agentCondition := v1.VirtualMachineInstanceCondition{
+			Type:          v1.VirtualMachineInstanceAgentConnected,
+			LastProbeTime: v12.Now(),
+			Status:        k8sv1.ConditionTrue,
+		}
+		vmi.Status.Conditions = append(vmi.Status.Conditions, agentCondition)
+	case !channelConnected:
+		condManager.RemoveCondition(vmi, v1.VirtualMachineInstanceAgentConnected)
+	}
+
+	condManager.CheckFailure(vmi, syncError, "Synchronizing with the Domain failed.")
 
 	if !reflect.DeepEqual(oldStatus, vmi.Status) {
 		_, err = d.clientset.VirtualMachineInstance(vmi.ObjectMeta.Namespace).Update(vmi)

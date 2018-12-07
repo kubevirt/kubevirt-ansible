@@ -27,7 +27,7 @@ import (
 
 	"github.com/vishvananda/netlink"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/precond"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
@@ -60,6 +60,11 @@ func findInterfaceByName(ifaces []api.Interface, name string) (int, error) {
 func (l *PodInterface) Plug(iface *v1.Interface, network *v1.Network, domain *api.Domain, podInterfaceName string) error {
 	precond.MustNotBeNil(domain)
 	initHandler()
+
+	// There is nothing to plug for SR-IOV devices
+	if iface.SRIOV != nil {
+		return nil
+	}
 
 	driver, err := getBinding(iface, domain, podInterfaceName)
 	if err != nil {
@@ -230,7 +235,7 @@ func (b *BridgePodInterface) preparePodNetworkInterfaces() error {
 func (b *BridgePodInterface) startDHCPServer() {
 	// Start DHCP Server
 	fakeServerAddr, _ := netlink.ParseAddr(fmt.Sprintf(bridgeFakeIP, b.podInterfaceNum))
-	Handler.StartDHCP(b.vif, fakeServerAddr, b.bridgeInterfaceName)
+	Handler.StartDHCP(b.vif, fakeServerAddr, b.bridgeInterfaceName, b.iface.DHCPOptions)
 }
 
 func (b *BridgePodInterface) decorateConfig() error {

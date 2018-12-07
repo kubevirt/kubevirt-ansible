@@ -26,6 +26,8 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/golang/glog"
@@ -36,9 +38,25 @@ import (
 	"kubevirt.io/kubevirt/pkg/virtctl/templates"
 )
 
-const LISTEN_TIMEOUT = 60 * time.Second
+const (
+	LISTEN_TIMEOUT = 60 * time.Second
+	FLAG           = "vnc"
 
-const FLAG = "vnc"
+	//#### Tiger VNC ####
+	//# https://github.com/TigerVNC/tigervnc/releases
+	// Compatible with multiple Tiger VNC versions
+	TIGER_VNC_PATTERN = `/Applications/TigerVNC Viewer*.app/Contents/MacOS/TigerVNC Viewer`
+
+	//#### Chicken VNC ####
+	//# https://sourceforge.net/projects/chicken/
+	CHICKEN_VNC = "/Applications/Chicken.app/Contents/MacOS/Chicken"
+
+	//####  Real VNC ####
+	//# https://www.realvnc.com/en/connect/download/viewer/macos/
+	REAL_VNC = "/Applications/VNC Viewer.app/Contents/MacOS/vncviewer"
+
+	REMOTE_VIEWER = "remote-viewer"
+)
 
 func NewCommand(clientConfig clientcmd.ClientConfig) *cobra.Command {
 	cmd := &cobra.Command{
@@ -146,32 +164,82 @@ func (o *VNC) Run(cmd *cobra.Command, args []string) error {
 		listenResChan <- err
 	}()
 
-	// execute remote viewer
+	// execute VNC
 	go func() {
+		defer close(doneChan)
 		port := ln.Addr().(*net.TCPAddr).Port
-		args := []string{fmt.Sprintf("vnc://127.0.0.1:%d", port)}
-		if glog.V(4) {
-			args = append(args, "--debug")
-			glog.Infof("remote-viewer commandline: %v", args)
+		args := []string{}
+
+		vncBin := ""
+		osType := runtime.GOOS
+		switch osType {
+		case "darwin":
+			if matches, err := filepath.Glob(TIGER_VNC_PATTERN); err == nil && len(matches) > 0 {
+				// Always use the latest version
+				vncBin = matches[len(matches)-1]
+				args = tigerVncArgs(port)
+			} else if err == filepath.ErrBadPattern {
+				viewResChan <- err
+				return
+			} else if _, err := os.Stat(CHICKEN_VNC); err == nil {
+				vncBin = CHICKEN_VNC
+				args = chickenVncArgs(port)
+			} else if !os.IsNotExist(err) {
+				viewResChan <- err
+				return
+			} else if _, err := os.Stat(REAL_VNC); err == nil {
+				vncBin = REAL_VNC
+				args = realVncArgs(port)
+			} else if !os.IsNotExist(err) {
+				viewResChan <- err
+				return
+			} else if _, err := exec.LookPath(REMOTE_VIEWER); err == nil {
+				// fall back to user supplied script/binary in path
+				vncBin = REMOTE_VIEWER
+				args = remoteViewerArgs(port)
+			} else if !os.IsNotExist(err) {
+				viewResChan <- err
+				return
+			}
+		case "linux":
+			_, err := exec.LookPath(REMOTE_VIEWER)
+			if exec.ErrNotFound == err {
+				viewResChan <- fmt.Errorf("could not find the remote-viewer binary in $PATH")
+				return
+			} else if err != nil {
+				viewResChan <- err
+				return
+			}
+			vncBin = REMOTE_VIEWER
+			args = remoteViewerArgs(port)
+		default:
+			viewResChan <- fmt.Errorf("virtctl does not support VNC on %v", osType)
+			return
 		}
 
-		cmnd := exec.Command("remote-viewer", args...)
-
-		output, err := cmnd.CombinedOutput()
-		if err != nil {
-			glog.Errorf("remote-viewer execution failed: %v, output: %v", err, string(output))
+		if vncBin == "" {
+			glog.Errorf("No supported VNC app found in %s", osType)
+			err = fmt.Errorf("No supported VNC app found in %s", osType)
 		} else {
-			glog.V(2).Infof("remote-viewer output: %v", string(output))
+			if glog.V(4) {
+				glog.Infof("Executing commandline: '%s %v'", vncBin, args)
+			}
+			cmnd := exec.Command(vncBin, args...)
+			output, err := cmnd.CombinedOutput()
+			if err != nil {
+				glog.Errorf("%s execution failed: %v, output: %v", vncBin, err, string(output))
+			} else {
+				glog.V(2).Infof("remote-viewer output: %v", string(output))
+			}
 		}
 		viewResChan <- err
-		close(doneChan)
 	}()
 
 	go func() {
+		defer close(stopChan)
 		interrupt := make(chan os.Signal, 1)
 		signal.Notify(interrupt, os.Interrupt)
 		<-interrupt
-		close(stopChan)
 	}()
 
 	select {
@@ -187,6 +255,38 @@ func (o *VNC) Run(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("Error encountered: %s", err.Error())
 	}
 	return nil
+}
+
+func tigerVncArgs(port int) (args []string) {
+	args = append(args, fmt.Sprintf("127.0.0.1:%d", port))
+	if glog.V(4) {
+		args = append(args, "Log=*:stderr:100")
+	}
+	return
+}
+
+func chickenVncArgs(port int) (args []string) {
+	args = append(args, fmt.Sprintf("127.0.0.1:%d", port))
+	return
+}
+
+func realVncArgs(port int) (args []string) {
+	args = append(args, fmt.Sprintf("127.0.0.1:%d", port))
+	args = append(args, "-WarnUnencrypted=0")
+	args = append(args, "-Shared=0")
+	args = append(args, "-ShareFiles=0")
+	if glog.V(4) {
+		args = append(args, "-log=*:stderr:100")
+	}
+	return
+}
+
+func remoteViewerArgs(port int) (args []string) {
+	args = append(args, fmt.Sprintf("vnc://127.0.0.1:%d", port))
+	if glog.V(4) {
+		args = append(args, "--debug")
+	}
+	return
 }
 
 func usage() string {

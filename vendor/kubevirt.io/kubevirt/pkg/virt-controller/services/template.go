@@ -30,12 +30,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
+	networkv1 "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/apis/k8s.cni.cncf.io/v1"
+
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/config"
+	containerdisk "kubevirt.io/kubevirt/pkg/container-disk"
 	"kubevirt.io/kubevirt/pkg/hooks"
+	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/precond"
-	"kubevirt.io/kubevirt/pkg/registry-disk"
 	"kubevirt.io/kubevirt/pkg/util"
 	"kubevirt.io/kubevirt/pkg/util/net/dns"
 	"kubevirt.io/kubevirt/pkg/util/types"
@@ -52,6 +55,12 @@ const VhostNetDevice = "devices.kubevirt.io/vhost-net"
 const CAP_NET_ADMIN = "NET_ADMIN"
 const CAP_SYS_NICE = "SYS_NICE"
 
+// LibvirtStartupDelay is added to custom liveness and readiness probes initial delay value.
+// Libvirt needs roughly 10 seconds to start.
+const LibvirtStartupDelay = 10
+
+const MULTUS_RESOURCE_NAME_ANNOTATION = "k8s.v1.cni.cncf.io/resourceName"
+
 type TemplateService interface {
 	RenderLaunchManifest(*v1.VirtualMachineInstance) (*k8sv1.Pod, error)
 }
@@ -63,6 +72,7 @@ type templateService struct {
 	imagePullSecret            string
 	configMapStore             cache.Store
 	persistentVolumeClaimStore cache.Store
+	virtClient                 kubecli.KubevirtClient
 }
 
 type PvcNotFoundError error
@@ -125,6 +135,15 @@ func GetlessPVCSpaceToleration(store cache.Store) (toleration int, err error) {
 	return
 }
 
+func isSRIOVVmi(vmi *v1.VirtualMachineInstance) bool {
+	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
+		if iface.SRIOV != nil {
+			return true
+		}
+	}
+	return false
+}
+
 func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (*k8sv1.Pod, error) {
 	precond.MustNotBeNil(vmi)
 	domain := precond.MustNotBeEmpty(vmi.GetObjectMeta().GetName())
@@ -140,6 +159,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	var volumes []k8sv1.Volume
 	var volumeDevices []k8sv1.VolumeDevice
 	var userId int64 = 0
+	// Privileged mode is disabled by default.
 	var privileged bool = false
 	var volumeMounts []k8sv1.VolumeMount
 	var imagePullSecrets []k8sv1.LocalObjectReference
@@ -163,6 +183,60 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		Name:      "libvirt-runtime",
 		MountPath: "/var/run/libvirt",
 	})
+
+	if isSRIOVVmi(vmi) {
+		// libvirt needs this volume to unbind the device from kernel
+		// driver, and register it with vfio userspace driver
+		volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
+			Name:      "pci-bus",
+			MountPath: "/sys/bus/pci/",
+		})
+		volumes = append(volumes, k8sv1.Volume{
+			Name: "pci-bus",
+			VolumeSource: k8sv1.VolumeSource{
+				HostPath: &k8sv1.HostPathVolumeSource{
+					Path: "/sys/bus/pci/",
+				},
+			},
+		})
+
+		// libvirt needs this volume to determine iommu group assigned
+		// to the device
+		volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
+			Name:      "pci-devices",
+			MountPath: "/sys/devices/",
+		})
+		volumes = append(volumes, k8sv1.Volume{
+			Name: "pci-devices",
+			VolumeSource: k8sv1.VolumeSource{
+				HostPath: &k8sv1.HostPathVolumeSource{
+					Path: "/sys/devices/",
+				},
+			},
+		})
+
+		// libvirt uses vfio-pci to pass host devices through
+		volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
+			Name:      "dev-vfio",
+			MountPath: "/dev/vfio/",
+		})
+		volumes = append(volumes, k8sv1.Volume{
+			Name: "dev-vfio",
+			VolumeSource: k8sv1.VolumeSource{
+				HostPath: &k8sv1.HostPathVolumeSource{
+					Path: "/dev/vfio/",
+				},
+			},
+		})
+
+		// todo: revisit when SR-IOV DP registers /dev/vfio/NN with pod
+		// device group:
+		// https://github.com/intel/sriov-network-device-plugin/pull/26
+		//
+		// Run virt-launcher compute container privileged to allow qemu
+		// to open /dev/vfio/NN for PCI passthrough
+		privileged = true
+	}
 
 	serviceAccountName := ""
 
@@ -207,9 +281,9 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 				},
 			})
 		}
-		if volume.RegistryDisk != nil && volume.RegistryDisk.ImagePullSecret != "" {
+		if volume.ContainerDisk != nil && volume.ContainerDisk.ImagePullSecret != "" {
 			imagePullSecrets = appendUniqueImagePullSecret(imagePullSecrets, k8sv1.LocalObjectReference{
-				Name: volume.RegistryDisk.ImagePullSecret,
+				Name: volume.ContainerDisk.ImagePullSecret,
 			})
 		}
 		if volume.HostDisk != nil {
@@ -422,7 +496,7 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		"--namespace", namespace,
 		"--kubevirt-share-dir", t.virtShareDir,
 		"--ephemeral-disk-dir", t.ephemeralDiskDir,
-		"--readiness-file", "/tmp/healthy",
+		"--readiness-file", "/var/run/kubevirt-infra/healthy",
 		"--grace-period-seconds", strconv.Itoa(int(gracePeriodSeconds)),
 		"--hook-sidecars", strconv.Itoa(len(requestedHookSidecarList)),
 		"--less-pvc-space-toleration", strconv.Itoa(lessPVCSpaceToleration),
@@ -458,41 +532,60 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 
 	capabilities := getRequiredCapabilities(vmi)
 
+	volumeMounts = append(volumeMounts, k8sv1.VolumeMount{
+		Name:      "infra-ready-mount",
+		MountPath: "/var/run/kubevirt-infra",
+	})
+
+	defaultReadinessProbe := &k8sv1.Probe{
+		Handler: k8sv1.Handler{
+			Exec: &k8sv1.ExecAction{
+				Command: []string{
+					"cat",
+					"/var/run/kubevirt-infra/healthy",
+				},
+			},
+		},
+		InitialDelaySeconds: int32(initialDelaySeconds),
+		PeriodSeconds:       int32(periodSeconds),
+		TimeoutSeconds:      int32(timeoutSeconds),
+		SuccessThreshold:    int32(successThreshold),
+		FailureThreshold:    int32(failureThreshold),
+	}
+
+	volumes = append(volumes, k8sv1.Volume{Name: "infra-ready-mount", VolumeSource: k8sv1.VolumeSource{EmptyDir: &k8sv1.EmptyDirVolumeSource{}}})
+
 	// VirtualMachineInstance target container
 	container := k8sv1.Container{
 		Name:            "compute",
 		Image:           t.launcherImage,
 		ImagePullPolicy: imagePullPolicy,
 		SecurityContext: &k8sv1.SecurityContext{
-			RunAsUser: &userId,
-			// Privileged mode is disabled.
+			RunAsUser:  &userId,
 			Privileged: &privileged,
 			Capabilities: &k8sv1.Capabilities{
 				Add: capabilities,
 			},
 		},
-		Command:       command,
-		VolumeDevices: volumeDevices,
-		VolumeMounts:  volumeMounts,
-		ReadinessProbe: &k8sv1.Probe{
-			Handler: k8sv1.Handler{
-				Exec: &k8sv1.ExecAction{
-					Command: []string{
-						"cat",
-						"/tmp/healthy",
-					},
-				},
-			},
-			InitialDelaySeconds: int32(initialDelaySeconds),
-			PeriodSeconds:       int32(periodSeconds),
-			TimeoutSeconds:      int32(timeoutSeconds),
-			SuccessThreshold:    int32(successThreshold),
-			FailureThreshold:    int32(failureThreshold),
-		},
-		Resources: resources,
-		Ports:     ports,
+		Command:        command,
+		VolumeDevices:  volumeDevices,
+		VolumeMounts:   volumeMounts,
+		Resources:      resources,
+		Ports:          ports,
+		ReadinessProbe: defaultReadinessProbe,
 	}
-	containers := registrydisk.GenerateContainers(vmi, "ephemeral-disks", t.ephemeralDiskDir)
+
+	if vmi.Spec.ReadinessProbe != nil {
+		container.ReadinessProbe = copyProbe(vmi.Spec.ReadinessProbe)
+		container.ReadinessProbe.InitialDelaySeconds = container.ReadinessProbe.InitialDelaySeconds + LibvirtStartupDelay
+	}
+
+	if vmi.Spec.LivenessProbe != nil {
+		container.LivenessProbe = copyProbe(vmi.Spec.LivenessProbe)
+		container.LivenessProbe.InitialDelaySeconds = container.LivenessProbe.InitialDelaySeconds + LibvirtStartupDelay
+	}
+
+	containers := containerdisk.GenerateContainers(vmi, "ephemeral-disks", t.ephemeralDiskDir)
 
 	volumes = append(volumes, k8sv1.Volume{
 		Name: "virt-share-dir",
@@ -529,6 +622,15 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	podLabels[v1.AppLabel] = "virt-launcher"
 	podLabels[v1.CreatedByLabel] = string(vmi.UID)
 
+	networkToResourceMap, err := getNetworkToResourceMap(t.virtClient, vmi)
+	if err != nil {
+		return nil, err
+	}
+	for networkName, resourceName := range networkToResourceMap {
+		varName := fmt.Sprintf("KUBEVIRT_RESOURCE_NAME_%s", networkName)
+		container.Env = append(container.Env, k8sv1.EnvVar{Name: varName, Value: resourceName})
+
+	}
 	containers = append(containers, container)
 
 	for i, requestedHookSidecar := range requestedHookSidecarList {
@@ -554,11 +656,36 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		})
 	}
 
+	// XXX: reduce test time. Adding one more container delays the start.
+	// First stdci has issues with that and second we don't want to increase the startup time even more.
+	// At the end the infra container needs to be always there, to allow better default readiness checks.
+	if vmi.Spec.ReadinessProbe != nil {
+		// Infra-ready container
+		readyContainer := k8sv1.Container{
+			Name:            "kubevirt-infra",
+			Image:           t.launcherImage,
+			ImagePullPolicy: imagePullPolicy,
+			SecurityContext: &k8sv1.SecurityContext{
+				RunAsUser: &userId,
+			},
+			Resources: k8sv1.ResourceRequirements{
+				Limits: map[k8sv1.ResourceName]resource.Quantity{
+					k8sv1.ResourceCPU:    resource.MustParse("1m"),
+					k8sv1.ResourceMemory: resource.MustParse("5Mi"),
+				},
+			},
+			Command:        []string{"/usr/bin/tail", "-f", "/dev/null"},
+			VolumeDevices:  volumeDevices,
+			VolumeMounts:   volumeMounts,
+			ReadinessProbe: defaultReadinessProbe,
+		}
+		containers = append(containers, readyContainer)
+	}
+
 	hostName := dns.SanitizeHostname(vmi)
 
 	annotationsList := map[string]string{
-		v1.DomainAnnotation:  domain,
-		v1.OwnedByAnnotation: "virt-controller",
+		v1.DomainAnnotation: domain,
 	}
 
 	cniNetworks, cniAnnotation := getCniInterfaceList(vmi)
@@ -572,6 +699,9 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			GenerateName: "virt-launcher-" + domain + "-",
 			Labels:       podLabels,
 			Annotations:  annotationsList,
+			OwnerReferences: []metav1.OwnerReference{
+				*metav1.NewControllerRef(vmi, v1.VirtualMachineInstanceGroupVersionKind),
+			},
 		},
 		Spec: k8sv1.PodSpec{
 			Hostname:  hostName,
@@ -730,6 +860,40 @@ func getPortsFromVMI(vmi *v1.VirtualMachineInstance) []k8sv1.ContainerPort {
 	return ports
 }
 
+func getResourceNameForNetwork(network *networkv1.NetworkAttachmentDefinition) string {
+	resourceName, ok := network.Annotations[MULTUS_RESOURCE_NAME_ANNOTATION]
+	if ok {
+		return resourceName
+	}
+	return "" // meaning the network is not served by resources
+}
+
+func getNamespaceAndNetworkName(vmi *v1.VirtualMachineInstance, fullNetworkName string) (namespace string, networkName string) {
+	if strings.Contains(fullNetworkName, "/") {
+		res := strings.SplitN(fullNetworkName, "/", 2)
+		namespace, networkName = res[0], res[1]
+	} else {
+		namespace = precond.MustNotBeEmpty(vmi.GetObjectMeta().GetNamespace())
+		networkName = fullNetworkName
+	}
+	return
+}
+
+func getNetworkToResourceMap(virtClient kubecli.KubevirtClient, vmi *v1.VirtualMachineInstance) (networkToResourceMap map[string]string, err error) {
+	networkToResourceMap = make(map[string]string)
+	for _, network := range vmi.Spec.Networks {
+		if network.Multus != nil {
+			namespace, networkName := getNamespaceAndNetworkName(vmi, network.Multus.NetworkName)
+			crd, err := virtClient.NetworkClient().K8sCniCncfIo().NetworkAttachmentDefinitions(namespace).Get(networkName, metav1.GetOptions{})
+			if err != nil {
+				return map[string]string{}, fmt.Errorf("Failed to locate network attachment definition %s/%s", namespace, networkName)
+			}
+			networkToResourceMap[network.Name] = getResourceNameForNetwork(crd)
+		}
+	}
+	return
+}
+
 func getCniInterfaceList(vmi *v1.VirtualMachineInstance) (ifaceListString string, cniAnnotation string) {
 	ifaceList := make([]string, 0)
 
@@ -758,7 +922,8 @@ func NewTemplateService(launcherImage string,
 	ephemeralDiskDir string,
 	imagePullSecret string,
 	configMapCache cache.Store,
-	persistentVolumeClaimCache cache.Store) TemplateService {
+	persistentVolumeClaimCache cache.Store,
+	virtClient kubecli.KubevirtClient) TemplateService {
 
 	precond.MustNotBeEmpty(launcherImage)
 	svc := templateService{
@@ -768,6 +933,24 @@ func NewTemplateService(launcherImage string,
 		imagePullSecret:            imagePullSecret,
 		configMapStore:             configMapCache,
 		persistentVolumeClaimStore: persistentVolumeClaimCache,
+		virtClient:                 virtClient,
 	}
 	return &svc
+}
+
+func copyProbe(probe *v1.Probe) *k8sv1.Probe {
+	if probe == nil {
+		return nil
+	}
+	return &k8sv1.Probe{
+		InitialDelaySeconds: probe.InitialDelaySeconds,
+		TimeoutSeconds:      probe.TimeoutSeconds,
+		PeriodSeconds:       probe.PeriodSeconds,
+		SuccessThreshold:    probe.SuccessThreshold,
+		FailureThreshold:    probe.FailureThreshold,
+		Handler: k8sv1.Handler{
+			HTTPGet:   probe.HTTPGet,
+			TCPSocket: probe.TCPSocket,
+		},
+	}
 }

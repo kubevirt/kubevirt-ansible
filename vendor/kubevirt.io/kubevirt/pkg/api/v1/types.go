@@ -117,6 +117,14 @@ type VirtualMachineInstance struct {
 	Status VirtualMachineInstanceStatus `json:"status,omitempty"`
 }
 
+func (v *VirtualMachineInstance) MarshalBinary() (data []byte, err error) {
+	return json.Marshal(*v)
+}
+
+func (v *VirtualMachineInstance) UnmarshalBinary(data []byte) error {
+	return json.Unmarshal(data, v)
+}
+
 // VirtualMachineInstanceList is a list of VirtualMachines
 // ---
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -146,6 +154,18 @@ type VirtualMachineInstanceSpec struct {
 	TerminationGracePeriodSeconds *int64 `json:"terminationGracePeriodSeconds,omitempty"`
 	// List of volumes that can be mounted by disks belonging to the vmi.
 	Volumes []Volume `json:"volumes,omitempty"`
+	// Periodic probe of VirtualMachineInstance liveness.
+	// VirtualmachineInstances will be stopped if the probe fails.
+	// Cannot be updated.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	// +optional
+	LivenessProbe *Probe `json:"livenessProbe,omitempty"`
+	// Periodic probe of VirtualMachineInstance service readiness.
+	// VirtualmachineInstances will be removed from service endpoints if the probe fails.
+	// Cannot be updated.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	// +optional
+	ReadinessProbe *Probe `json:"readinessProbe,omitempty"`
 	// Specifies the hostname of the vmi
 	// If not specified, the hostname will be set to the name of the vmi, if dhcp or cloud-init is configured properly.
 	// +optional
@@ -233,38 +253,6 @@ func (vl *VirtualMachineInstanceList) GetListMeta() meta.List {
 	return &vl.ListMeta
 }
 
-func (v *VirtualMachineInstance) UnmarshalJSON(data []byte) error {
-	type VMICopy VirtualMachineInstance
-	tmp := VMICopy{}
-	err := json.Unmarshal(data, &tmp)
-	if err != nil {
-		return err
-	}
-	tmp2 := VirtualMachineInstance(tmp)
-	*v = tmp2
-	return nil
-}
-
-func (vl *VirtualMachineInstanceList) UnmarshalJSON(data []byte) error {
-	type VMIListCopy VirtualMachineInstanceList
-	tmp := VMIListCopy{}
-	err := json.Unmarshal(data, &tmp)
-	if err != nil {
-		return err
-	}
-	tmp2 := VirtualMachineInstanceList(tmp)
-	*vl = tmp2
-	return nil
-}
-
-func (v *VirtualMachineInstance) MarshalBinary() (data []byte, err error) {
-	return json.Marshal(*v)
-}
-
-func (v *VirtualMachineInstance) UnmarshalBinary(data []byte) error {
-	return v.UnmarshalJSON(data)
-}
-
 // ---
 // +k8s:openapi-gen=true
 type VirtualMachineInstanceConditionType string
@@ -278,6 +266,9 @@ const (
 	// If there happens any error while trying to synchronize the VirtualMachineInstance with the Domain,
 	// this is reported as false.
 	VirtualMachineInstanceSynchronized VirtualMachineInstanceConditionType = "Synchronized"
+
+	// Reflects whether the QEMU guest agent is connected through the channel
+	VirtualMachineInstanceAgentConnected VirtualMachineInstanceConditionType = "AgentConnected"
 )
 
 // ---
@@ -317,6 +308,9 @@ type VirtualMachineInstanceNetworkInterface struct {
 	IP string `json:"ipAddress,omitempty"`
 	// Hardware address of a Virtual Machine interface
 	MAC string `json:"mac,omitempty"`
+	// Name of the interface, corresponds to name of the network assigned to the interface
+	// TODO: remove omitempty, when api breaking changes are allowed
+	Name string `json:"name,omitempty"`
 }
 
 type VirtualMachineInstanceMigrationState struct {
@@ -380,12 +374,10 @@ const (
 	MigrationJobNameAnnotation string = "kubevirt.io/migrationJobName"
 	// This label is used to match virtual machine instance IDs with pods.
 	// Similar to kubevirt.io/domain. Used on Pod.
+	// Deprecated: would be replaced by a Controller Reference in a future release.
 	CreatedByLabel string = "kubevirt.io/created-by"
 	// This label is used to indicate that this pod is the target of a migration job.
 	MigrationJobLabel string = "kubevirt.io/migrationJobUID"
-	// This annotation defines which KubeVirt component owns the resource. Used
-	// on Pod.
-	OwnedByAnnotation string = "kubevirt.io/owned-by"
 	// This label describes which cluster node runs the virtual machine
 	// instance. Needed because with CRDs we can't use field selectors. Used on
 	// VirtualMachineInstance.
@@ -635,30 +627,6 @@ func (v *VirtualMachineInstanceReplicaSet) GetObjectMeta() metav1.Object {
 	return &v.ObjectMeta
 }
 
-func (v *VirtualMachineInstanceReplicaSet) UnmarshalJSON(data []byte) error {
-	type VMIReplicaSetCopy VirtualMachineInstanceReplicaSet
-	tmp := VMIReplicaSetCopy{}
-	err := json.Unmarshal(data, &tmp)
-	if err != nil {
-		return err
-	}
-	tmp2 := VirtualMachineInstanceReplicaSet(tmp)
-	*v = tmp2
-	return nil
-}
-
-func (vl *VirtualMachineInstanceReplicaSetList) UnmarshalJSON(data []byte) error {
-	type VMIReplicaSetListCopy VirtualMachineInstanceReplicaSetList
-	tmp := VMIReplicaSetListCopy{}
-	err := json.Unmarshal(data, &tmp)
-	if err != nil {
-		return err
-	}
-	tmp2 := VirtualMachineInstanceReplicaSetList(tmp)
-	*vl = tmp2
-	return nil
-}
-
 // Required to satisfy Object interface
 func (vl *VirtualMachineInstanceReplicaSetList) GetObjectKind() schema.ObjectKind {
 	return &vl.TypeMeta
@@ -808,18 +776,6 @@ func NewVirtualMachinePreset(name string, selector metav1.LabelSelector) *Virtua
 	}
 }
 
-func (vl *VirtualMachineInstancePresetList) UnmarshalJSON(data []byte) error {
-	type VirtualMachinePresetListCopy VirtualMachineInstancePresetList
-	tmp := VirtualMachinePresetListCopy{}
-	err := json.Unmarshal(data, &tmp)
-	if err != nil {
-		return err
-	}
-	tmp2 := VirtualMachineInstancePresetList(tmp)
-	*vl = tmp2
-	return nil
-}
-
 // Required to satisfy Object interface
 func (vl *VirtualMachineInstancePresetList) GetObjectKind() schema.ObjectKind {
 	return &vl.TypeMeta
@@ -945,3 +901,44 @@ const (
 	// CacheWriteThrough - I/O from the guest is cached on the host but written through to the physical medium.
 	CacheWriteThrough DriverCache = "writethrough"
 )
+
+// Handler defines a specific action that should be taken
+// TODO: pass structured data to these actions, and document that data here.
+type Handler struct {
+	// HTTPGet specifies the http request to perform.
+	// +optional
+	HTTPGet *k8sv1.HTTPGetAction `json:"httpGet,omitempty"`
+	// TCPSocket specifies an action involving a TCP port.
+	// TCP hooks not yet supported
+	// TODO: implement a realistic TCP lifecycle hook
+	// +optional
+	TCPSocket *k8sv1.TCPSocketAction `json:"tcpSocket,omitempty"`
+}
+
+// Probe describes a health check to be performed against a VirtualMachineInstance to determine whether it is
+// alive or ready to receive traffic.
+type Probe struct {
+	// The action taken to determine the health of a VirtualMachineInstance
+	Handler `json:",inline"`
+	// Number of seconds after the VirtualMachineInstance has started before liveness probes are initiated.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	// +optional
+	InitialDelaySeconds int32 `json:"initialDelaySeconds,omitempty"`
+	// Number of seconds after which the probe times out.
+	// Defaults to 1 second. Minimum value is 1.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+	// +optional
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty"`
+	// How often (in seconds) to perform the probe.
+	// Default to 10 seconds. Minimum value is 1.
+	// +optional
+	PeriodSeconds int32 `json:"periodSeconds,omitempty"`
+	// Minimum consecutive successes for the probe to be considered successful after having failed.
+	// Defaults to 1. Must be 1 for liveness. Minimum value is 1.
+	// +optional
+	SuccessThreshold int32 `json:"successThreshold,omitempty"`
+	// Minimum consecutive failures for the probe to be considered failed after having succeeded.
+	// Defaults to 3. Minimum value is 1.
+	// +optional
+	FailureThreshold int32 `json:"failureThreshold,omitempty"`
+}
