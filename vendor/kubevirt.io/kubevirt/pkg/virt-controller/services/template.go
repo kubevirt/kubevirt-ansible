@@ -44,7 +44,6 @@ import (
 const configMapName = "kubevirt-config"
 const UseEmulationKey = "debug.useEmulation"
 const ImagePullPolicyKey = "dev.imagePullPolicy"
-const LessPVCSpaceTolerationKey = "pvc-tolerate-less-space-up-to-percent"
 const KvmDevice = "devices.kubevirt.io/kvm"
 const TunDevice = "devices.kubevirt.io/tun"
 const VhostNetDevice = "devices.kubevirt.io/vhost-net"
@@ -106,20 +105,6 @@ func GetImagePullPolicy(store cache.Store) (policy k8sv1.PullPolicy, err error) 
 			policy = k8sv1.PullIfNotPresent
 		default:
 			err = fmt.Errorf("Invalid ImagePullPolicy in ConfigMap: %s", value)
-		}
-	}
-	return
-}
-
-func GetlessPVCSpaceToleration(store cache.Store) (toleration int, err error) {
-	var value string
-	if value, err = getConfigMapEntry(store, LessPVCSpaceTolerationKey); err != nil || value == "" {
-		toleration = 10 // Default if not specified
-	} else {
-		toleration, err = strconv.Atoi(value)
-		if err != nil || toleration < 0 || toleration > 100 {
-			err = fmt.Errorf("Invalid lessPVCSpaceToleration in ConfigMap: %s", value)
-			return
 		}
 	}
 	return
@@ -410,11 +395,6 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		resources.Limits[k8sv1.ResourceMemory] = *resources.Requests.Memory()
 	}
 
-	lessPVCSpaceToleration, err := GetlessPVCSpaceToleration(t.configMapStore)
-	if err != nil {
-		return nil, err
-	}
-
 	command := []string{"/usr/bin/virt-launcher",
 		"--qemu-timeout", "5m",
 		"--name", domain,
@@ -425,7 +405,6 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		"--readiness-file", "/tmp/healthy",
 		"--grace-period-seconds", strconv.Itoa(int(gracePeriodSeconds)),
 		"--hook-sidecars", strconv.Itoa(len(requestedHookSidecarList)),
-		"--less-pvc-space-toleration", strconv.Itoa(lessPVCSpaceToleration),
 	}
 
 	useEmulation, err := IsEmulationAllowed(t.configMapStore)
@@ -567,11 +546,20 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 	}
 
 	// TODO use constants for podLabels
+	trueVar := true
 	pod := k8sv1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "virt-launcher-" + domain + "-",
 			Labels:       podLabels,
 			Annotations:  annotationsList,
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion:         v1.VirtualMachineInstanceGroupVersionKind.GroupVersion().String(),
+				Kind:               v1.VirtualMachineInstanceGroupVersionKind.Kind,
+				Name:               vmi.Name,
+				UID:                vmi.UID,
+				Controller:         &trueVar,
+				BlockOwnerDeletion: &trueVar,
+			}},
 		},
 		Spec: k8sv1.PodSpec{
 			Hostname:  hostName,

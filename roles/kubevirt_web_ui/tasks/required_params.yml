@@ -1,7 +1,7 @@
 ---
 #### Verify/set kubevirt-web-ui image:tag
 
-- set_fact: kubevirt_web_ui_image_tag="v1.3.0"
+- set_fact: kubevirt_web_ui_image_tag="v1.4.0"
   when: version is defined and "0.9." in version
 
 - set_fact: kubevirt_web_ui_image_tag="v{{ docker_tag }}"
@@ -44,4 +44,3 @@
 - set_fact: openshift_master_public_console_url="https://{{ public_master_hostname }}/console" # Example: https://master.mycluster.com:8443/console
 - set_fact: openshift_master_public_api_url="https://{{ public_master_hostname }}"
 - set_fact: openshift_master_logout_url="" # TODO: not needed so far
-

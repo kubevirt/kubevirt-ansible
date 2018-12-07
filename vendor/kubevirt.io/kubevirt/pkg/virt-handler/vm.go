@@ -230,12 +230,40 @@ func domainMigrated(domain *api.Domain) bool {
 
 func (d *VirtualMachineController) updateVMIStatus(vmi *v1.VirtualMachineInstance, domain *api.Domain, syncError error) (err error) {
 
+	condManager := controller.NewVirtualMachineInstanceConditionManager()
+
 	// Don't update the VirtualMachineInstance if it is already in a final state
 	if vmi.IsFinal() {
 		return nil
 	}
 
 	oldStatus := vmi.DeepCopy().Status
+
+	if domain != nil {
+
+		// This is needed to be backwards compatible with vmi's which have status interfaces
+		// with the name not being set
+		if len(vmi.Status.Interfaces) == 1 && vmi.Status.Interfaces[0].Name == "" {
+			for _, network := range vmi.Spec.Networks {
+				if network.NetworkSource.Pod != nil {
+					vmi.Status.Interfaces[0].Name = network.Name
+				}
+			}
+		}
+
+		interfacesByName := make(map[string]int)
+		for i, existingInterface := range vmi.Status.Interfaces {
+			interfacesByName[existingInterface.Name] = i
+		}
+
+		for _, domainInterface := range domain.Spec.Devices.Interfaces {
+			if i, exists := interfacesByName[domainInterface.Alias.Name]; exists {
+				vmi.Status.Interfaces[i].MAC = domainInterface.MAC.MAC
+			} else {
+				vmi.Status.Interfaces = append(vmi.Status.Interfaces, v1.VirtualMachineInstanceNetworkInterface{MAC: domainInterface.MAC.MAC, Name: domainInterface.Alias.Name})
+			}
+		}
+	}
 
 	// Only update the VMI's phase if this node owns the VMI.
 	if vmi.Status.NodeName != "" && vmi.Status.NodeName != d.host {
@@ -336,7 +364,35 @@ func (d *VirtualMachineController) updateVMIStatus(vmi *v1.VirtualMachineInstanc
 		return err
 	}
 
-	controller.NewVirtualMachineInstanceConditionManager().CheckFailure(vmi, syncError, "Synchronizing with the Domain failed.")
+	// Update the condition when GA is connected
+	channelConnected := false
+	if domain != nil {
+		for _, channel := range domain.Spec.Devices.Channels {
+			if channel.Target != nil {
+				log.Log.V(4).Infof("Channel: %s, %s", channel.Target.Name, channel.Target.State)
+				if channel.Target.Name == "org.qemu.guest_agent.0" {
+					if channel.Target.State == "connected" {
+						channelConnected = true
+					}
+				}
+
+			}
+		}
+	}
+
+	switch {
+	case channelConnected && !condManager.HasCondition(vmi, v1.VirtualMachineInstanceAgentConnected):
+		agentCondition := v1.VirtualMachineInstanceCondition{
+			Type:          v1.VirtualMachineInstanceAgentConnected,
+			LastProbeTime: v12.Now(),
+			Status:        k8sv1.ConditionTrue,
+		}
+		vmi.Status.Conditions = append(vmi.Status.Conditions, agentCondition)
+	case !channelConnected:
+		condManager.RemoveCondition(vmi, v1.VirtualMachineInstanceAgentConnected)
+	}
+
+	condManager.CheckFailure(vmi, syncError, "Synchronizing with the Domain failed.")
 
 	if !reflect.DeepEqual(oldStatus, vmi.Status) {
 		_, err = d.clientset.VirtualMachineInstance(vmi.ObjectMeta.Namespace).Update(vmi)

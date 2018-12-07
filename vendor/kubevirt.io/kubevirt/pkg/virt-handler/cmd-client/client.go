@@ -122,7 +122,8 @@ func (c *VirtLauncherClient) genericSendCmd(args *Args, cmd string) (*Reply, err
 		msg := fmt.Sprintf("unknown error encountered sending command %s: %s", cmd, err.Error())
 		return reply, fmt.Errorf(msg)
 	} else if reply.Success != true {
-		return reply, fmt.Errorf("server error. command %s failed: %q", cmd, reply.Message)
+		msg := fmt.Sprintf("server error. command %s failed: %s", cmd, reply.Message)
+		return reply, fmt.Errorf(msg)
 	}
 	return reply, nil
 }

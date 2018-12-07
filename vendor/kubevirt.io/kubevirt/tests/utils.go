@@ -93,7 +93,8 @@ const (
 )
 
 const (
-	AlpineHttpUrl = "http://cdi-http-import-server.kube-system/images/alpine.iso"
+	AlpineHttpUrl     = "http://cdi-http-import-server.kube-system/images/alpine.iso"
+	GuestAgentHttpUrl = "http://cdi-http-import-server.kube-system/qemu-ga"
 )
 
 const (
@@ -460,14 +461,10 @@ func newPVC(os string, size string) *k8sv1.PersistentVolumeClaim {
 }
 
 func CreateHostPathPv(osName string, hostPath string) {
-	CreateHostPathPvWithSize(osName, hostPath, "1Gi")
-}
-
-func CreateHostPathPvWithSize(osName string, hostPath string, size string) {
 	virtCli, err := kubecli.GetKubevirtClient()
 	PanicOnError(err)
 
-	quantity, err := resource.ParseQuantity(size)
+	quantity, err := resource.ParseQuantity("1Gi")
 	PanicOnError(err)
 
 	hostPathType := k8sv1.HostPathDirectoryOrCreate
@@ -1650,7 +1647,7 @@ const (
 
 // RegistryDiskFor takes the name of an image and returns the full
 // registry diks image path.
-// Supported values are: cirros, fedora, alpine
+// Supported values are: cirros, fedora, alpine, guest-agent
 func RegistryDiskFor(name RegistryDisk) string {
 	switch name {
 	case RegistryDiskCirros, RegistryDiskAlpine, RegistryDiskFedora:
@@ -1727,6 +1724,33 @@ func LoggedInAlpineExpecter(vmi *v1.VirtualMachineInstance) (expect.Expecter, er
 		&expect.BExp{R: "localhost login:"},
 		&expect.BSnd{S: "root\n"},
 		&expect.BExp{R: "localhost:~#"}})
+	res, err := expecter.ExpectBatch(b, 180*time.Second)
+	if err != nil {
+		log.DefaultLogger().Object(vmi).Infof("Login: %v", res)
+		expecter.Close()
+		return nil, err
+	}
+	return expecter, err
+}
+
+// LoggedInFedoraExpecter return prepared and ready to use console expecter for
+// Fedora test VM
+func LoggedInFedoraExpecter(vmi *v1.VirtualMachineInstance) (expect.Expecter, error) {
+	virtClient, err := kubecli.GetKubevirtClient()
+	PanicOnError(err)
+	expecter, _, err := NewConsoleExpecter(virtClient, vmi, 10*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	b := append([]expect.Batcher{
+		&expect.BSnd{S: "\n"},
+		&expect.BExp{R: "login:"},
+		&expect.BSnd{S: "fedora\n"},
+		&expect.BExp{R: "Password:"},
+		&expect.BSnd{S: "fedora\n"},
+		&expect.BExp{R: "$"},
+		&expect.BSnd{S: "sudo su\n"},
+		&expect.BExp{R: "#"}})
 	res, err := expecter.ExpectBatch(b, 180*time.Second)
 	if err != nil {
 		log.DefaultLogger().Object(vmi).Infof("Login: %v", res)
@@ -1838,32 +1862,10 @@ func GetRunningVirtualMachineInstanceDomainXML(virtClient kubecli.KubevirtClient
 		virtClient,
 		vmiPod,
 		vmiPod.Spec.Containers[containerIdx].Name,
-		[]string{"ls", "/etc/libvirt/qemu/"},
+		[]string{"virsh", "dumpxml", vmi.Namespace + "_" + vmi.Name},
 	)
 	if err != nil {
-		return "", fmt.Errorf("unable to list domain xml files (remotely on pod): %v", err)
-	}
-	Expect(err).ToNot(HaveOccurred())
-
-	fn := ""
-	for _, line := range strings.Split(stdout, "\n") {
-		if strings.Contains(line, vmi.Name) {
-			fn = line
-		}
-	}
-	if fn == "" {
-		return "", fmt.Errorf("libvirt domxml file not found")
-	}
-	fn = fmt.Sprintf("/etc/libvirt/qemu/%s", fn)
-
-	stdout, _, err = ExecuteCommandOnPodV2(
-		virtClient,
-		vmiPod,
-		vmiPod.Spec.Containers[containerIdx].Name,
-		[]string{"cat", fn},
-	)
-	if err != nil {
-		return "", fmt.Errorf("could not cat libvirt domxml (remotely on pod): %v", err)
+		return "", fmt.Errorf("could not dump libvirt domxml (remotely on pod): %v", err)
 	}
 	return stdout, err
 }
@@ -2223,7 +2225,7 @@ func CreateHostDiskImage(diskPath string) *k8sv1.Pod {
 	dir := filepath.Dir(diskPath)
 
 	args := []string{fmt.Sprintf(`dd if=/dev/zero of=%s bs=1 count=0 seek=1G && ls -l %s`, diskPath, dir)}
-	job := RenderHostPathJob("hostdisk-create-job", dir, hostPathType, k8sv1.MountPropagationNone, []string{"/bin/bash", "-c"}, args)
+	job := renderHostPathJob("hostdisk-create-job", dir, hostPathType, []string{"/bin/bash", "-c"}, args)
 
 	return job
 }
@@ -2232,17 +2234,16 @@ func newDeleteHostDisksJob(diskPath string) *k8sv1.Pod {
 	hostPathType := k8sv1.HostPathDirectoryOrCreate
 
 	args := []string{fmt.Sprintf(`rm -f %s`, diskPath)}
-	job := RenderHostPathJob("hostdisk-delete-job", filepath.Dir(diskPath), hostPathType, k8sv1.MountPropagationNone, []string{"/bin/bash", "-c"}, args)
+	job := renderHostPathJob("hostdisk-delete-job", filepath.Dir(diskPath), hostPathType, []string{"/bin/bash", "-c"}, args)
 
 	return job
 }
 
-func RenderHostPathJob(jobName string, dir string, hostPathType k8sv1.HostPathType, mountPropagation k8sv1.MountPropagationMode, cmd []string, args []string) *k8sv1.Pod {
+func renderHostPathJob(jobName string, dir string, hostPathType k8sv1.HostPathType, cmd []string, args []string) *k8sv1.Pod {
 	job := RenderJob(jobName, cmd, args)
 	job.Spec.Containers[0].VolumeMounts = append(job.Spec.Containers[0].VolumeMounts, k8sv1.VolumeMount{
-		Name:             "hostpath-mount",
-		MountPropagation: &mountPropagation,
-		MountPath:        dir,
+		Name:      "hostpath-mount",
+		MountPath: dir,
 	})
 	job.Spec.Volumes = append(job.Spec.Volumes, k8sv1.Volume{
 		Name: "hostpath-mount",

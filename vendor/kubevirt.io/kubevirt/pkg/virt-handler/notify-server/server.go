@@ -21,18 +21,11 @@ package eventsserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/rpc"
 	"os"
 	"path/filepath"
 
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/record"
-
-	"kubevirt.io/kubevirt/pkg/api/v1"
-
-	k8sv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
 
@@ -42,8 +35,6 @@ import (
 
 type Notify struct {
 	EventChan chan watch.Event
-	recorder  record.EventRecorder
-	vmiStore  cache.Store
 }
 
 type Reply struct {
@@ -51,13 +42,13 @@ type Reply struct {
 	Message string
 }
 
-type DomainEventArgs struct {
+type Args struct {
 	DomainJSON string
 	StatusJSON string
 	EventType  string
 }
 
-func (s *Notify) DomainEvent(args *DomainEventArgs, reply *Reply) error {
+func (s *Notify) DomainEvent(args *Args, reply *Reply) error {
 	reply.Success = true
 
 	domain := &api.Domain{}
@@ -95,25 +86,6 @@ func (s *Notify) DomainEvent(args *DomainEventArgs, reply *Reply) error {
 	return nil
 }
 
-func (s *Notify) K8sEvent(event k8sv1.Event, reply *Reply) error {
-	reply.Success = true
-
-	// get vmi and record event
-	involvedObj := event.InvolvedObject
-
-	if obj, exists, err := s.vmiStore.GetByKey(involvedObj.Namespace + "/" + involvedObj.Name); err != nil {
-		reply.Success = false
-		reply.Message = fmt.Sprintf("Error getting VMI: %v", err)
-	} else if !exists || obj.(*v1.VirtualMachineInstance).UID != involvedObj.UID {
-		reply.Success = false
-		reply.Message = "VMI not found"
-	} else {
-		vmi := obj.(*v1.VirtualMachineInstance)
-		s.recorder.Event(vmi, event.Type, event.Reason, event.Message)
-	}
-	return nil
-}
-
 func createSocket(socketPath string) (net.Listener, error) {
 	os.RemoveAll(socketPath)
 
@@ -132,14 +104,12 @@ func createSocket(socketPath string) (net.Listener, error) {
 	return socket, nil
 }
 
-func RunServer(virtShareDir string, stopChan chan struct{}, c chan watch.Event, recorder record.EventRecorder, vmiStore cache.Store) error {
+func RunServer(virtShareDir string, stopChan chan struct{}, c chan watch.Event) error {
 	sockFile := filepath.Join(virtShareDir, "domain-notify.sock")
 
 	rpcServer := rpc.NewServer()
 	server := &Notify{
 		EventChan: c,
-		recorder:  recorder,
-		vmiStore:  vmiStore,
 	}
 	rpcServer.Register(server)
 	sock, err := createSocket(sockFile)
