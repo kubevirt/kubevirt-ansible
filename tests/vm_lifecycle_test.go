@@ -84,6 +84,11 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 							fmt.Println("Can't verify console on this VM")
 						}
 
+						By("Checking if the VM's VNC server gives the valid response")
+						response, err := tests.VNCConnection(ktests.NamespaceTestDefault, osName)
+						Expect(err).ToNot(HaveOccurred(), "Should open VNC connection to VMI %q in %s namespace", osName, ktests.NamespaceTestDefault)
+						Expect(response).To(Equal("RFB 003.008"), "Should receive valid response from the VNC connection to the VMI %q in %s namespace", osName, ktests.NamespaceTestDefault)
+
 						By("Stopping VM")
 						tests.StopVirtualMachineVirtctl(osName)
 
@@ -121,7 +126,5 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 				Expect(err).To(HaveOccurred(), "Should get an error, as VM with the same name already exists")
 			})
 		})
-
 	})
-
 })
