@@ -48,14 +48,14 @@ There are three key cluster components which need to be deployed: master, etcd a
   to be managed by the master. Nodes also have the required services
   to run pods, including the Docker service, a kubelet, and a service proxy.
 
-Beside these three key components you might want to specify [persistent storage](https://docs.openshift.org/latest/install_config/persistent_storage/index.html#install-config-persistent-storage-index) component required for using [Ansible Broker](https://docs.openshift.org/latest/install_config/install/advanced_install.html#configuring-openshift-ansible-broker). Below cluster configuration sample uses **nfs** component as an example of NFS persistent storage.
+Beside these three key components you might want to specify [persistent storage](https://docs.openshift.com/enterprise/latest/install_config/persistent_storage/index.html) component required for using [Ansible Broker](https://docs.openshift.com/container-platform/latest/install_config/oab_broker_configuration.html). Below cluster configuration sample uses **nfs** component as an example of NFS persistent storage.
 
 There are two supported cluster configurations:
 
 * All-in-one, where all cluster components are deployed on a single machine
 * Single master and multiple nodes, where master, etcd and persistent storage are assigned to a single machine, and nodes are on separated machines.
 
-For more information on cluster configuration please see [Planning](https://docs.openshift.org/latest/install_config/install/planning.html) and [Requirements](https://docs.openshift.org/latest/install_config/install/prerequisites.html) documentation.
+For more information on cluster configuration please see [Planning](https://docs.okd.io/latest/install/index.html) and [Requirements](https://docs.okd.io/latest/install/prerequisites.html) documentation.
 
 Edit the [inventory](../inventory) file according to chosen cluster configuration. For example, for an `all-in-one` case it will look like:
 
@@ -145,7 +145,7 @@ create the StorageClass.
 **network-multus**
 Deploy additional multus cni plugin.
 
-***Note***  This is a dev preview, not OpenShift officially supported. 
+***Note***  This is a dev preview, not OpenShift officially supported.
 
 ***Note***  For a kubernetes cluster if you are using a network plugin different than flannel you need to edit the `kubernetes_cni_config` variable inside the file:         
 ```
@@ -158,7 +158,7 @@ No additional cni plugin will be deployed.
 ### SELinux
 
 In case you are experiencing permission or SELinux issues, please consider
-creating an issue for [kubevirt](https://github.com/kubevirt/kubevirt/issues/) 
+creating an issue for [kubevirt](https://github.com/kubevirt/kubevirt/issues/)
 and report what is not working for you.
 
 As a temporary workaround, you can disable SELinux by running following playbook.

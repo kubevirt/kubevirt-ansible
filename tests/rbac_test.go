@@ -18,7 +18,7 @@ import (
 var _ = Describe("RBAC", func() {
 	flag.Parse()
 
-	var vm tests.VMManifest
+	var vm tests.VirtualMachine
 
 	const NamespaceTestSystem = "kubevirt-test-system"
 
@@ -193,7 +193,7 @@ var _ = Describe("RBAC", func() {
 
 func createResourcesToTestViewRole() {
 	// function will setup the enviroment to test view role.
-	var vm tests.VMManifest
+	var vm tests.VirtualMachine
 	vm.Name = "vm-cirros"
 	vm.Manifest = "tests/manifests/vm-cirros.yaml"
 

@@ -62,12 +62,12 @@ func executeWithCustomTimeout(r Result, timeout time.Duration) string {
 	}
 	if r.expectOut != "" {
 		Eventually(func() bool {
-			r.actualOut, _, err = ktests.RunCommand(r.cmd, cmd...)
+			r.actualOut, _, err = ktests.RunCommandWithNS(r.nameSpace, r.cmd, cmd...)
 			Expect(err).ToNot(HaveOccurred())
 			return strings.Contains(r.actualOut, r.expectOut)
 		}, timeout).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s to appear", r.resourceType))
 	} else {
-		r.actualOut, _, err = ktests.RunCommand(r.cmd, cmd...)
+		r.actualOut, _, err = ktests.RunCommandWithNS(r.nameSpace, r.cmd, cmd...)
 		Expect(err).ToNot(HaveOccurred())
 	}
 	return r.actualOut

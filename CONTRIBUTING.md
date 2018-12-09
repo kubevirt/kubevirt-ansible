@@ -34,7 +34,7 @@ Before merging, a PR needs to pass the review of two [maintainers'](#kubevirt-an
 
 In addition for allowing deployment of KubeVirt via Ansible, the KubeVirt-Ansible project is open for any contributions from additional projects which aims to integrate with KubeVirt, such as a specific storage or network project. The integration will be in the form of Ansible roles per component which will later be integrated into a main [Ansible Playbook Bundle (APB)](https://github.com/ansibleplaybookbundle/kubevirt-apb).
 
-To document a new role, use the [README.md template](./templates/roles_README.md). 
+To document a new role, use the [README.md template](./templates/roles_README.md).
 
 ### KubeVirt APB
 To add a component into the [KubeVirt APB](https://github.com/ansibleplaybookbundle/kubevirt-apb), import the component playbook in the main [kubevirt.yml playbook](https://github.com/kubevirt/kubevirt-ansible/blob/master/playbooks/kubevirt.yml#L10).  Finally, add new paramaters or plans to the [APB](https://github.com/ansibleplaybookbundle/kubevirt-apb/blob/master/apb.yml#L60-L84) so they are displayed in the catalog UI.
@@ -94,7 +94,7 @@ KubeVirt Team
 
 * Ansible
   * [Official Product Page](https://ansible.com/)
-  * [Best Practices](http://docs.ansible.com/ansible/latest/playbooks_best_practices.html)
+  * [Best Practices](https://docs.ansible.com/ansible/latest/user_guide/playbooks_best_practices.html)
   * [Ansible Best Practices: The Essentials](https://www.ansible.com/blog/ansible-best-practices-essentials)
 * OpenShift
   * [Official Product Page](https://openshift.org/)

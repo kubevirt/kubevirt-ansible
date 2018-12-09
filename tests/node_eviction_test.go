@@ -14,7 +14,7 @@ import (
 var _ = Describe("Node Eviction", func() {
 	ns := ktests.NamespaceTestDefault
 
-	var vmi tests.VMManifest
+	var vmi tests.VirtualMachine
 
 	BeforeEach(func() {
 		ktests.BeforeTestCleanup()
