@@ -24,12 +24,11 @@ $ export ANSIBLE_ROLES_PATH=$HOME/galaxy-roles
 For OpenShift deployment clone [**OpenShift Ansible**](openshift-ansible-project)
 
 ```bash
-$ git clone -b release-3.7 https://github.com/openshift/openshift-ansible
+$ git clone -b release-3.10 https://github.com/openshift/openshift-ansible
 ```
 
-> **NOTE:** For OpenShift 3.10 there is no release yet,
-please read [this file](../automation/check-patch.openshift_3-10.sh) to see
-what branch is currently used for automation.
+Once cloned, you should configure `openshift_ansible_dir` to point to the local
+repo.
 
 ## Cluster configuration
 This section describes how to set up a new cluster on given machines. [Skip](#install-kubevirt-on-an-existing-cluster) this part if you already have a cluster.
@@ -66,7 +65,7 @@ master.example.com
 [etcd]
 master.example.com
 [nodes]
-master.example.com openshift_node_labels="{'region': 'infra','zone': 'default'}" openshift_schedulable=true
+master.example.com openshift_node_labels="{'region': 'infra','zone': 'default'}" openshift_schedulable=true openshift_node_group_name='node-config-infra-compute'
 [nfs]
 master.example.com
 ```
@@ -92,7 +91,7 @@ Please follow [docker-storage-setup] documentation for more details.
 
 
 ```bash
-$ ansible-playbook -i inventory -e@vars/all.yml playbooks/cluster/openshift/config.yml
+$ ansible-playbook -i inventory -e@vars/all.yml playbooks/cluster/openshift/config.yml -e "openshift_ansible_dir=$PWD/openshift-ansible/"
 ```
 See [OpenShift parameters documentation](./cluster/openshift/README.md) for more details and update [vars/all.yml](../vars/all.yml) if needed.
 
