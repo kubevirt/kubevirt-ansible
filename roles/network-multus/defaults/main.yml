@@ -2,9 +2,9 @@ namespace: "kube-system"
 cluster: "openshift"
 apb_action: "provision"
 
-registry_url: "registry.access.redhat.com"
-registry_namespace: "cnv-tech-preview"
-docker_tag: "v1.3.0"
+registry_url: "docker.io"
+registry_namespace: "kubevirt"
+docker_tag: "v0.9.6"
 
 multus_provisioner_name: "kube-multus-amd64"
 multus_provisioner_repo: "docker.io/nfvpe/multus"
