@@ -17,6 +17,17 @@
           name: openvswitch
       when: network_role == 'network-multus' and deploy_ovs_plugin and cluster == "kubernetes"
 
+- hosts: nodes
+  remote_user: root
+  tasks:
+    - name: remove multus config from nodes on deprovisioning
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_fileglob:
+        - "/etc/cni/net.d/*-multus.conf"
+      when: network_role == 'network-multus' and apb_action == 'deprovision'
+
 - hosts: masters[0]
   connection: local
   gather_facts: False
