@@ -18,7 +18,7 @@ host-settings: &nodes-settings
 {% else %}
     groups: [nodes]
 {% endif %}
-    memory: 3072
+    memory: 4096
     disks:
       - template_name: {{ lago_vm_image }}
         type: template
