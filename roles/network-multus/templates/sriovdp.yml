@@ -34,8 +34,6 @@ spec:
         - --log-level=10
         securityContext:
           privileged: false
-          seLinuxOptions:
-            type: "spc_t"
         volumeMounts:
         - name: devicesock
           mountPath: /var/lib/kubelet/device-plugins/
