@@ -1,6 +1,7 @@
 ---
 - name: Remove kubevirt-web-ui project
-  shell: "{{ openshift_client_binary }} delete project {{ kubevirt_web_ui_namespace }}"
+  shell: timeout -k 1m 5m "{{ openshift_client_binary }}" delete project "{{ kubevirt_web_ui_namespace }}"
+  ignore_errors: yes
 
 - name: Remove Kubevirt Web UI OAuth client
   shell: "{{ openshift_client_binary }} delete oauthclient kubevirt-web-ui"

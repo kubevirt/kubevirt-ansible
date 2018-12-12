@@ -1,4 +1,4 @@
 kvm-common-el7,http://mirror.centos.org/centos/7/virt/x86_64/kvm-common/
 lago,http://resources.ovirt.org/repos/lago/stable/0.0/rpm/$distro
-oc-3.10,https://plain.resources.ovirt.org/repos/origin/3.10/v3.10.0-rc.0/
+oc-3.11,http://mirror.centos.org/centos/7/paas/x86_64/openshift-origin311/
 

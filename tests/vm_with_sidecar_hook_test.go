@@ -33,7 +33,7 @@ var _ = Describe("VMI with sidecar hook test", func() {
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmiName, "-o=jsonpath='{.status.phase}'", "Running")
 
 			By("Expecting console")
-			expecter, err := tests.LoggedInFedoraExpecter(vmiName, tests.NamespaceTestDefault, 360)
+			expecter, err := tests.LoggedInFedoraExpecter(vmiName, tests.NamespaceTestDefault, 720)
 			Expect(err).ToNot(HaveOccurred())
 			defer expecter.Close()
 
@@ -41,7 +41,7 @@ var _ = Describe("VMI with sidecar hook test", func() {
 			_, err = expecter.ExpectBatch([]expect.Batcher{
 				&expect.BSnd{S: checkDmidecodePackage},
 				&expect.BExp{R: "1"},
-			}, 180*time.Second)
+			}, 720*time.Second)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

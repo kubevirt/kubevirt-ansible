@@ -1,0 +1,3 @@
+---
+openshift_version: 3.11.0
+openshift_pkg_version: "-{{ openshift_version }}"
