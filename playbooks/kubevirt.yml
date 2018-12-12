@@ -40,6 +40,12 @@
           src: sriovdp-config.json
           dest: /etc/pcidp/config.json
         become: yes
+
+      - name: Fix SELinux labels for /var/lib/kubelet/device-plugins/
+        command: restorecon -Rv /var/lib/kubelet/device-plugins/
+        become: yes
+        ignore_errors: True
+
       when: network_role == 'network-multus'
 
 - hosts: masters[0]
