@@ -4,7 +4,7 @@ apb_action: "provision"
 
 registry_url: "docker.io"
 registry_namespace: "kubevirt"
-docker_tag: "v0.9.6"
+docker_tag: "v0.11.0"
 
 multus_provisioner_name: "kube-multus-amd64"
 multus_provisioner_repo: "docker.io/nfvpe/multus"
