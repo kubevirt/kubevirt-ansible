@@ -14,8 +14,8 @@ spec:
       disks:
       - disk:
           bus: virtio
-        name: registrydisk
-        volumeName: registryvolume
+        name: containerdisk
+        volumeName: containervolume
       - disk:
           bus: virtio
         name: cloudinitdisk
@@ -27,9 +27,9 @@ spec:
         memory: 1024M
   terminationGracePeriodSeconds: 0
   volumes:
-  - name: registryvolume
-    registryDisk:
-      image: kubevirt/fedora-cloud-registry-disk-demo:latest
+  - name: containervolume
+    containerDisk:
+      image: kubevirt/fedora-cloud-container-disk-demo:latest
   - cloudInitNoCloud:
       userData: |-
         #cloud-config

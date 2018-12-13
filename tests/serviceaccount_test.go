@@ -47,8 +47,8 @@ var _ = Describe("Config", func() {
 			It("Should be the fs layout the same for a pod and vmi", func() {
 				By("Running VMI")
 				vmi := ktests.NewRandomVMIWithEphemeralDiskAndUserdataHighMemory(
-					ktests.RegistryDiskFor(
-						ktests.RegistryDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
+					ktests.ContainerDiskFor(
+						ktests.ContainerDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
 				ktests.AddServiceAccountDisk(vmi, serviceAccountName)
 				ktests.RunVMIAndExpectLaunch(vmi, false, 90)
 
@@ -106,8 +106,8 @@ var _ = Describe("Config", func() {
 			It("Should not run the vm with 2 service accounts", func() {
 				By("Ensuring VMI is not running")
 				vmi := ktests.NewRandomVMIWithEphemeralDiskAndUserdataHighMemory(
-					ktests.RegistryDiskFor(
-						ktests.RegistryDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
+					ktests.ContainerDiskFor(
+						ktests.ContainerDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
 				ktests.AddServiceAccountDisk(vmi, serviceAccountName1)
 				ktests.AddServiceAccountDisk(vmi, serviceAccountName2)
 				_, err = virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(vmi)
