@@ -34,8 +34,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	networkclient "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned"
+
 	cdiclient "kubevirt.io/containerized-data-importer/pkg/client/clientset/versioned"
-	"kubevirt.io/kubevirt/pkg/api/v1"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 )
 
 type KubevirtClient interface {
@@ -46,20 +48,26 @@ type KubevirtClient interface {
 	ServerVersion() *ServerVersion
 	RestClient() *rest.RESTClient
 	CdiClient() cdiclient.Interface
+	NetworkClient() networkclient.Interface
 	kubernetes.Interface
 }
 
 type kubevirt struct {
-	master     string
-	kubeconfig string
-	restClient *rest.RESTClient
-	config     *rest.Config
-	cdiClient  *cdiclient.Clientset
+	master        string
+	kubeconfig    string
+	restClient    *rest.RESTClient
+	config        *rest.Config
+	cdiClient     *cdiclient.Clientset
+	networkClient *networkclient.Clientset
 	*kubernetes.Clientset
 }
 
 func (k kubevirt) CdiClient() cdiclient.Interface {
 	return k.cdiClient
+}
+
+func (k kubevirt) NetworkClient() networkclient.Interface {
+	return k.networkClient
 }
 
 func (k kubevirt) RestClient() *rest.RESTClient {
@@ -112,6 +120,7 @@ type VirtualMachineInterface interface {
 	Update(*v1.VirtualMachine) (*v1.VirtualMachine, error)
 	Delete(name string, options *k8smetav1.DeleteOptions) error
 	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1.VirtualMachine, err error)
+	Restart(name string) error
 }
 
 type VirtualMachineInstanceMigrationInterface interface {

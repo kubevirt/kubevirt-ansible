@@ -24,7 +24,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	authorization "k8s.io/api/authorization/v1beta1"
 	authorizationclient "k8s.io/client-go/kubernetes/typed/authorization/v1beta1"
 	restclient "k8s.io/client-go/rest"
@@ -150,7 +150,7 @@ func (a *authorizor) generateAccessReview(req *restful.Request) (*authorization.
 	subresource := pathSplit[8]
 	userExtras := a.getUserExtras(headers)
 
-	if resource != "virtualmachineinstances" {
+	if resource != "virtualmachineinstances" && resource != "virtualmachines" {
 		return nil, fmt.Errorf("unknown resource type %s", resource)
 	}
 

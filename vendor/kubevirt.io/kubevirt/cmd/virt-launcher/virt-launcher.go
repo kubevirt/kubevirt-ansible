@@ -29,26 +29,26 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/libvirt/libvirt-go"
+	libvirt "github.com/libvirt/libvirt-go"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/types"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
-	"kubevirt.io/kubevirt/pkg/cloud-init"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
+	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
 	"kubevirt.io/kubevirt/pkg/config"
-	"kubevirt.io/kubevirt/pkg/ephemeral-disk"
+	containerdisk "kubevirt.io/kubevirt/pkg/container-disk"
+	ephemeraldisk "kubevirt.io/kubevirt/pkg/ephemeral-disk"
 	"kubevirt.io/kubevirt/pkg/hooks"
 	"kubevirt.io/kubevirt/pkg/log"
-	"kubevirt.io/kubevirt/pkg/registry-disk"
-	"kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
-	"kubevirt.io/kubevirt/pkg/virt-launcher"
+	cmdclient "kubevirt.io/kubevirt/pkg/virt-handler/cmd-client"
+	virtlauncher "kubevirt.io/kubevirt/pkg/virt-launcher"
 	notifyclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	virtcli "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
-	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cmd-server"
+	cmdserver "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cmd-server"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/util"
 	"kubevirt.io/kubevirt/pkg/watchdog"
 )
@@ -190,7 +190,7 @@ func initializeDirs(virtShareDir string,
 		panic(err)
 	}
 
-	err = registrydisk.SetLocalDirectory(ephemeralDiskDir + "/registry-disk-data")
+	err = containerdisk.SetLocalDirectory(ephemeralDiskDir + "/container-disk-data")
 	if err != nil {
 		panic(err)
 	}
@@ -304,7 +304,7 @@ func main() {
 	uid := pflag.String("uid", "", "UID of the VirtualMachineInstance")
 	namespace := pflag.String("namespace", "", "Namespace of the VirtualMachineInstance")
 	watchdogInterval := pflag.Duration("watchdog-update-interval", defaultWatchdogInterval, "Interval at which watchdog file should be updated")
-	readinessFile := pflag.String("readiness-file", "/tmp/health", "Pod looks for this file to determine when virt-launcher is initialized")
+	readinessFile := pflag.String("readiness-file", "/var/run/kubevirt-infra/healthy", "Pod looks for this file to determine when virt-launcher is initialized")
 	gracePeriodSeconds := pflag.Int("grace-period-seconds", 30, "Grace period to observe before sending SIGTERM to vm process")
 	useEmulation := pflag.Bool("use-emulation", false, "Use software emulation")
 	hookSidecars := pflag.Uint("hook-sidecars", 0, "Number of requested hook sidecars, virt-launcher will wait for all of them to become available")

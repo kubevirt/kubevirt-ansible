@@ -29,7 +29,7 @@ import (
 
 	k8sv1 "k8s.io/api/core/v1"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/util/types"
 )
@@ -116,7 +116,6 @@ func (hdc *DiskImgCreator) setlessPVCSpaceToleration(toleration int) {
 func (hdc DiskImgCreator) Create(vmi *v1.VirtualMachineInstance) error {
 	for _, volume := range vmi.Spec.Volumes {
 		if hostDisk := volume.VolumeSource.HostDisk; hostDisk != nil && hostDisk.Type == v1.HostDiskExistsOrCreate && hostDisk.Path != "" {
-
 			if _, err := os.Stat(hostDisk.Path); os.IsNotExist(err) {
 				availableSize, err := hdc.dirBytesAvailableFunc(path.Dir(hostDisk.Path))
 				if err != nil {

@@ -31,10 +31,13 @@ import (
 	lmf "github.com/subgraph/libmacouflage"
 	"github.com/vishvananda/netlink"
 
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/network/dhcp"
 )
+
+const randomMacGenerationAttempts = 10
 
 type VIF struct {
 	Name    string
@@ -58,7 +61,7 @@ type NetworkHandler interface {
 	ParseAddr(s string) (*netlink.Addr, error)
 	SetRandomMac(iface string) (net.HardwareAddr, error)
 	GetMacDetails(iface string) (net.HardwareAddr, error)
-	StartDHCP(nic *VIF, serverAddr *netlink.Addr, bridgeInterfaceName string)
+	StartDHCP(nic *VIF, serverAddr *netlink.Addr, bridgeInterfaceName string, dhcpOptions *v1.DHCPOptions)
 }
 
 type NetworkUtilsHandler struct{}
@@ -106,7 +109,7 @@ func (h *NetworkUtilsHandler) GetMacDetails(iface string) (net.HardwareAddr, err
 	return currentMac, nil
 }
 
-// SetRandomMac changes the MAC address for a agiven interface to a randomly generated, preserving the vendor prefix
+// SetRandomMac changes the MAC address for a given interface to a randomly generated, preserving the vendor prefix
 func (h *NetworkUtilsHandler) SetRandomMac(iface string) (net.HardwareAddr, error) {
 	var mac net.HardwareAddr
 
@@ -115,23 +118,33 @@ func (h *NetworkUtilsHandler) SetRandomMac(iface string) (net.HardwareAddr, erro
 		return nil, err
 	}
 
-	changed, err := lmf.SpoofMacSameVendor(iface, false)
-	if err != nil {
-		log.Log.Reason(err).Errorf("failed to spoof MAC for an interface: %s", iface)
-		return nil, err
-	}
+	changed := false
 
-	if changed {
-		mac, err = Handler.GetMacDetails(iface)
+	for i := 0; i < randomMacGenerationAttempts; i++ {
+		changed, err = lmf.SpoofMacSameVendor(iface, false)
 		if err != nil {
+			log.Log.Reason(err).Errorf("failed to spoof MAC for an interface: %s", iface)
 			return nil, err
 		}
-		log.Log.Reason(err).Errorf("updated MAC for interface: %s - %s", iface, mac)
+
+		if changed {
+			mac, err = Handler.GetMacDetails(iface)
+			if err != nil {
+				return nil, err
+			}
+			log.Log.Reason(err).Errorf("updated MAC for interface: %s - %s", iface, mac)
+			break
+		}
+	}
+	if !changed {
+		err := fmt.Errorf("failed to spoof MAC for an interface %s after %d attempts", iface, randomMacGenerationAttempts)
+		log.Log.Reason(err)
+		return nil, err
 	}
 	return currentMac, nil
 }
 
-func (h *NetworkUtilsHandler) StartDHCP(nic *VIF, serverAddr *netlink.Addr, bridgeInterfaceName string) {
+func (h *NetworkUtilsHandler) StartDHCP(nic *VIF, serverAddr *netlink.Addr, bridgeInterfaceName string, dhcpOptions *v1.DHCPOptions) {
 	log.Log.V(4).Infof("StartDHCP network Nic: %+v", nic)
 	nameservers, searchDomains, err := api.GetResolvConfDetailsFromPod()
 	if err != nil {
@@ -153,6 +166,7 @@ func (h *NetworkUtilsHandler) StartDHCP(nic *VIF, serverAddr *netlink.Addr, brid
 			nic.Routes,
 			searchDomains,
 			nic.Mtu,
+			dhcpOptions,
 		); err != nil {
 			log.Log.Errorf("failed to run DHCP: %v", err)
 			panic(err)
