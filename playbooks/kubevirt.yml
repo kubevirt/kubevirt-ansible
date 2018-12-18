@@ -1,25 +1,9 @@
+# note: the order of plays in the playbook is important: the first play that
+# configures SR-IOV device plugin should be executed before the play that
+# identifies nodes with configured OpenShift client, otherwise the SR-IOV play
+# won't be executed for nodes that would fail on calling 'oc get projects' just
+# because they have client mis- or unconfigured.
 ---
-- hosts: all
-  connection: local
-  gather_facts: False
-  environment:
-    http_proxy: ""
-  tasks:
-    - name: Identify cluster
-      command: "oc get projects"
-      register: result
-
-    - name: Set cluster variable
-      set_fact:
-        platform: "openshift"
-      when: "{{ result.rc }} == 0"
-
-    - name: Login As Super User
-      command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
-      when: platform == "openshift"
-            and admin_user is defined
-            and admin_password is defined
-
 # note: strictly speaking, we should avoid configuring sriovdp when
 # deploy_sriov_plugin is disabled but the fact is not defined on this level so
 # instead we fall back to deploying configuration file on all nodes. This
@@ -47,6 +31,27 @@
         ignore_errors: True
 
       when: network_role == 'network-multus'
+
+- hosts: all
+  connection: local
+  gather_facts: False
+  environment:
+    http_proxy: ""
+  tasks:
+    - name: Identify cluster
+      command: "oc get projects"
+      register: result
+
+    - name: Set cluster variable
+      set_fact:
+        platform: "openshift"
+      when: "{{ result.rc }} == 0"
+
+    - name: Login As Super User
+      command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
+      when: platform == "openshift"
+            and admin_user is defined
+            and admin_password is defined
 
 - hosts: masters[0]
   connection: local
