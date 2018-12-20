@@ -8,7 +8,7 @@ openshift_ansible_dir: "openshift-ansible/"
 openshift_playbook_path: "{{ openshift_ansible_dir }}/{{ 'playbooks/byo/config.yml' if kubevirt_openshift_version == '3.7' else 'playbooks/deploy_cluster.yml' }}"
 
 ### KubeVirt ###
-version: v0.12.0-alpha.2
+version: 0.12.0-alpha.2
 image_pull_policy: IfNotPresent
 
 ### Components ###
