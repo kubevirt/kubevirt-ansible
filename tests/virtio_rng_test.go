@@ -40,7 +40,7 @@ var _ = Describe("VIRT RNG test", func() {
 
 	Context("With VirtIO RNG device", func() {
 		var withRngVmi *v1.VirtualMachineInstance
-		withRngVmi = ktests.NewRandomVMIWithEphemeralDisk(ktests.RegistryDiskFor(ktests.RegistryDiskAlpine))
+		withRngVmi = ktests.NewRandomVMIWithEphemeralDisk(ktests.ContainerDiskFor(ktests.ContainerDiskAlpine))
 		It("Virtio rng device should be present", func() {
 			withRngVmi.Spec.Domain.Devices.Rng = &v1.Rng{}
 

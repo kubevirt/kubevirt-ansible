@@ -69,8 +69,8 @@ var _ = Describe("Config", func() {
 				By("Running VMI")
 
 				vmi := ktests.NewRandomVMIWithEphemeralDiskAndUserdataHighMemory(
-					ktests.RegistryDiskFor(
-						ktests.RegistryDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
+					ktests.ContainerDiskFor(
+						ktests.ContainerDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
 				ktests.AddConfigMapDisk(vmi, configMapName)
 				ktests.AddSecretDisk(vmi, secretName)
 				ktests.RunVMIAndExpectLaunch(vmi, false, 90)
@@ -169,8 +169,8 @@ var _ = Describe("Config", func() {
 
 				By("Running VMI")
 				vmi := ktests.NewRandomVMIWithEphemeralDiskAndUserdataHighMemory(
-					ktests.RegistryDiskFor(
-						ktests.RegistryDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
+					ktests.ContainerDiskFor(
+						ktests.ContainerDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
 				ktests.AddSecretDisk(vmi, secretName)
 				ktests.RunVMIAndExpectLaunch(vmi, false, 90)
 
