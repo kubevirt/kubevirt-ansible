@@ -32,7 +32,7 @@ var _ = Describe("High performance vm test", func() {
 
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
-	registryDisk := ktests.RegistryDiskFor(ktests.RegistryDiskCirros)
+	containerDisk := ktests.ContainerDiskFor(ktests.ContainerDiskCirros)
 	ktests.PanicOnError(err)
 
 	ktests.BeforeAll(func() {
@@ -44,7 +44,7 @@ var _ = Describe("High performance vm test", func() {
 		headlesstestVMName := "headlesstest"
 
 		It("Create headless VM", func() {
-			tests.ProcessTemplateWithParameters(virtRawVMFilePath, headlessDstVMFilePath, "VM_NAME="+headlesstestVMName, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
+			tests.ProcessTemplateWithParameters(virtRawVMFilePath, headlessDstVMFilePath, "VM_NAME="+headlesstestVMName, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+containerDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(headlessDstVMFilePath)
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", headlesstestVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
@@ -64,7 +64,7 @@ var _ = Describe("High performance vm test", func() {
 		memoryOvercommitVMName := "memoryovercommit"
 
 		It("Create memoryOvercommit VM", func() {
-			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
+			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "IMAGE_NAME="+containerDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
@@ -79,7 +79,7 @@ var _ = Describe("High performance vm test", func() {
 		memoryOvercommitVMName := "headlessandmemoryovercommit"
 
 		It("Create headless and memory over commit VM", func() {
-			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+registryDisk, "VM_APIVERSION="+vmAPIVersion)
+			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+containerDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})

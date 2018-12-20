@@ -23,11 +23,11 @@ objects:
         disks:
         - disk:
             bus: virtio
-          name: registrydisk
+          name: containerdisk
           volumeName: registryvolume
     volumes:
       - name: registryvolume
-        registryDisk:
+        containerDisk:
           image: ${{IMAGE_NAME}}
 parameters:
 - name: VM_APIVERSION
