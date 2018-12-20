@@ -16,9 +16,9 @@
 # Copyright 2018 Red Hat, Inc.
 #
 
-FROM fedora:27
+FROM fedora:28
 
-MAINTAINER "The KubeVirt Project" <kubevirt-dev@googlegroups.com>
+LABEL maintainer="The KubeVirt Project <kubevirt-dev@googlegroups.com>"
 
 COPY example-hook-sidecar /example-hook-sidecar
 

@@ -25,7 +25,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/emicklei/go-restful"
+	restful "github.com/emicklei/go-restful"
 	"github.com/golang/glog"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	flag "github.com/spf13/pflag"
@@ -39,13 +39,13 @@ import (
 	"k8s.io/client-go/tools/record"
 
 	"kubevirt.io/kubevirt/pkg/certificates"
+	containerdisk "kubevirt.io/kubevirt/pkg/container-disk"
 	"kubevirt.io/kubevirt/pkg/controller"
-	"kubevirt.io/kubevirt/pkg/feature-gates"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
-	"kubevirt.io/kubevirt/pkg/registry-disk"
 	"kubevirt.io/kubevirt/pkg/service"
 	"kubevirt.io/kubevirt/pkg/util"
+	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 	"kubevirt.io/kubevirt/pkg/virt-controller/leaderelectionconfig"
 	"kubevirt.io/kubevirt/pkg/virt-controller/rest"
 	"kubevirt.io/kubevirt/pkg/virt-controller/services"
@@ -121,7 +121,7 @@ func Execute() {
 
 	service.Setup(&app)
 
-	featuregates.ParseFeatureGatesFromConfigMap()
+	virtconfig.Init()
 
 	app.readyChan = make(chan bool, 1)
 
@@ -165,7 +165,7 @@ func Execute() {
 
 	app.migrationInformer = app.informerFactory.VirtualMachineInstanceMigration()
 
-	if featuregates.DataVolumesEnabled() {
+	if virtconfig.DataVolumesEnabled() {
 		app.dataVolumeInformer = app.informerFactory.DataVolume()
 		log.Log.Infof("DataVolume integration enabled")
 	} else {
@@ -264,16 +264,19 @@ func (vca *VirtControllerApp) getNewRecorder(namespace string, componentName str
 func (vca *VirtControllerApp) initCommon() {
 	var err error
 
-	registrydisk.SetLocalDirectory(vca.ephemeralDiskDir + "/registry-disk-data")
+	virtClient, err := kubecli.GetKubevirtClient()
 	if err != nil {
 		golog.Fatal(err)
 	}
+
+	containerdisk.SetLocalDirectory(vca.ephemeralDiskDir + "/container-disk-data")
 	vca.templateService = services.NewTemplateService(vca.launcherImage,
 		vca.virtShareDir,
 		vca.ephemeralDiskDir,
 		vca.imagePullSecret,
 		vca.configMapCache,
-		vca.persistentVolumeClaimCache)
+		vca.persistentVolumeClaimCache,
+		virtClient)
 
 	vca.vmiController = NewVMIController(vca.templateService, vca.vmiInformer, vca.podInformer, vca.vmiRecorder, vca.clientSet, vca.configMapInformer, vca.dataVolumeInformer)
 	recorder := vca.getNewRecorder(k8sv1.NamespaceAll, "node-controller")

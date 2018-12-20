@@ -24,10 +24,12 @@ package network
 import (
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 
 	"github.com/vishvananda/netlink"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/precond"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
@@ -61,7 +63,12 @@ func (l *PodInterface) Plug(iface *v1.Interface, network *v1.Network, domain *ap
 	precond.MustNotBeNil(domain)
 	initHandler()
 
-	driver, err := getBinding(iface, domain, podInterfaceName)
+	// There is nothing to plug for SR-IOV devices
+	if iface.SRIOV != nil {
+		return nil
+	}
+
+	driver, err := getBinding(iface, network, domain, podInterfaceName)
 	if err != nil {
 		return err
 	}
@@ -100,7 +107,7 @@ func (l *PodInterface) Plug(iface *v1.Interface, network *v1.Network, domain *ap
 	return nil
 }
 
-func getBinding(iface *v1.Interface, domain *api.Domain, podInterfaceName string) (BindMechanism, error) {
+func getBinding(iface *v1.Interface, network *v1.Network, domain *api.Domain, podInterfaceName string) (BindMechanism, error) {
 	podInterfaceNum, err := findInterfaceByName(domain.Spec.Devices.Interfaces, iface.Name)
 	if err != nil {
 		return nil, err
@@ -125,6 +132,17 @@ func getBinding(iface *v1.Interface, domain *api.Domain, podInterfaceName string
 			domain:              domain,
 			podInterfaceNum:     podInterfaceNum,
 			podInterfaceName:    podInterfaceName,
+			bridgeInterfaceName: fmt.Sprintf("k6t-%s", podInterfaceName)}, nil
+	}
+	if iface.Masquerade != nil {
+		vif := &VIF{Name: podInterfaceName}
+		populateMacAddress(vif, iface)
+		return &MasqueradePodInterface{iface: iface,
+			vif:                 vif,
+			domain:              domain,
+			podInterfaceNum:     podInterfaceNum,
+			podInterfaceName:    podInterfaceName,
+			vmNetworkCIDR:       network.Pod.VMNetworkCIDR,
 			bridgeInterfaceName: fmt.Sprintf("k6t-%s", podInterfaceName)}, nil
 	}
 	if iface.Slirp != nil {
@@ -173,6 +191,10 @@ func (b *BridgePodInterface) discoverPodNetworkInterface() error {
 			return err
 		}
 		b.vif.MAC = mac
+	}
+
+	if b.podNicLink.Attrs().MTU < 0 || b.podNicLink.Attrs().MTU > 65535 {
+		return fmt.Errorf("MTU value out of range ")
 	}
 
 	// Get interface MTU
@@ -230,7 +252,7 @@ func (b *BridgePodInterface) preparePodNetworkInterfaces() error {
 func (b *BridgePodInterface) startDHCPServer() {
 	// Start DHCP Server
 	fakeServerAddr, _ := netlink.ParseAddr(fmt.Sprintf(bridgeFakeIP, b.podInterfaceNum))
-	Handler.StartDHCP(b.vif, fakeServerAddr, b.bridgeInterfaceName)
+	Handler.StartDHCP(b.vif, fakeServerAddr, b.bridgeInterfaceName, b.iface.DHCPOptions)
 }
 
 func (b *BridgePodInterface) decorateConfig() error {
@@ -289,7 +311,12 @@ func (b *BridgePodInterface) createBridge() error {
 		log.Log.Reason(err).Errorf("failed to create a bridge")
 		return err
 	}
-	netlink.LinkSetMaster(b.podNicLink, bridge)
+
+	err = Handler.LinkSetMaster(b.podNicLink, bridge)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to connect interface %s to bridge %s", b.podInterfaceName, bridge.Name)
+		return err
+	}
 
 	err = Handler.LinkSetUp(bridge)
 	if err != nil {
@@ -310,6 +337,246 @@ func (b *BridgePodInterface) createBridge() error {
 	}
 
 	return nil
+}
+
+type MasqueradePodInterface struct {
+	vif                 *VIF
+	iface               *v1.Interface
+	podNicLink          netlink.Link
+	domain              *api.Domain
+	podInterfaceNum     int
+	podInterfaceName    string
+	bridgeInterfaceName string
+	vmNetworkCIDR       string
+	gatewayAddr         *netlink.Addr
+}
+
+func (p *MasqueradePodInterface) discoverPodNetworkInterface() error {
+	link, err := Handler.LinkByName(p.podInterfaceName)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to get a link for interface: %s", p.podInterfaceName)
+		return err
+	}
+	p.podNicLink = link
+
+	if p.podNicLink.Attrs().MTU < 0 || p.podNicLink.Attrs().MTU > 65535 {
+		return fmt.Errorf("MTU value out of range ")
+	}
+
+	// Get interface MTU
+	p.vif.Mtu = uint16(p.podNicLink.Attrs().MTU)
+
+	if p.vmNetworkCIDR == "" {
+		p.vmNetworkCIDR = api.DefaultVMCIDR
+	}
+
+	defaultGateway, vm, err := Handler.GetHostAndGwAddressesFromCIDR(p.vmNetworkCIDR)
+	if err != nil {
+		log.Log.Errorf("failed to get gw and vm available addresses from CIDR %s", p.vmNetworkCIDR)
+		return err
+	}
+
+	gatewayAddr, err := Handler.ParseAddr(defaultGateway)
+	if err != nil {
+		return fmt.Errorf("failed to parse gateway ip address %s", defaultGateway)
+	}
+	p.vif.Gateway = gatewayAddr.IP.To4()
+	p.gatewayAddr = gatewayAddr
+
+	vmAddr, err := Handler.ParseAddr(vm)
+	if err != nil {
+		return fmt.Errorf("failed to parse vm ip address %s", vm)
+	}
+	p.vif.IP = *vmAddr
+
+	return nil
+}
+
+func (p *MasqueradePodInterface) preparePodNetworkInterfaces() error {
+	// Create an master bridge interface
+	bridgeNicName := fmt.Sprintf("%s-nic", p.bridgeInterfaceName)
+	bridgeNic := &netlink.Dummy{
+		LinkAttrs: netlink.LinkAttrs{
+			Name: bridgeNicName,
+		},
+	}
+	err := Handler.LinkAdd(bridgeNic)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to create a interface: %s", bridgeNic.Name)
+		return err
+	}
+
+	if p.iface.MacAddress == "" {
+		p.vif.MAC, err = Handler.GenerateRandomMac()
+		if err != nil {
+			log.Log.Reason(err).Errorf("failed to generate random mac address")
+			return err
+		}
+	}
+
+	err = Handler.LinkSetUp(bridgeNic)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to bring link up for interface: %s", bridgeNic.Name)
+		return err
+	}
+
+	if err := p.createBridge(); err != nil {
+		return err
+	}
+
+	err = p.createNatRules()
+	if err != nil {
+		log.Log.Errorf("failed to create nat rules for vm error: %v", err)
+		return err
+	}
+
+	p.startDHCPServer()
+
+	return nil
+}
+
+func (p *MasqueradePodInterface) startDHCPServer() {
+	// Start DHCP Server
+	Handler.StartDHCP(p.vif, p.gatewayAddr, p.bridgeInterfaceName, p.iface.DHCPOptions)
+}
+
+func (p *MasqueradePodInterface) decorateConfig() error {
+	p.domain.Spec.Devices.Interfaces[p.podInterfaceNum].MAC = &api.MAC{MAC: p.vif.MAC.String()}
+
+	return nil
+}
+
+func (p *MasqueradePodInterface) loadCachedInterface(name string) (bool, error) {
+	var ifaceConfig api.Interface
+
+	isExist, err := readFromCachedFile(name, interfaceCacheFile, &ifaceConfig)
+	if err != nil {
+		return false, err
+	}
+
+	if isExist {
+		p.domain.Spec.Devices.Interfaces[p.podInterfaceNum] = ifaceConfig
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (p *MasqueradePodInterface) setCachedInterface(name string) error {
+	err := writeToCachedFile(&p.domain.Spec.Devices.Interfaces[p.podInterfaceNum], interfaceCacheFile, name)
+	return err
+}
+
+func (p *MasqueradePodInterface) createBridge() error {
+	// Get dummy link
+	bridgeNicName := fmt.Sprintf("%s-nic", p.bridgeInterfaceName)
+	bridgeNicLink, err := Handler.LinkByName(bridgeNicName)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to find dummy interface for bridge")
+	}
+
+	// Create a bridge
+	bridge := &netlink.Bridge{
+		LinkAttrs: netlink.LinkAttrs{
+			Name: p.bridgeInterfaceName,
+		},
+	}
+	err = Handler.LinkAdd(bridge)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to create a bridge")
+		return err
+	}
+
+	err = Handler.LinkSetMaster(bridgeNicLink, bridge)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to connect %s interface to bridge %s", bridgeNicName, p.bridgeInterfaceName)
+		return err
+	}
+
+	err = Handler.LinkSetUp(bridge)
+	if err != nil {
+		log.Log.Reason(err).Errorf("failed to bring link up for interface: %s", p.bridgeInterfaceName)
+		return err
+	}
+
+	if err := Handler.AddrAdd(bridge, p.gatewayAddr); err != nil {
+		log.Log.Reason(err).Errorf("failed to set bridge IP")
+		return err
+	}
+
+	return nil
+}
+
+func (p *MasqueradePodInterface) createNatRules() error {
+
+	err := Handler.IptablesNewChain("nat", "KUBEVIRT_PREINBOUND")
+	if err != nil {
+		return err
+	}
+
+	err = Handler.IptablesNewChain("nat", "KUBEVIRT_POSTINBOUND")
+	if err != nil {
+		return err
+	}
+
+	err = Handler.IptablesAppendRule("nat", "POSTROUTING", "-s", p.vif.IP.IP.String(), "-j", "MASQUERADE")
+	if err != nil {
+		return err
+	}
+
+	err = Handler.IptablesAppendRule("nat", "PREROUTING", "-i", p.podInterfaceName, "-j", "KUBEVIRT_PREINBOUND")
+	if err != nil {
+		return err
+	}
+
+	err = Handler.IptablesAppendRule("nat", "POSTROUTING", "-o", p.bridgeInterfaceName, "-j", "KUBEVIRT_POSTINBOUND")
+	if err != nil {
+		return err
+	}
+
+	for _, port := range p.iface.Ports {
+		if port.Protocol == "" {
+			port.Protocol = "tcp"
+		}
+
+		err = Handler.IptablesAppendRule("nat", "KUBEVIRT_POSTINBOUND",
+			"-p",
+			strings.ToLower(port.Protocol),
+			"--dport",
+			strconv.Itoa(int(port.Port)),
+			"-j",
+			"SNAT",
+			"--to-source", p.gatewayAddr.IP.String())
+		if err != nil {
+			return err
+		}
+
+		err = Handler.IptablesAppendRule("nat", "KUBEVIRT_PREINBOUND",
+			"-p",
+			strings.ToLower(port.Protocol),
+			"--dport",
+			strconv.Itoa(int(port.Port)),
+			"-j",
+			"DNAT",
+			"--to-destination", p.vif.IP.IP.String())
+		if err != nil {
+			return err
+		}
+
+		err = Handler.IptablesAppendRule("nat", "OUTPUT",
+			"-p",
+			strings.ToLower(port.Protocol),
+			"--dport",
+			strconv.Itoa(int(port.Port)),
+			"--destination", "127.0.0.1",
+			"-j",
+			"DNAT",
+			"--to-destination", p.vif.IP.IP.String())
+		if err != nil {
+			return err
+		}
+	}
+	return err
 }
 
 type SlirpPodInterface struct {

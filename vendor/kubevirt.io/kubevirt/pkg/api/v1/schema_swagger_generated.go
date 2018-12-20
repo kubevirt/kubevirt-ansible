@@ -8,6 +8,7 @@ func (HostDisk) SwaggerDoc() map[string]string {
 		"path":     "The path to HostDisk image located on the cluster",
 		"type":     "Contains information if disk.img exists or should be created\nallowed options are 'Disk' and 'DiskOrCreate'",
 		"capacity": "Capacity of the sparse disk\n+optional",
+		"shared":   "Shared indicate whether the path is shared between nodes",
 	}
 }
 
@@ -120,7 +121,7 @@ func (Disk) SwaggerDoc() map[string]string {
 		"bootOrder":         "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach disk or interface that has a boot order must have a unique value.\nDisks without a boot order are not tried if a disk with a boot order exists.\n+optional",
 		"serial":            "Serial provides the ability to specify a serial number for the disk device.\n+optional",
 		"dedicatedIOThread": "dedicatedIOThread indicates this disk should have an exclusive IO Thread.\nEnabling this implies useIOThreads = true.\nDefaults to false.\n+optional",
-		"cache":             "Cache specifies which kvm disk cache mode should be used\n+optional",
+		"cache":             "Cache specifies which kvm disk cache mode should be used.\n+optional",
 	}
 }
 
@@ -136,7 +137,7 @@ func (DiskDevice) SwaggerDoc() map[string]string {
 
 func (DiskTarget) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"bus":        "Bus indicates the type of disk device to emulate.\nsupported values: virtio, sata, scsi, ide.",
+		"bus":        "Bus indicates the type of disk device to emulate.\nsupported values: virtio, sata, scsi.",
 		"readonly":   "ReadOnly.\nDefaults to false.",
 		"pciAddress": "If specified, the virtual disk will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10\n+optional",
 	}
@@ -144,7 +145,7 @@ func (DiskTarget) SwaggerDoc() map[string]string {
 
 func (LunTarget) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"bus":      "Bus indicates the type of disk device to emulate.\nsupported values: virtio, sata, scsi, ide.",
+		"bus":      "Bus indicates the type of disk device to emulate.\nsupported values: virtio, sata, scsi.",
 		"readonly": "ReadOnly.\nDefaults to false.",
 	}
 }
@@ -158,7 +159,7 @@ func (FloppyTarget) SwaggerDoc() map[string]string {
 
 func (CDRomTarget) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"bus":      "Bus indicates the type of disk device to emulate.\nsupported values: virtio, sata, scsi, ide.",
+		"bus":      "Bus indicates the type of disk device to emulate.\nsupported values: virtio, sata, scsi.",
 		"readonly": "ReadOnly.\nDefaults to true.",
 		"tray":     "Tray indicates if the tray of the device is open or closed.\nAllowed values are \"open\" and \"closed\".\nDefaults to closed.\n+optional",
 	}
@@ -177,7 +178,7 @@ func (VolumeSource) SwaggerDoc() map[string]string {
 		"hostDisk":              "HostDisk represents a disk created on the cluster level\n+optional",
 		"persistentVolumeClaim": "PersistentVolumeClaimVolumeSource represents a reference to a PersistentVolumeClaim in the same namespace.\nDirectly attached to the vmi via qemu.\nMore info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims\n+optional",
 		"cloudInitNoCloud":      "CloudInitNoCloud represents a cloud-init NoCloud user-data source.\nThe NoCloud data will be added as a disk to the vmi. A proper cloud-init installation is required inside the guest.\nMore info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html\n+optional",
-		"registryDisk":          "RegistryDisk references a docker image, embedding a qcow or raw disk.\nMore info: https://kubevirt.gitbooks.io/user-guide/registry-disk.html\n+optional",
+		"containerDisk":         "ContainerDisk references a docker image, embedding a qcow or raw disk.\nMore info: https://kubevirt.gitbooks.io/user-guide/registry-disk.html\n+optional",
 		"ephemeral":             "Ephemeral is a special volume source that \"wraps\" specified source and provides copy-on-write image on top of it.\n+optional",
 		"emptyDisk":             "EmptyDisk represents a temporary disk which shares the vmis lifecycle.\nMore info: https://kubevirt.gitbooks.io/user-guide/disks-and-volumes.html\n+optional",
 		"dataVolume":            "DataVolume represents the dynamic creation a PVC for this volume as well as\nthe process of populating that PVC with a disk image.\n+optional",
@@ -206,11 +207,12 @@ func (EmptyDiskSource) SwaggerDoc() map[string]string {
 	}
 }
 
-func (RegistryDiskSource) SwaggerDoc() map[string]string {
+func (ContainerDiskSource) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":                "Represents a docker image with an embedded disk.",
 		"image":           "Image is the name of the image with the embedded disk.",
 		"imagePullSecret": "ImagePullSecret is the name of the Docker registry secret required to pull the image. The secret must already exist.",
+		"path":            "Path defines the path to disk file in the container",
 	}
 }
 
@@ -355,12 +357,20 @@ func (I6300ESBWatchdog) SwaggerDoc() map[string]string {
 
 func (Interface) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"name":       "Logical name of the interface as well as a reference to the associated networks.\nMust match the Name of a Network.",
-		"model":      "Interface model.\nOne of: e1000, e1000e, ne2k_pci, pcnet, rtl8139, virtio.\nDefaults to virtio.",
-		"ports":      "List of ports to be forwarded to the virtual machine.",
-		"macAddress": "Interface MAC address. For example: de:ad:00:00:be:af or DE-AD-00-00-BE-AF.",
-		"bootOrder":  "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach interface or disk that has a boot order must have a unique value.\nInterfaces without a boot order are not tried.\n+optional",
-		"pciAddress": "If specified, the virtual network interface will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10\n+optional",
+		"name":        "Logical name of the interface as well as a reference to the associated networks.\nMust match the Name of a Network.",
+		"model":       "Interface model.\nOne of: e1000, e1000e, ne2k_pci, pcnet, rtl8139, virtio.\nDefaults to virtio.",
+		"ports":       "List of ports to be forwarded to the virtual machine.",
+		"macAddress":  "Interface MAC address. For example: de:ad:00:00:be:af or DE-AD-00-00-BE-AF.",
+		"bootOrder":   "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach interface or disk that has a boot order must have a unique value.\nInterfaces without a boot order are not tried.\n+optional",
+		"pciAddress":  "If specified, the virtual network interface will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10\n+optional",
+		"dhcpOptions": "If specified the network interface will pass additional DHCP options to the VMI\n+optional",
+	}
+}
+
+func (DHCPOptions) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"bootFileName":   "If specified will pass option 67 to interface's DHCP server\n+optional",
+		"tftpServerName": "If specified will pass option 66 to interface's DHCP server\n+optional",
 	}
 }
 
@@ -375,6 +385,14 @@ func (InterfaceBridge) SwaggerDoc() map[string]string {
 }
 
 func (InterfaceSlirp) SwaggerDoc() map[string]string {
+	return map[string]string{}
+}
+
+func (InterfaceMasquerade) SwaggerDoc() map[string]string {
+	return map[string]string{}
+}
+
+func (InterfaceSRIOV) SwaggerDoc() map[string]string {
 	return map[string]string{}
 }
 
@@ -416,6 +434,6 @@ func (Rng) SwaggerDoc() map[string]string {
 func (CniNetwork) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":            "Represents the cni network.",
-		"networkName": "References to a NetworkAttachmentDefinition CRD object in the same namespace.\nIn case of genie, it references the CNI plugin name.",
+		"networkName": "References to a NetworkAttachmentDefinition CRD object. Format:\n<networkName>, <namespace>/<networkName>. If namespace is not\nspecified, VMI namespace is assumed.\nIn case of genie, it references the CNI plugin name.",
 	}
 }

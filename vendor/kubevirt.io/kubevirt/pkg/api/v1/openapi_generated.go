@@ -37,6 +37,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource":                    schema_kubevirt_pkg_api_v1_CloudInitNoCloudSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.CniNetwork":                                schema_kubevirt_pkg_api_v1_CniNetwork(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource":                     schema_kubevirt_pkg_api_v1_ConfigMapVolumeSource(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.ContainerDiskSource":                       schema_kubevirt_pkg_api_v1_ContainerDiskSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource":                          schema_kubevirt_pkg_api_v1_DataVolumeSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Devices":                                   schema_kubevirt_pkg_api_v1_Devices(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Disk":                                      schema_kubevirt_pkg_api_v1_Disk(ref),
@@ -61,6 +62,8 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/kubevirt/pkg/api/v1.Interface":                                 schema_kubevirt_pkg_api_v1_Interface(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.InterfaceBindingMethod":                    schema_kubevirt_pkg_api_v1_InterfaceBindingMethod(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.InterfaceBridge":                           schema_kubevirt_pkg_api_v1_InterfaceBridge(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.InterfaceMasquerade":                       schema_kubevirt_pkg_api_v1_InterfaceMasquerade(ref),
+		"kubevirt.io/kubevirt/pkg/api/v1.InterfaceSRIOV":                            schema_kubevirt_pkg_api_v1_InterfaceSRIOV(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.InterfaceSlirp":                            schema_kubevirt_pkg_api_v1_InterfaceSlirp(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.KVMTimer":                                  schema_kubevirt_pkg_api_v1_KVMTimer(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.LunTarget":                                 schema_kubevirt_pkg_api_v1_LunTarget(ref),
@@ -72,7 +75,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"kubevirt.io/kubevirt/pkg/api/v1.PodNetwork":                                schema_kubevirt_pkg_api_v1_PodNetwork(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Port":                                      schema_kubevirt_pkg_api_v1_Port(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.RTCTimer":                                  schema_kubevirt_pkg_api_v1_RTCTimer(ref),
-		"kubevirt.io/kubevirt/pkg/api/v1.RegistryDiskSource":                        schema_kubevirt_pkg_api_v1_RegistryDiskSource(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.ResourceRequirements":                      schema_kubevirt_pkg_api_v1_ResourceRequirements(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.Rng":                                       schema_kubevirt_pkg_api_v1_Rng(ref),
 		"kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource":                        schema_kubevirt_pkg_api_v1_SecretVolumeSource(ref),
@@ -116,7 +118,7 @@ func schema_kubevirt_pkg_api_v1_CDRomTarget(ref common.ReferenceCallback) common
 				Properties: map[string]spec.Schema{
 					"bus": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Bus indicates the type of disk device to emulate. supported values: virtio, sata, scsi, ide.",
+							Description: "Bus indicates the type of disk device to emulate. supported values: virtio, sata, scsi.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -292,7 +294,7 @@ func schema_kubevirt_pkg_api_v1_CniNetwork(ref common.ReferenceCallback) common.
 				Properties: map[string]spec.Schema{
 					"networkName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "References to a NetworkAttachmentDefinition CRD object in the same namespace. In case of genie, it references the CNI plugin name.",
+							Description: "References to a NetworkAttachmentDefinition CRD object. Format: <networkName>, <namespace>/<networkName>. If namespace is not specified, VMI namespace is assumed. In case of genie, it references the CNI plugin name.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -326,6 +328,41 @@ func schema_kubevirt_pkg_api_v1_ConfigMapVolumeSource(ref common.ReferenceCallba
 						},
 					},
 				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_kubevirt_pkg_api_v1_ContainerDiskSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Represents a docker image with an embedded disk.",
+				Properties: map[string]spec.Schema{
+					"image": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Image is the name of the image with the embedded disk.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"imagePullSecret": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ImagePullSecret is the name of the Docker registry secret required to pull the image. The secret must already exist.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path defines the path to disk file in the container",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"image"},
 			},
 		},
 		Dependencies: []string{},
@@ -497,7 +534,7 @@ func schema_kubevirt_pkg_api_v1_Disk(ref common.ReferenceCallback) common.OpenAP
 					},
 					"cache": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Cache specifies which kvm disk cache mode should be used",
+							Description: "Cache specifies which kvm disk cache mode should be used.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -556,7 +593,7 @@ func schema_kubevirt_pkg_api_v1_DiskTarget(ref common.ReferenceCallback) common.
 				Properties: map[string]spec.Schema{
 					"bus": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Bus indicates the type of disk device to emulate. supported values: virtio, sata, scsi, ide.",
+							Description: "Bus indicates the type of disk device to emulate. supported values: virtio, sata, scsi.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -985,6 +1022,13 @@ func schema_kubevirt_pkg_api_v1_HostDisk(ref common.ReferenceCallback) common.Op
 							Ref:         ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
 						},
 					},
+					"shared": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Shared indicate whether the path is shared between nodes",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 				},
 				Required: []string{"path", "type"},
 			},
@@ -1082,6 +1126,16 @@ func schema_kubevirt_pkg_api_v1_Interface(ref common.ReferenceCallback) common.O
 							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.InterfaceSlirp"),
 						},
 					},
+					"masquerade": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.InterfaceMasquerade"),
+						},
+					},
+					"sriov": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.InterfaceSRIOV"),
+						},
+					},
 					"ports": {
 						SchemaProps: spec.SchemaProps{
 							Description: "List of ports to be forwarded to the virtual machine.",
@@ -1116,12 +1170,18 @@ func schema_kubevirt_pkg_api_v1_Interface(ref common.ReferenceCallback) common.O
 							Format:      "",
 						},
 					},
+					"dhcpOptions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "If specified the network interface will pass additional DHCP options to the VMI",
+							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.DHCPOptions"),
+						},
+					},
 				},
 				Required: []string{"name"},
 			},
 		},
 		Dependencies: []string{
-			"kubevirt.io/kubevirt/pkg/api/v1.InterfaceBridge", "kubevirt.io/kubevirt/pkg/api/v1.InterfaceSlirp", "kubevirt.io/kubevirt/pkg/api/v1.Port"},
+			"kubevirt.io/kubevirt/pkg/api/v1.DHCPOptions", "kubevirt.io/kubevirt/pkg/api/v1.InterfaceBridge", "kubevirt.io/kubevirt/pkg/api/v1.InterfaceMasquerade", "kubevirt.io/kubevirt/pkg/api/v1.InterfaceSRIOV", "kubevirt.io/kubevirt/pkg/api/v1.InterfaceSlirp", "kubevirt.io/kubevirt/pkg/api/v1.Port"},
 	}
 }
 
@@ -1141,15 +1201,47 @@ func schema_kubevirt_pkg_api_v1_InterfaceBindingMethod(ref common.ReferenceCallb
 							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.InterfaceSlirp"),
 						},
 					},
+					"masquerade": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.InterfaceMasquerade"),
+						},
+					},
+					"sriov": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("kubevirt.io/kubevirt/pkg/api/v1.InterfaceSRIOV"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"kubevirt.io/kubevirt/pkg/api/v1.InterfaceBridge", "kubevirt.io/kubevirt/pkg/api/v1.InterfaceSlirp"},
+			"kubevirt.io/kubevirt/pkg/api/v1.InterfaceBridge", "kubevirt.io/kubevirt/pkg/api/v1.InterfaceMasquerade", "kubevirt.io/kubevirt/pkg/api/v1.InterfaceSRIOV", "kubevirt.io/kubevirt/pkg/api/v1.InterfaceSlirp"},
 	}
 }
 
 func schema_kubevirt_pkg_api_v1_InterfaceBridge(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_kubevirt_pkg_api_v1_InterfaceMasquerade(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_kubevirt_pkg_api_v1_InterfaceSRIOV(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1197,7 +1289,7 @@ func schema_kubevirt_pkg_api_v1_LunTarget(ref common.ReferenceCallback) common.O
 				Properties: map[string]spec.Schema{
 					"bus": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Bus indicates the type of disk device to emulate. supported values: virtio, sata, scsi, ide.",
+							Description: "Bus indicates the type of disk device to emulate. supported values: virtio, sata, scsi.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1436,34 +1528,6 @@ func schema_kubevirt_pkg_api_v1_RTCTimer(ref common.ReferenceCallback) common.Op
 						},
 					},
 				},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
-func schema_kubevirt_pkg_api_v1_RegistryDiskSource(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "Represents a docker image with an embedded disk.",
-				Properties: map[string]spec.Schema{
-					"image": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Image is the name of the image with the embedded disk.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"imagePullSecret": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ImagePullSecret is the name of the Docker registry secret required to pull the image. The secret must already exist.",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-				Required: []string{"image"},
 			},
 		},
 		Dependencies: []string{},
@@ -1998,6 +2062,13 @@ func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceNetworkInterface(ref commo
 							Format:      "",
 						},
 					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the interface, corresponds to name of the network assigned to the interface",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -2398,6 +2469,18 @@ func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceSpec(ref common.ReferenceC
 							},
 						},
 					},
+					"livenessProbe": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Periodic probe of VirtualMachineInstance liveness. VirtualmachineInstances will be stopped if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes",
+							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.Probe"),
+						},
+					},
+					"readinessProbe": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Periodic probe of VirtualMachineInstance service readiness. VirtualmachineInstances will be removed from service endpoints if the probe fails. Cannot be updated. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes",
+							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.Probe"),
+						},
+					},
 					"hostname": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Specifies the hostname of the vmi If not specified, the hostname will be set to the name of the vmi, if dhcp or cloud-init is configured properly.",
@@ -2430,7 +2513,7 @@ func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceSpec(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.Affinity", "k8s.io/api/core/v1.Toleration", "kubevirt.io/kubevirt/pkg/api/v1.DomainSpec", "kubevirt.io/kubevirt/pkg/api/v1.Network", "kubevirt.io/kubevirt/pkg/api/v1.Volume"},
+			"k8s.io/api/core/v1.Affinity", "k8s.io/api/core/v1.Toleration", "kubevirt.io/kubevirt/pkg/api/v1.DomainSpec", "kubevirt.io/kubevirt/pkg/api/v1.Network", "kubevirt.io/kubevirt/pkg/api/v1.Probe", "kubevirt.io/kubevirt/pkg/api/v1.Volume"},
 	}
 }
 
@@ -2491,6 +2574,13 @@ func schema_kubevirt_pkg_api_v1_VirtualMachineInstanceStatus(ref common.Referenc
 						SchemaProps: spec.SchemaProps{
 							Description: "Represents the status of a live migration",
 							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.VirtualMachineInstanceMigrationState"),
+						},
+					},
+					"migrationMethod": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Represents the method using which the vmi can be migrated: live migration or block migration",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 				},
@@ -2685,10 +2775,10 @@ func schema_kubevirt_pkg_api_v1_Volume(ref common.ReferenceCallback) common.Open
 							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource"),
 						},
 					},
-					"registryDisk": {
+					"containerDisk": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RegistryDisk references a docker image, embedding a qcow or raw disk. More info: https://kubevirt.gitbooks.io/user-guide/registry-disk.html",
-							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.RegistryDiskSource"),
+							Description: "ContainerDisk references a docker image, embedding a qcow or raw disk. More info: https://kubevirt.gitbooks.io/user-guide/registry-disk.html",
+							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.ContainerDiskSource"),
 						},
 					},
 					"ephemeral": {
@@ -2732,7 +2822,7 @@ func schema_kubevirt_pkg_api_v1_Volume(ref common.ReferenceCallback) common.Open
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource", "kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.EmptyDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.EphemeralVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.HostDisk", "kubevirt.io/kubevirt/pkg/api/v1.RegistryDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.ServiceAccountVolumeSource"},
+			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource", "kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.ContainerDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.EmptyDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.EphemeralVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.HostDisk", "kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.ServiceAccountVolumeSource"},
 	}
 }
 
@@ -2760,10 +2850,10 @@ func schema_kubevirt_pkg_api_v1_VolumeSource(ref common.ReferenceCallback) commo
 							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource"),
 						},
 					},
-					"registryDisk": {
+					"containerDisk": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RegistryDisk references a docker image, embedding a qcow or raw disk. More info: https://kubevirt.gitbooks.io/user-guide/registry-disk.html",
-							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.RegistryDiskSource"),
+							Description: "ContainerDisk references a docker image, embedding a qcow or raw disk. More info: https://kubevirt.gitbooks.io/user-guide/registry-disk.html",
+							Ref:         ref("kubevirt.io/kubevirt/pkg/api/v1.ContainerDiskSource"),
 						},
 					},
 					"ephemeral": {
@@ -2806,7 +2896,7 @@ func schema_kubevirt_pkg_api_v1_VolumeSource(ref common.ReferenceCallback) commo
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource", "kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.EmptyDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.EphemeralVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.HostDisk", "kubevirt.io/kubevirt/pkg/api/v1.RegistryDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.ServiceAccountVolumeSource"},
+			"k8s.io/api/core/v1.PersistentVolumeClaimVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.CloudInitNoCloudSource", "kubevirt.io/kubevirt/pkg/api/v1.ConfigMapVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.ContainerDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.DataVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.EmptyDiskSource", "kubevirt.io/kubevirt/pkg/api/v1.EphemeralVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.HostDisk", "kubevirt.io/kubevirt/pkg/api/v1.SecretVolumeSource", "kubevirt.io/kubevirt/pkg/api/v1.ServiceAccountVolumeSource"},
 	}
 }
 

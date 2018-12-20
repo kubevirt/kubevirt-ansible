@@ -28,12 +28,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
-	openapispec "github.com/go-openapi/spec"
+	restful "github.com/emicklei/go-restful"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	flag "github.com/spf13/pflag"
-	"golang.org/x/net/context"
 	admissionregistrationv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	k8sv1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -45,19 +43,20 @@ import (
 	apiregistrationv1beta1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1beta1"
 	aggregatorclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
-	"kubevirt.io/kubevirt/pkg/feature-gates"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/healthz"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/rest/filter"
 	"kubevirt.io/kubevirt/pkg/service"
 	"kubevirt.io/kubevirt/pkg/util"
+	"kubevirt.io/kubevirt/pkg/util/openapi"
 	"kubevirt.io/kubevirt/pkg/version"
 	"kubevirt.io/kubevirt/pkg/virt-api/rest"
 	"kubevirt.io/kubevirt/pkg/virt-api/webhooks"
-	"kubevirt.io/kubevirt/pkg/virt-api/webhooks/mutating-webhook"
-	"kubevirt.io/kubevirt/pkg/virt-api/webhooks/validating-webhook"
+	mutating_webhook "kubevirt.io/kubevirt/pkg/virt-api/webhooks/mutating-webhook"
+	validating_webhook "kubevirt.io/kubevirt/pkg/virt-api/webhooks/validating-webhook"
+	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 )
 
 const (
@@ -126,7 +125,7 @@ func NewVirtApi() VirtApi {
 }
 
 func (app *virtAPIApp) Execute() {
-	featuregates.ParseFeatureGatesFromConfigMap()
+	virtconfig.Init()
 
 	virtCli, err := kubecli.GetKubevirtClient()
 	if err != nil {
@@ -156,56 +155,6 @@ func (app *virtAPIApp) Execute() {
 	app.Run()
 }
 
-func (app *virtAPIApp) composeResources(ctx context.Context) {
-
-	vmiGVR := schema.GroupVersionResource{Group: v1.GroupVersion.Group, Version: v1.GroupVersion.Version, Resource: "virtualmachineinstances"}
-	vmirsGVR := schema.GroupVersionResource{Group: v1.GroupVersion.Group, Version: v1.GroupVersion.Version, Resource: "virtualmachineinstancereplicasets"}
-	vmipGVR := schema.GroupVersionResource{Group: v1.GroupVersion.Group, Version: v1.GroupVersion.Version, Resource: "virtualmachineinstancepresets"}
-	vmGVR := schema.GroupVersionResource{Group: v1.GroupVersion.Group, Version: v1.GroupVersion.Version, Resource: "virtualmachines"}
-
-	ws, err := rest.GroupVersionProxyBase(ctx, v1.GroupVersion)
-	if err != nil {
-		panic(err)
-	}
-
-	ws, err = rest.GenericResourceProxy(ws, ctx, vmiGVR, &v1.VirtualMachineInstance{}, v1.VirtualMachineInstanceGroupVersionKind.Kind, &v1.VirtualMachineInstanceList{})
-	if err != nil {
-		panic(err)
-	}
-
-	ws, err = rest.GenericResourceProxy(ws, ctx, vmirsGVR, &v1.VirtualMachineInstanceReplicaSet{}, v1.VirtualMachineInstanceReplicaSetGroupVersionKind.Kind, &v1.VirtualMachineInstanceReplicaSetList{})
-	if err != nil {
-		panic(err)
-	}
-
-	ws, err = rest.GenericResourceProxy(ws, ctx, vmipGVR, &v1.VirtualMachineInstancePreset{}, v1.VirtualMachineInstancePresetGroupVersionKind.Kind, &v1.VirtualMachineInstancePresetList{})
-	if err != nil {
-		panic(err)
-	}
-
-	ws, err = rest.GenericResourceProxy(ws, ctx, vmGVR, &v1.VirtualMachine{}, v1.VirtualMachineGroupVersionKind.Kind, &v1.VirtualMachineList{})
-	if err != nil {
-		panic(err)
-	}
-
-	restful.Add(ws)
-
-	ws.Route(ws.GET("/healthz").
-		To(healthz.KubeConnectionHealthzFunc).
-		Consumes(restful.MIME_JSON).
-		Produces(restful.MIME_JSON).
-		Operation("checkHealth").
-		Doc("Health endpoint").
-		Returns(http.StatusOK, "OK", nil).
-		Returns(http.StatusInternalServerError, "Unhealthy", nil))
-	ws, err = rest.ResourceProxyAutodiscovery(ctx, vmiGVR)
-	if err != nil {
-		panic(err)
-	}
-
-	restful.Add(ws)
-}
-
 func subresourceAPIGroup() metav1.APIGroup {
 	apiGroup := metav1.APIGroup{
 		Name: "subresource.kubevirt.io",
@@ -226,8 +175,9 @@ func subresourceAPIGroup() metav1.APIGroup {
 	return apiGroup
 }
 
-func (app *virtAPIApp) composeSubresources(ctx context.Context) {
+func (app *virtAPIApp) composeSubresources() {
 
+	subresourcesvmGVR := schema.GroupVersionResource{Group: v1.SubresourceGroupVersion.Group, Version: v1.SubresourceGroupVersion.Version, Resource: "virtualmachines"}
 	subresourcesvmiGVR := schema.GroupVersionResource{Group: v1.SubresourceGroupVersion.Group, Version: v1.SubresourceGroupVersion.Version, Resource: "virtualmachineinstances"}
 
 	subws := new(restful.WebService)
@@ -237,6 +187,14 @@ func (app *virtAPIApp) composeSubresources(ctx context.Context) {
 	subresourceApp := &rest.SubresourceAPIApp{
 		VirtCli: app.virtCli,
 	}
+
+	subws.Route(subws.PUT(rest.ResourcePath(subresourcesvmGVR)+rest.SubResourcePath("restart")).
+		To(subresourceApp.RestartVMRequestHandler).
+		Param(rest.NamespaceParam(subws)).Param(rest.NameParam(subws)).
+		Operation("restart").
+		Doc("Restart a VirtualMachine object.").
+		Returns(http.StatusOK, "OK", nil).
+		Returns(http.StatusNotFound, "Not Found", nil))
 
 	subws.Route(subws.GET(rest.ResourcePath(subresourcesvmiGVR) + rest.SubResourcePath("console")).
 		To(subresourceApp.ConsoleRequestHandler).
@@ -262,6 +220,15 @@ func (app *virtAPIApp) composeSubresources(ctx context.Context) {
 		To(func(request *restful.Request, response *restful.Response) {
 			response.WriteAsJson(version.Get())
 		}).Operation("version"))
+
+	subws.Route(subws.GET(rest.SubResourcePath("healthz")).
+		To(healthz.KubeConnectionHealthzFunc).
+		Consumes(restful.MIME_JSON).
+		Produces(restful.MIME_JSON).
+		Operation("checkHealth").
+		Doc("Health endpoint").
+		Returns(http.StatusOK, "OK", nil).
+		Returns(http.StatusInternalServerError, "Unhealthy", nil))
 
 	// Return empty api resource list.
 	// K8s expects to be able to retrieve a resource list for each aggregated
@@ -318,12 +285,8 @@ func (app *virtAPIApp) composeSubresources(ctx context.Context) {
 }
 
 func (app *virtAPIApp) Compose() {
-	ctx := context.Background()
 
-	if !app.SubresourcesOnly {
-		app.composeResources(ctx)
-	}
-	app.composeSubresources(ctx)
+	app.composeSubresources()
 
 	restful.Filter(filter.RequestLoggingFilter())
 	restful.Filter(restful.OPTIONSFilter())
@@ -344,47 +307,8 @@ func (app *virtAPIApp) Compose() {
 }
 
 func (app *virtAPIApp) ConfigureOpenAPIService() {
-	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(CreateOpenAPIConfig()))
+	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(openapi.CreateOpenAPIConfig(restful.RegisteredWebServices())))
 	http.Handle("/swagger-ui/", http.StripPrefix("/swagger-ui/", http.FileServer(http.Dir(app.SwaggerUI))))
-}
-
-func CreateOpenAPIConfig() restfulspec.Config {
-	return restfulspec.Config{
-		WebServices:    restful.RegisteredWebServices(),
-		WebServicesURL: "",
-		APIPath:        "/swaggerapi",
-		PostBuildSwaggerObjectHandler: addInfoToSwaggerObject,
-	}
-}
-
-func addInfoToSwaggerObject(swo *openapispec.Swagger) {
-	swo.Info = &openapispec.Info{
-		InfoProps: openapispec.InfoProps{
-			Title:       "KubeVirt API",
-			Description: "This is KubeVirt API an add-on for Kubernetes.",
-			Contact: &openapispec.ContactInfo{
-				Name:  "kubevirt-dev",
-				Email: "kubevirt-dev@googlegroups.com",
-				URL:   "https://github.com/kubevirt/kubevirt",
-			},
-			License: &openapispec.License{
-				Name: "Apache 2.0",
-				URL:  "https://www.apache.org/licenses/LICENSE-2.0",
-			},
-		},
-	}
-	swo.SecurityDefinitions = openapispec.SecurityDefinitions{
-		"BearerToken": &openapispec.SecurityScheme{
-			SecuritySchemeProps: openapispec.SecuritySchemeProps{
-				Type:        "apiKey",
-				Name:        "authorization",
-				In:          "header",
-				Description: "Bearer Token authentication",
-			},
-		},
-	}
-	swo.Security = make([]map[string][]string, 1)
-	swo.Security[0] = map[string][]string{"BearerToken": {}}
 }
 
 func deserializeStrings(in string) ([]string, error) {
@@ -956,7 +880,7 @@ func (app *virtAPIApp) startTLS() error {
 
 	tlsConfig := &tls.Config{
 		ClientCAs: pool,
-		// A RequestClientCert request means we're not guaranteed
+		// A VerifyClientCertIfGiven request means we're not guaranteed
 		// a client has been authenticated unless they provide a peer
 		// cert.
 		//
@@ -971,7 +895,7 @@ func (app *virtAPIApp) startTLS() error {
 		// response is given. That status request won't send a peer cert regardless
 		// if the TLS handshake requests it. As a result, the TLS handshake fails
 		// and our aggregated endpoint never becomes available.
-		ClientAuth: tls.RequestClientCert,
+		ClientAuth: tls.VerifyClientCertIfGiven,
 	}
 	tlsConfig.BuildNameToCertificate()
 

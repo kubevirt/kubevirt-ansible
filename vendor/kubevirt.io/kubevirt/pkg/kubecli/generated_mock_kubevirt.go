@@ -7,6 +7,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
+	versioned "github.com/k8snetworkplumbingwg/network-attachment-definition-client/pkg/client/clientset/versioned"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	discovery "k8s.io/client-go/discovery"
@@ -41,7 +42,7 @@ import (
 	v1beta110 "k8s.io/client-go/kubernetes/typed/storage/v1beta1"
 	rest "k8s.io/client-go/rest"
 
-	versioned "kubevirt.io/containerized-data-importer/pkg/client/clientset/versioned"
+	versioned0 "kubevirt.io/containerized-data-importer/pkg/client/clientset/versioned"
 	v19 "kubevirt.io/kubevirt/pkg/api/v1"
 )
 
@@ -126,14 +127,24 @@ func (_mr *_MockKubevirtClientRecorder) RestClient() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "RestClient")
 }
 
-func (_m *MockKubevirtClient) CdiClient() versioned.Interface {
+func (_m *MockKubevirtClient) CdiClient() versioned0.Interface {
 	ret := _m.ctrl.Call(_m, "CdiClient")
-	ret0, _ := ret[0].(versioned.Interface)
+	ret0, _ := ret[0].(versioned0.Interface)
 	return ret0
 }
 
 func (_mr *_MockKubevirtClientRecorder) CdiClient() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "CdiClient")
+}
+
+func (_m *MockKubevirtClient) NetworkClient() versioned.Interface {
+	ret := _m.ctrl.Call(_m, "NetworkClient")
+	ret0, _ := ret[0].(versioned.Interface)
+	return ret0
+}
+
+func (_mr *_MockKubevirtClientRecorder) NetworkClient() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "NetworkClient")
 }
 
 func (_m *MockKubevirtClient) Discovery() discovery.DiscoveryInterface {
@@ -995,6 +1006,16 @@ func (_m *MockVirtualMachineInterface) Patch(name string, pt types.PatchType, da
 func (_mr *_MockVirtualMachineInterfaceRecorder) Patch(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
 	_s := append([]interface{}{arg0, arg1, arg2}, arg3...)
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "Patch", _s...)
+}
+
+func (_m *MockVirtualMachineInterface) Restart(name string) error {
+	ret := _m.ctrl.Call(_m, "Restart", name)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockVirtualMachineInterfaceRecorder) Restart(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "Restart", arg0)
 }
 
 // Mock of VirtualMachineInstanceMigrationInterface interface

@@ -23,12 +23,13 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"time"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/cheggaaa/pb.v1"
-	"k8s.io/api/core/v1"
+	pb "gopkg.in/cheggaaa/pb.v1"
+	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,7 +117,7 @@ func NewImageUploadCommand(clientConfig clientcmd.ClientConfig) *cobra.Command {
 
 func usage() string {
 	usage := `  # Upload a local disk image to a newly created PersistentVolumeClaim:
-	virtctl image-upload --upload-proxy-url=https://cdi-uploadproxy.mycluster.com --pvc-name=upload-pvc --pvc-size=10Gi --image-path=/images/fedora28.qcow2`
+	virtctl image-upload --uploadproxy-url=https://cdi-uploadproxy.mycluster.com --pvc-name=upload-pvc --pvc-size=10Gi --image-path=/images/fedora28.qcow2`
 	return usage
 }
 
@@ -171,7 +172,12 @@ func (c *command) run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-
+	u, err := url.Parse(uploadProxyURL)
+	if err != nil {
+		return err
+	} else if u.Scheme == "" {
+		uploadProxyURL = fmt.Sprintf("http://%s", uploadProxyURL)
+	}
 	fmt.Printf("Uploading data to %s\n", uploadProxyURL)
 
 	err = uploadData(uploadProxyURL, token, file, insecure)

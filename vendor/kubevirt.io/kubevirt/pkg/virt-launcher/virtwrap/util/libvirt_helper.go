@@ -11,11 +11,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/libvirt/libvirt-go"
+	libvirt "github.com/libvirt/libvirt-go"
 	k8sv1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
@@ -89,14 +89,9 @@ func ConvReason(status libvirt.DomainState, reason int) api.StateChangeReason {
 	}
 }
 
-func SetDomainSpec(virConn cli.Connection, vmi *v1.VirtualMachineInstance, wantedSpec api.DomainSpec) (cli.VirDomain, error) {
-	xmlStr, err := xml.Marshal(&wantedSpec)
-	if err != nil {
-		log.Log.Object(vmi).Reason(err).Error("Generating the domain XML failed.")
-		return nil, err
-	}
-	log.Log.Object(vmi).V(3).With("xml", string(xmlStr)).Info("Domain XML generated.")
-	dom, err := virConn.DomainDefineXML(string(xmlStr))
+func SetDomainSpecStr(virConn cli.Connection, vmi *v1.VirtualMachineInstance, wantedSpec string) (cli.VirDomain, error) {
+	log.Log.Object(vmi).V(3).With("xml", wantedSpec).Info("Domain XML generated.")
+	dom, err := virConn.DomainDefineXML(wantedSpec)
 	if err != nil {
 		log.Log.Object(vmi).Reason(err).Error("Defining the VirtualMachineInstance failed.")
 		return nil, err
@@ -104,10 +99,42 @@ func SetDomainSpec(virConn cli.Connection, vmi *v1.VirtualMachineInstance, wante
 	return dom, nil
 }
 
+// GetDomainSpecWithRuntimeInfo return the active domain XML with runtime information embedded
+func GetDomainSpecWithRuntimeInfo(status libvirt.DomainState, dom cli.VirDomain) (*api.DomainSpec, error) {
+
+	// get libvirt xml with runtime status
+	activeSpec, err := GetDomainSpecWithFlags(dom, 0)
+	if err != nil {
+		log.Log.Reason(err).Error("failed to get domain spec")
+		return nil, err
+	}
+
+	metadataXML, err := dom.GetMetadata(libvirt.DOMAIN_METADATA_ELEMENT, "http://kubevirt.io", libvirt.DOMAIN_AFFECT_CONFIG)
+	if err != nil {
+		log.Log.Reason(err).Error("failed to get domain metadata")
+		return activeSpec, err
+	}
+
+	metadata := &api.KubeVirtMetadata{}
+	err = xml.Unmarshal([]byte(metadataXML), metadata)
+	if err != nil {
+		log.Log.Reason(err).Error("failed to unmarshal domain metadata")
+		return activeSpec, err
+	}
+
+	activeSpec.Metadata.KubeVirt = *metadata
+	return activeSpec, nil
+}
+
+// GetDomainSpec return the domain XML without runtime information.
+// The result XML is merged from inactive XML and migratable XML.
 func GetDomainSpec(status libvirt.DomainState, dom cli.VirDomain) (*api.DomainSpec, error) {
 
-	var spec *api.DomainSpec
-	inactiveSpec, err := GetDomainSpecWithFlags(dom, libvirt.DOMAIN_XML_INACTIVE)
+	var spec, inactiveSpec *api.DomainSpec
+	var err error
+
+	inactiveSpec, err = GetDomainSpecWithFlags(dom, libvirt.DOMAIN_XML_INACTIVE)
+
 	if err != nil {
 		return nil, err
 	}

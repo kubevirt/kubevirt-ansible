@@ -28,6 +28,10 @@ import:
   version: v2.6.0
   subpackages:
   - log
+- package: github.com/k8snetworkplumbingwg/network-attachment-definition-client
+  version: 379ff533bf290f5bd6a5dfed0ca382cc3c7cc8d2
+  repo: https://github.com/booxter/network-attachment-definition-client.git
+  vcs: git
 - package: github.com/ghodss/yaml
   version: v1.0.0
 - package: github.com/evanphx/json-patch
@@ -45,11 +49,24 @@ import:
 - package: github.com/emicklei/go-restful-openapi
   version: 7712e8a6e8096e7103b96a400519d38fb1e348f8
 - package: github.com/go-openapi/spec
+  version: v0.17.0
+- package: github.com/go-openapi/validate
+  version: v0.17.0
+- package: github.com/go-openapi/errors
+  version: v0.17.0
+- package: github.com/go-openapi/analysis
+  version: v0.17.0
+- package: github.com/go-openapi/strfmt
+  version: v0.17.0
+- package: github.com/go-openapi/loads
+  version: v0.17.0
+- package: github.com/go-openapi/runtime
+  version: v0.17.0
 - package: github.com/emicklei/go-restful-swagger12
 - package: github.com/vishvananda/netlink
   version: d35d6b58e1cb692b27b94fc403170bf44058ac3e
 - package: github.com/libvirt/libvirt-go
-  version: v4.6.0
+  version: v4.8.0
 - package: github.com/gorilla/websocket
   version: 0647012449a1878977514a346b26637dd022446c
 - package: google.golang.org/grpc
@@ -96,3 +113,4 @@ testImport:
 - package: github.com/google/goterm
 - package: github.com/krolaw/dhcp4
 - package: github.com/subgraph/libmacouflage
+- package: github.com/coreos/go-iptables
