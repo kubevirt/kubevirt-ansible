@@ -4,7 +4,7 @@ __Tools to provision resources, deploy clusters and install KubeVirt.__
 
 ## Overview
 
-KubeVirt Ansible consists of a set of Ansible playbooks that deploy fully functional virtual machine management add-on for Kubernetes - KubeVirt. Optionally, a KubeVirt or OpenShift cluster can also be configured.
+KubeVirt Ansible consists of a set of Ansible playbooks that deploy fully functional virtual machine management add-on for Kubernetes - KubeVirt. Optionally, a Kuberenetes or OpenShift cluster can also be configured.
 
 ## Contents
 
