@@ -3,7 +3,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: {{ sriovcni_provisioner_name }}
-  namespace: {{ namespace }}
+  namespace: {{ network_namespace }}
   labels:
     tier: node
     app: sriov-cni

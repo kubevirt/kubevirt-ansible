@@ -7,7 +7,7 @@ Deploy KubeVirt resources onto a cluster.
 |:-------------|:-------------|:----------|:----------|
 |admin_user|   | _optional_ |User with cluster-admin permissions.|
 |admin_password| |_optional_|Password for **admin_user**.|
-|cluster|openshift |<ul><li>openshift</li><li>kubernetes</li></ul>|Cluster type.|
+|platform|openshift |<ul><li>openshift</li><li>kubernetes</li></ul>|Cluster type.|
 |namespace|kubevirt | |Namespace to create resources.|
 |apb_action|provision| <ul><li>provision</li><li>deprovision</li></ul>|Action to perform.|
 |release_manifest_url|https://github.com/kubevirt/kubevirt/releases|||

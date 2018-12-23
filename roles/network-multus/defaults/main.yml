@@ -1,9 +1,6 @@
-namespace: "kube-system"
-cluster: "openshift"
-apb_action: "provision"
-
 registry_url: "docker.io"
 registry_namespace: "kubevirt"
+network_namespace: "kube-system"
 docker_tag: "v0.12.0-alpha.2"
 
 multus_provisioner_name: "kube-multus-amd64"
@@ -33,10 +30,6 @@ sriovcni_provisioner_repo: "docker.io/nfvpe/sriov-cni"
 sriovcni_provisioner_release: "latest"
 
 sriov_crd_name: "sriov-net"
-
-deploy_cni_plugins: true
-deploy_ovs_plugin: true
-deploy_sriov_plugin: true
 
 openshift_cni_config: |
   '{

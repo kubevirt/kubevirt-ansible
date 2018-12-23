@@ -1,4 +1,4 @@
-namespace: "kube-system"
+storage_namespace: "kube-system"
 cdi_namespace: "{{ cdi_image_namespace | default('kube-system') }}"
 cluster: "openshift"
 cinder_provisioner_repo: "quay.io/aglitke"

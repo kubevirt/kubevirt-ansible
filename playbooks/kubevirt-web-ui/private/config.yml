@@ -1,6 +1,6 @@
 ---
 - name: Kubevirt Web UI Install Checkpoint Start
-  hosts: all
+  hosts: localhost
   gather_facts: False
   tasks:
   - name: Set Console install 'In Progress'
@@ -12,21 +12,19 @@
           playbook: "playbooks/kubevirt-web-ui/config.yml"
           status: "In Progress"
           start: "{{ lookup('pipe', 'date +%Y%m%d%H%M%SZ') }}"
-    when: platform == "openshift"
 
 - name: Kubevirt Web UI
   # hosts: oo_first_master
-  hosts: masters[0]
+  hosts: localhost
   gather_facts: False
   vars:
     first_master: "{{ masters[0] }}"
   tasks:
   - import_role:
       name: kubevirt_web_ui
-    when: platform == "openshift"
 
 - name: Kubevirt Web UI Install Checkpoint End
-  hosts: all
+  hosts: localhost
   gather_facts: False
   tasks:
   - name: Set Console install 'Complete'
@@ -36,4 +34,3 @@
         installer_phase_console:
           status: "Complete"
           end: "{{ lookup('pipe', 'date +%Y%m%d%H%M%SZ') }}"
-    when: platform == "openshift"

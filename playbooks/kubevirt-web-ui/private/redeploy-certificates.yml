@@ -1,6 +1,7 @@
 ---
 - name: Update console certificates
-  hosts: oo_first_master
+  hosts: localhost
+  connection: local
   vars:
   roles:
   - lib_openshift

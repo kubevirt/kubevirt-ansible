@@ -1,46 +1,29 @@
 ---
-- name: oc Command
-  set_fact:
-    cluster_command: oc
-  when: platform=="openshift"
-
-- name: kubectl Command
-  set_fact:
-    cluster_command: kubectl
-  when: platform=="kubernetes"
-
-- name: Check if namespace "{{ namespace }}" exists
-  shell: "{{ cluster_command }} get ns | grep -w {{ namespace }} | awk \'{ print $1 }\'"
+- name: Check if namespace "{{ network_namespace }}" exists
+  shell: "{{ cluster_command }} get ns | grep -w {{ network_namespace }} | awk \'{ print $1 }\'"
   register: ns
 
-- name: Create {{ namespace }} namespace
-  shell: kubectl create namespace {{ namespace }}
-  when: ns.stdout != namespace
+- name: Create {{ network_namespace }} namespace
+  shell: "{{ cluster_command }} create namespace {{ network_namespace }}"
+  when: ns.stdout != network_namespace
 
-- name: check if the CRD is already deployed
-  shell: "{{ cluster_command }} get crd --no-headers | grep network-attachment-definitions.k8s.cni.cncf.io | wc -l"
-  register: crd
+- name: openshift cni config
+  set_fact:
+    cni_config: "{{ openshift_cni_config }}"
+  when: platform=="openshift"
 
-- name: Deploy Multus
-  block:
-  - name: openshift cni config
-    set_fact:
-      cni_config: "{{ openshift_cni_config }}"
-    when: platform=="openshift"
+- name: kubernetes cni config
+  set_fact:
+    cni_config: "{{ kubernetes_cni_config }}"
+  when: platform=="kubernetes"
 
-  - name: kubernetes cni config
-    set_fact:
-      cni_config: "{{ kubernetes_cni_config }}"
-    when: platform=="kubernetes"
+- name: Render multus deployment yaml
+  template:
+    src: multus.yml
+    dest: /tmp/multus.yml
 
-  - name: Render multus deployment yaml
-    template:
-      src: multus.yml
-      dest: /tmp/multus.yml
-
-  - name: Create multus Resources
-    shell: "{{ cluster_command }} apply -f /tmp/multus.yml"
-  when: crd.stdout=="0"
+- name: Create multus Resources
+  shell: "{{ cluster_command }} apply -f /tmp/multus.yml"
 
 - name: Deploy CNI plugins
   block:
@@ -108,14 +91,14 @@
   when: deploy_sriov_plugin
 
 - name: Wait until multus is running
-  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ multus_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ multus_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
   retries: 20
   delay: 5
 
 - name: Wait until CNI plugins are running
-  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ cni_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ cni_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
   retries: 20
@@ -123,7 +106,7 @@
   when: deploy_cni_plugins
 
 - name: Wait until OVS Plugin is running
-  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ ovs_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ ovs_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
   retries: 20
@@ -131,7 +114,7 @@
   when: deploy_ovs_plugin
 
 - name: Wait until SR-IOV DP plugin is running
-  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ sriovdp_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ sriovdp_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
   retries: 20
@@ -139,7 +122,7 @@
   when: deploy_sriov_plugin
 
 - name: Wait until SR-IOV CNI plugin is running
-  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep {{ sriovcni_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ sriovcni_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
   retries: 20

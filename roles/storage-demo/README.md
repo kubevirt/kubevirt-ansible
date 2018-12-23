@@ -10,7 +10,7 @@ kubernetes resources are created to interface with the cluster.
 ### Role Variables
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-|namespace | kube-system |  |Namespace into which the storage-demo components should be installed.|
+|storage_namespace | kube-system |  |Namespace into which the storage-demo components should be installed.|
 |cluster|openshift|<ul><li>openshift</li><li>kubernetes</li></ul> |Cluster type.|
 |cinder_provisioner_repo|quay.io/aglitke| |Repository containing the Cinder provisioner.| 
 |cinder_provisioner_release|sprint4| |Docker image tag to use for the Cinder provisioner.|

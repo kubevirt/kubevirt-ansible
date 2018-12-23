@@ -48,19 +48,19 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: multus
-  namespace: {{ namespace }}
+  namespace: {{ network_namespace }}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: multus
-  namespace: {{ namespace }}
+  namespace: {{ network_namespace }}
 ---
 kind: ConfigMap
 apiVersion: v1
 metadata:
   name: multus-cni-config
-  namespace: {{ namespace }}
+  namespace: {{ network_namespace }}
   labels:
     tier: node
     app: multus
@@ -71,7 +71,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: {{ multus_provisioner_name }}
-  namespace: {{ namespace }}
+  namespace: {{ network_namespace }}
   labels:
     tier: node
     app: multus

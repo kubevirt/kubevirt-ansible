@@ -2,7 +2,7 @@ apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
   name: {{ sriov_crd_name }}
-  namespace: {{ namespace }}
+  namespace: {{ network_namespace }}
   annotations:
     k8s.v1.cni.cncf.io/resourceName: intel.com/sriov
 spec:

@@ -205,12 +205,12 @@ run() {
     args+=(
         "provider=$provider"
         "inventory_file=$inventory_file"
-        "cluster=$cluster"
         "ansible_modules_version=$ansible_modules_version"
         "kubevirt_openshift_version=$kubevirt_openshift_version"
         "openshift_playbook_path=$openshift_playbook_path"
-        "deploy_skydive=False"
-	"storage_role=$storage_role"
+        "storage_role=$storage_role"
+        "cluster=$cluster"
+        "platform=$cluster"
     )
 
     timeout \
@@ -223,6 +223,7 @@ run() {
         -u root \
         -i "$inventory_file" \
         -v \
+        -e@vars/all.yml \
         -e "${args[*]}" \
         playbooks/automation/check-patch.yml
 
@@ -241,6 +242,7 @@ run() {
         -u root \
         -i "$inventory_file" \
         -v \
+        -e@vars/all.yml \
         -e "apb_action=deprovision" \
         -e "${args[*]}" \
         playbooks/automation/deprovision.yml

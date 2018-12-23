@@ -1,6 +1,6 @@
 ---
 - name: Check if namespace "{{ skydive_namespace }}" exists
-  shell: "kubectl get ns | grep -w {{ skydive_namespace }} | awk \'{ print $1 }\'"
+  shell: "{{ cluster_command }} get ns | grep -w {{ skydive_namespace }} | awk \'{ print $1 }\'"
   register: ns
 
 - name: Create {{ skydive_namespace }} namespace on the kubernetes cluster
@@ -52,14 +52,14 @@
   when: platform=="kubernetes"
 
 - name: Wait until skydive analyzer is running
-  shell: "kubectl -n {{ skydive_namespace }} get {{ analyzer_resource }} --no-headers skydive-analyzer | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  shell: "{{ cluster_command }} -n {{ skydive_namespace }} get {{ analyzer_resource }} --no-headers skydive-analyzer | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
   retries: 20
   delay: 5
 
 - name: Wait until skydive agent is running
-  shell: "kubectl -n {{ skydive_namespace }} get daemonset --no-headers skydive-agent | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  shell: "{{ cluster_command }} -n {{ skydive_namespace }} get daemonset --no-headers skydive-agent | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
   retries: 50

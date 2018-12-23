@@ -3,7 +3,7 @@ apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
   name: {{ origin_node_provisioner_name }}
-  namespace: {{ namespace }}
+  namespace: {{ network_namespace }}
   labels:
     tier: node
     app: ovs-cni-plugin

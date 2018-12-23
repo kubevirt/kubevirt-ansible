@@ -12,8 +12,8 @@ defaults/main.yml
 ### Role Variables
 | variable       | default           |choices           | comments  |
 |:-------------|:-------------|:----------|:----------|
-|namespace | kube-system |  |Namespace into which the multus and cni plugins components should be installed.|
-|cluster|openshift|<ul><li>openshift</li><li>kubernetes</li></ul> |Cluster type.|
+| network_namespace | kube-system |  |Namespace into which the multus and cni plugins components should be installed.|
+|platform|openshift|<ul><li>openshift</li><li>kubernetes</li></ul> |Cluster type.|
 
 
 ### Usage
