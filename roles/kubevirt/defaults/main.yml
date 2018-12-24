@@ -1,4 +1,4 @@
-namespace: "kube-system"
+namespace: "kubevirt"
 registry_url: "docker.io"
 registry_namespace: "kubevirt"
 docker_prefix: "{{ registry_url }}/{{ registry_namespace }}"
