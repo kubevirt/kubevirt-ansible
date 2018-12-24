@@ -1,8 +1,8 @@
 ---
 #### Verify/set kubevirt-web-ui image:tag
 
-- set_fact: kubevirt_web_ui_image_tag="v1.3.0"
-  when: version is defined and "0.9." in version
+- set_fact: kubevirt_web_ui_image_tag="v1.4.1"
+  when: version is defined and "0.12." in version
 
 - set_fact: kubevirt_web_ui_image_tag="v{{ docker_tag }}"
   when: docker_tag is defined
