@@ -1,6 +1,5 @@
 ### Cluster ###
 cluster: openshift
-namespace: kube-system
 
 # OpenShift #
 kubevirt_openshift_version: "3.10"
