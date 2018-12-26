@@ -205,6 +205,7 @@ run() {
     args+=(
         "provider=$provider"
         "inventory_file=$inventory_file"
+        "cluster=$cluster"
         "ansible_modules_version=$ansible_modules_version"
         "kubevirt_openshift_version=$kubevirt_openshift_version"
         "openshift_playbook_path=$openshift_playbook_path"

@@ -2,4 +2,4 @@ skydive_namespace: "skydive"
 platform: "openshift"
 apb_action: "provision"
 deploy_skydive: False
-es_java_opts: "-Xms512m -Xmx512m"
+es_java_opts: "-Xms256m -Xmx256m"
