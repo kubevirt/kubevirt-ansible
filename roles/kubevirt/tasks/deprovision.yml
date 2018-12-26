@@ -59,12 +59,16 @@
     dest: "/tmp/kubevirt.yaml"
   when: kubevirt_template.stat.exists == False
 
+- name: Delete apiservices v1alpha2.subresources.kubevirt.io
+  command: kubectl -n {{ namespace }} delete apiservices v1alpha2.subresources.kubevirt.io
+
 - name: Delete KubeVirt Resources
   command: kubectl delete -f /tmp/kubevirt.yaml --ignore-not-found=true --wait=false
 
-- name: Wait until {{ namespace }} will dissappear
+- name: Wait until {{ namespace }} namespace will dissappear
   shell: kubectl get ns | grep -w {{ namespace }}
   register: result
   until: result.rc != 0
   retries: 12
   delay: 10
+  ignore_errors: yes
