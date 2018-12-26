@@ -12,8 +12,8 @@ One of following must be set:
   - `registry_url` example: quay.io
   - `registry_namespace` example: kubevirt
   - one of following:
-    - `docker_tag` example: 1.3.0-3 or 1.3 (note: there's no 'v' preffixed)
-    - `version`  example: 0.9.6
+    - `docker_tag` example: 1.4.0-3 or 1.4 (note: there's no 'v' preffixed)
+    - `version`  example: 0.12.0-alpha.2
 
 ### Required Variables
 - `platform`
@@ -39,9 +39,9 @@ Please check `playbooks/kubevirt-web-ui/inventory_example.ini` for an example.
 
 ### Invocation examples
 ```
-ansible-playbook -i your_inventory_file.ini playbooks/kubevirt-web-ui/config.yml -e "apb_action=provision platform=openshift registry_url=quay.io registry_namespace=kubevirt docker_tag=1.3" # to mimic kubevirt-apb flow
+ansible-playbook -i your_inventory_file.ini playbooks/kubevirt-web-ui/config.yml -e "apb_action=provision platform=openshift registry_url=quay.io registry_namespace=kubevirt docker_tag=v1.4.0" # to mimic kubevirt-apb flow
 ansible-playbook -i your_inventory_file.ini playbooks/kubevirt-web-ui/config.yml -e "apb_action=provision platform=openshift registry_url=quay.io registry_namespace=kubevirt"  # for :latest image tag
-ansible-playbook -i your_inventory_file.ini playbooks/kubevirt-web-ui/config.yml -e "apb_action=provision platform=openshift registry_url=quay.io registry_namespace=kubevirt version=0.9.6" # for automatic tag association or :latest as default
+ansible-playbook -i your_inventory_file.ini playbooks/kubevirt-web-ui/config.yml -e "apb_action=provision platform=openshift registry_url=quay.io registry_namespace=kubevirt version=0.12.0-alpha.2" # for automatic tag association or :latest as default
 
 ansible-playbook -i your_inventory_file.ini playbooks/kubevirt-web-ui/config.yml -e "apb_action=deprovision platform=openshift kubevirt_web_ui_image_name=whatever"
 ```

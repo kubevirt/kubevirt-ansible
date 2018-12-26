@@ -30,8 +30,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sfield "k8s.io/apimachinery/pkg/util/validation/field"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
-	"kubevirt.io/kubevirt/pkg/virt-api/webhooks/validating-webhook"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
+	validating_webhook "kubevirt.io/kubevirt/pkg/virt-api/webhooks/validating-webhook"
 	"kubevirt.io/kubevirt/tools/vms-generator/utils"
 )
 
@@ -42,7 +42,7 @@ func main() {
 	flag.Parse()
 
 	// Required to validate DataVolume usage
-	os.Setenv("FEATURE_GATES", "DataVolumes,LiveMigration")
+	os.Setenv("FEATURE_GATES", "DataVolumes,LiveMigration,SRIOV")
 
 	var vms = map[string]*v1.VirtualMachine{
 		utils.VmCirros:           utils.GetVMCirros(),
@@ -61,11 +61,13 @@ func main() {
 		utils.VmiBlockPVC:          utils.GetVMIBlockPvc(),
 		utils.VmiWindows:           utils.GetVMIWindows(),
 		utils.VmiSlirp:             utils.GetVMISlirp(),
+		utils.VmiSRIOV:             utils.GetVMISRIOV(),
 		utils.VmiWithHookSidecar:   utils.GetVMIWithHookSidecar(),
 		utils.VmiMultusPtp:         utils.GetVMIMultusPtp(),
 		utils.VmiMultusMultipleNet: utils.GetVMIMultusMultipleNet(),
 		utils.VmiGeniePtp:          utils.GetVMIGeniePtp(),
 		utils.VmiGenieMultipleNet:  utils.GetVMIGenieMultipleNet(),
+		utils.VmiMasquerade:        utils.GetVMIMasquerade(),
 		utils.VmiHostDisk:          utils.GetVMIHostDisk(),
 	}
 

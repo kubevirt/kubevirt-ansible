@@ -27,10 +27,9 @@ import (
 	"net/http"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 
-	v1beta1 "k8s.io/api/admission/v1beta1"
+	"k8s.io/api/admission/v1beta1"
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,11 +38,11 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	k8sfield "k8s.io/apimachinery/pkg/util/validation/field"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
-	"kubevirt.io/kubevirt/pkg/feature-gates"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/util"
 	"kubevirt.io/kubevirt/pkg/virt-api/webhooks"
+	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 )
 
 const (
@@ -54,25 +53,6 @@ const (
 
 var validInterfaceModels = []string{"e1000", "e1000e", "ne2k_pci", "pcnet", "rtl8139", "virtio"}
 var validIOThreadsPolicies = []v1.IOThreadsPolicy{v1.IOThreadsPolicyShared, v1.IOThreadsPolicyAuto}
-
-func toAdmissionResponse(causes []metav1.StatusCause) *v1beta1.AdmissionResponse {
-	log.Log.Infof("rejected vmi admission")
-
-	globalMessage := ""
-	for _, cause := range causes {
-		globalMessage = fmt.Sprintf("%s %s", globalMessage, cause.Message)
-	}
-
-	return &v1beta1.AdmissionResponse{
-		Result: &metav1.Status{
-			Message: globalMessage,
-			Code:    http.StatusUnprocessableEntity,
-			Details: &metav1.StatusDetails{
-				Causes: causes,
-			},
-		},
-	}
-}
 
 type admitFunc func(*v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
 
@@ -136,17 +116,24 @@ func validateDisks(field *k8sfield.Path, disks []v1.Disk) []metav1.StatusCause {
 		}
 		// Verify only a single device type is set.
 		deviceTargetSetCount := 0
+		var diskType, bus string
 		if disk.Disk != nil {
 			deviceTargetSetCount++
+			diskType = "disk"
+			bus = disk.Disk.Bus
 		}
 		if disk.LUN != nil {
 			deviceTargetSetCount++
+			diskType = "lun"
+			bus = disk.LUN.Bus
 		}
 		if disk.Floppy != nil {
 			deviceTargetSetCount++
 		}
 		if disk.CDRom != nil {
 			deviceTargetSetCount++
+			diskType = "cdrom"
+			bus = disk.CDRom.Bus
 		}
 
 		// NOTE: not setting a device target is okay. We default to Disk.
@@ -169,25 +156,14 @@ func validateDisks(field *k8sfield.Path, disks []v1.Disk) []metav1.StatusCause {
 				})
 			}
 
-			dbsfFields, err := util.ParsePciAddress(disk.Disk.PciAddress)
+			_, err := util.ParsePciAddress(disk.Disk.PciAddress)
 			if err != nil {
 				causes = append(causes, metav1.StatusCause{
 					Type:    metav1.CauseTypeFieldValueInvalid,
 					Message: fmt.Sprintf("disk %s has malformed PCI address (%s).", field.Child("domain", "devices", "disks", "disk").Index(idx).Child("name").String(), disk.Disk.PciAddress),
 					Field:   field.Child("domain", "devices", "disks", "disk").Index(idx).Child("pciAddress").String(),
 				})
-			} else {
-				// make sure that slot is > 2. first 3 slots are reserved
-				if pciSlot, _ := strconv.Atoi(dbsfFields[2]); pciSlot < 3 {
-					causes = append(causes, metav1.StatusCause{
-						Type:    metav1.CauseTypeFieldValueInvalid,
-						Message: fmt.Sprintf("disks %s PCI address slot (%s) should be greater than 2.", field.Child("domain", "devices", "disks", "disk").Index(idx).Child("name").String(), dbsfFields[2]),
-						Field:   field.Child("domain", "devices", "disks", "disk").Index(idx).Child("pciAddress").String(),
-					})
-
-				}
 			}
-
 		}
 
 		// Verify boot order is greater than 0, if provided
@@ -197,6 +173,32 @@ func validateDisks(field *k8sfield.Path, disks []v1.Disk) []metav1.StatusCause {
 				Message: fmt.Sprintf("%s must have a boot order > 0, if supplied", field.Index(idx).String()),
 				Field:   field.Index(idx).Child("bootOrder").String(),
 			})
+		}
+
+		// Verify bus is supported, if provided
+		if len(bus) > 0 {
+			if bus == "ide" {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: "IDE bus is not supported",
+					Field:   field.Index(idx).Child(diskType, "bus").String(),
+				})
+			} else {
+				buses := []string{"virtio", "sata", "scsi"}
+				validBus := false
+				for _, b := range buses {
+					if b == bus {
+						validBus = true
+					}
+				}
+				if !validBus {
+					causes = append(causes, metav1.StatusCause{
+						Type:    metav1.CauseTypeFieldValueInvalid,
+						Message: fmt.Sprintf("%s is set with an unrecognized bus %s, must be one of: %v", field.Index(idx).String(), bus, buses),
+						Field:   field.Index(idx).Child(diskType, "bus").String(),
+					})
+				}
+			}
 		}
 
 		// Verify serial number is made up of valid characters for libvirt, if provided
@@ -269,7 +271,7 @@ func validateVolumes(field *k8sfield.Path, volumes []v1.Volume) []metav1.StatusC
 		if volume.CloudInitNoCloud != nil {
 			volumeSourceSetCount++
 		}
-		if volume.RegistryDisk != nil {
+		if volume.ContainerDisk != nil {
 			volumeSourceSetCount++
 		}
 		if volume.Ephemeral != nil {
@@ -282,7 +284,7 @@ func validateVolumes(field *k8sfield.Path, volumes []v1.Volume) []metav1.StatusC
 			volumeSourceSetCount++
 		}
 		if volume.DataVolume != nil {
-			if !featuregates.DataVolumesEnabled() {
+			if !virtconfig.DataVolumesEnabled() {
 				causes = append(causes, metav1.StatusCause{
 					Type:    metav1.CauseTypeFieldValueInvalid,
 					Message: "DataVolume feature gate is not enabled",
@@ -464,6 +466,27 @@ func getNumberOfPodInterfaces(spec *v1.VirtualMachineInstanceSpec) int {
 	return nPodInterfaces
 }
 
+// ValidateVirtualMachineInstanceMandatoryFields should be invoked after all defaults and presets are applied.
+// It is only meant to be used for VMI reviews, not if they are templates on other objects
+func ValidateVirtualMachineInstanceMandatoryFields(field *k8sfield.Path, spec *v1.VirtualMachineInstanceSpec) []metav1.StatusCause {
+	var causes []metav1.StatusCause
+
+	requests := spec.Domain.Resources.Requests.Memory().Value()
+
+	if requests == 0 &&
+		(spec.Domain.Memory == nil || spec.Domain.Memory != nil &&
+			spec.Domain.Memory.Guest == nil && spec.Domain.Memory.Hugepages == nil) {
+		causes = append(causes, metav1.StatusCause{
+			Type: metav1.CauseTypeFieldValueRequired,
+			Message: fmt.Sprintf("no memory requested, at least one of '%s', '%s' or '%s' must be set",
+				field.Child("domain", "memory", "guest").String(),
+				field.Child("domain", "memory", "hugepages", "size").String(),
+				field.Child("domain", "resources", "requests", "memory").String()),
+		})
+	}
+	return causes
+}
+
 func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMachineInstanceSpec) []metav1.StatusCause {
 	var causes []metav1.StatusCause
 	volumeToDiskIndexMap := make(map[string]int)
@@ -625,6 +648,29 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 		}
 	}
 
+	// Validate emulated machine
+	if len(spec.Domain.Machine.Type) > 0 {
+		machine := spec.Domain.Machine.Type
+		supportedMachines := virtconfig.SupportedEmulatedMachines()
+		var match = false
+		for _, val := range supportedMachines {
+			if regexp.MustCompile(val).MatchString(machine) {
+				match = true
+			}
+		}
+		if !match {
+			causes = append(causes, metav1.StatusCause{
+				Type: metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s is not supported: %s (allowed values: %v)",
+					field.Child("domain", "machine", "type").String(),
+					machine,
+					supportedMachines,
+				),
+				Field: field.Child("domain", "machine", "type").String(),
+			})
+		}
+	}
+
 	// Validate CPU pinning
 	if spec.Domain.CPU != nil && spec.Domain.CPU.DedicatedCPUPlacement {
 		requestsMem := spec.Domain.Resources.Requests.Memory().Value()
@@ -714,6 +760,8 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 		}
 	}
 
+	podNetworkInterfacePresent := false
+
 	if len(spec.Domain.Devices.Interfaces) > arrayLenMax {
 		causes = append(causes, metav1.StatusCause{
 			Type:    metav1.CauseTypeFieldValueInvalid,
@@ -728,13 +776,16 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 			Field:   field.Child("networks").String(),
 		})
 		return causes
-	} else if getNumberOfPodInterfaces(spec) > 1 {
-		causes = append(causes, metav1.StatusCause{
-			Type:    metav1.CauseTypeFieldValueDuplicate,
-			Message: fmt.Sprintf("more than one interface is connected to a pod network in %s", field.Child("interfaces").String()),
-			Field:   field.Child("interfaces").String(),
-		})
-		return causes
+	} else if num := getNumberOfPodInterfaces(spec); num >= 1 {
+		podNetworkInterfacePresent = true
+		if num > 1 {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueDuplicate,
+				Message: fmt.Sprintf("more than one interface is connected to a pod network in %s", field.Child("interfaces").String()),
+				Field:   field.Child("interfaces").String(),
+			})
+			return causes
+		}
 	}
 
 	for _, volume := range spec.Volumes {
@@ -876,6 +927,20 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 				causes = append(causes, metav1.StatusCause{
 					Type:    metav1.CauseTypeFieldValueInvalid,
 					Message: fmt.Sprintf("Slirp interface only implemented with pod network"),
+					Field:   field.Child("domain", "devices", "interfaces").Index(idx).Child("name").String(),
+				})
+			} else if iface.Masquerade != nil && networkData.Pod == nil {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("Masquerade interface only implemented with pod network"),
+					Field:   field.Child("domain", "devices", "interfaces").Index(idx).Child("name").String(),
+				})
+			}
+
+			if iface.SRIOV != nil && !virtconfig.SRIOVEnabled() {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("SRIOV feature gate is not enabled in kubevirt-config"),
 					Field:   field.Child("domain", "devices", "interfaces").Index(idx).Child("name").String(),
 				})
 			}
@@ -1069,6 +1134,63 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 		}
 	}
 
+	if spec.ReadinessProbe != nil {
+		if spec.ReadinessProbe.HTTPGet != nil && spec.ReadinessProbe.TCPSocket != nil {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s must have exactly one probe type set", field.Child("readinessProbe").String()),
+				Field:   field.Child("readinessProbe").String(),
+			})
+		} else if spec.ReadinessProbe.HTTPGet == nil && spec.ReadinessProbe.TCPSocket == nil {
+			causes = append(causes, metav1.StatusCause{
+				Type: metav1.CauseTypeFieldValueRequired,
+				Message: fmt.Sprintf("either %s or %s must be set if a %s is specified",
+					field.Child("readinessProbe", "tcpSocket").String(),
+					field.Child("readinessProbe", "httpGet").String(),
+					field.Child("readinessProbe").String(),
+				),
+				Field: field.Child("readinessProbe").String(),
+			})
+		}
+	}
+
+	if spec.LivenessProbe != nil {
+		if spec.LivenessProbe.HTTPGet != nil && spec.LivenessProbe.TCPSocket != nil {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s must have exactly one probe type set", field.Child("livenessProbe").String()),
+				Field:   field.Child("livenessProbe").String(),
+			})
+		} else if spec.LivenessProbe.HTTPGet == nil && spec.LivenessProbe.TCPSocket == nil {
+			causes = append(causes, metav1.StatusCause{
+				Type: metav1.CauseTypeFieldValueRequired,
+				Message: fmt.Sprintf("either %s or %s must be set if a %s is specified",
+					field.Child("livenessProbe", "tcpSocket").String(),
+					field.Child("livenessProbe", "httpGet").String(),
+					field.Child("livenessProbe").String(),
+				),
+				Field: field.Child("livenessProbe").String(),
+			})
+		}
+	}
+
+	if !podNetworkInterfacePresent {
+		if spec.LivenessProbe != nil {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s is only allowed if the Pod Network is attached", field.Child("livenessProbe").String()),
+				Field:   field.Child("livenessProbe").String(),
+			})
+		}
+		if spec.ReadinessProbe != nil {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s is only allowed if the Pod Network is attached", field.Child("readinessProbe").String()),
+				Field:   field.Child("readinessProbe").String(),
+			})
+		}
+	}
+
 	causes = append(causes, validateDomainSpec(field.Child("domain"), &spec.Domain)...)
 	causes = append(causes, validateVolumes(field.Child("volumes"), spec.Volumes)...)
 	return causes
@@ -1181,13 +1303,9 @@ func ValidateVirtualMachineInstanceMigrationSpec(field *k8sfield.Path, spec *v1.
 }
 
 func getAdmissionReviewVMI(ar *v1beta1.AdmissionReview) (new *v1.VirtualMachineInstance, old *v1.VirtualMachineInstance, err error) {
-	vmiResource := metav1.GroupVersionResource{
-		Group:    v1.VirtualMachineInstanceGroupVersionKind.Group,
-		Version:  v1.VirtualMachineInstanceGroupVersionKind.Version,
-		Resource: "virtualmachineinstances",
-	}
-	if ar.Request.Resource != vmiResource {
-		return nil, nil, fmt.Errorf("expect resource to be '%s'", vmiResource.Resource)
+
+	if ar.Request.Resource != webhooks.VirtualMachineInstanceGroupVersionResource {
+		return nil, nil, fmt.Errorf("expect resource to be '%s'", webhooks.VirtualMachineInstanceGroupVersionResource.Resource)
 	}
 
 	raw := ar.Request.Object.Raw
@@ -1213,14 +1331,20 @@ func getAdmissionReviewVMI(ar *v1beta1.AdmissionReview) (new *v1.VirtualMachineI
 }
 
 func admitVMICreate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+	if resp := webhooks.ValidateSchema(v1.VirtualMachineInstanceGroupVersionKind, ar.Request.Object.Raw); resp != nil {
+		return resp
+	}
+
 	vmi, _, err := getAdmissionReviewVMI(ar)
 	if err != nil {
 		return webhooks.ToAdmissionResponseError(err)
 	}
 
 	causes := ValidateVirtualMachineInstanceSpec(k8sfield.NewPath("spec"), &vmi.Spec)
+	causes = append(causes, ValidateVirtualMachineInstanceMandatoryFields(k8sfield.NewPath("spec"), &vmi.Spec)...)
+
 	if len(causes) > 0 {
-		return toAdmissionResponse(causes)
+		return webhooks.ToAdmissionResponse(causes)
 	}
 
 	reviewResponse := v1beta1.AdmissionResponse{}
@@ -1233,6 +1357,10 @@ func ServeVMICreate(resp http.ResponseWriter, req *http.Request) {
 }
 
 func admitVMIUpdate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
+
+	if resp := webhooks.ValidateSchema(v1.VirtualMachineInstanceGroupVersionKind, ar.Request.Object.Raw); resp != nil {
+		return resp
+	}
 	// Get new VMI from admission response
 	newVMI, oldVMI, err := getAdmissionReviewVMI(ar)
 	if err != nil {
@@ -1241,7 +1369,7 @@ func admitVMIUpdate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	// Reject VMI update if VMI spec changed
 	if !reflect.DeepEqual(newVMI.Spec, oldVMI.Spec) {
-		return toAdmissionResponse([]metav1.StatusCause{
+		return webhooks.ToAdmissionResponse([]metav1.StatusCause{
 			metav1.StatusCause{
 				Type:    metav1.CauseTypeFieldValueNotSupported,
 				Message: "update of VMI object is restricted",
@@ -1259,14 +1387,13 @@ func ServeVMIUpdate(resp http.ResponseWriter, req *http.Request) {
 }
 
 func admitVMs(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-	resource := metav1.GroupVersionResource{
-		Group:    v1.VirtualMachineGroupVersionKind.Group,
-		Version:  v1.VirtualMachineGroupVersionKind.Version,
-		Resource: "virtualmachines",
-	}
-	if ar.Request.Resource != resource {
-		err := fmt.Errorf("expect resource to be '%s'", resource.Resource)
+	if ar.Request.Resource != webhooks.VirtualMachineGroupVersionResource {
+		err := fmt.Errorf("expect resource to be '%s'", webhooks.VirtualMachineGroupVersionResource.Resource)
 		return webhooks.ToAdmissionResponseError(err)
+	}
+
+	if resp := webhooks.ValidateSchema(v1.VirtualMachineGroupVersionKind, ar.Request.Object.Raw); resp != nil {
+		return resp
 	}
 
 	raw := ar.Request.Object.Raw
@@ -1279,7 +1406,7 @@ func admitVMs(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	causes := ValidateVirtualMachineSpec(k8sfield.NewPath("spec"), &vm.Spec)
 	if len(causes) > 0 {
-		return toAdmissionResponse(causes)
+		return webhooks.ToAdmissionResponse(causes)
 	}
 
 	reviewResponse := v1beta1.AdmissionResponse{}
@@ -1292,14 +1419,13 @@ func ServeVMs(resp http.ResponseWriter, req *http.Request) {
 }
 
 func admitVMIRS(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-	resource := metav1.GroupVersionResource{
-		Group:    v1.VirtualMachineInstanceReplicaSetGroupVersionKind.Group,
-		Version:  v1.VirtualMachineInstanceReplicaSetGroupVersionKind.Version,
-		Resource: "virtualmachineinstancereplicasets",
-	}
-	if ar.Request.Resource != resource {
-		err := fmt.Errorf("expect resource to be '%s'", resource.Resource)
+	if ar.Request.Resource != webhooks.VirtualMachineInstanceReplicaSetGroupVersionResource {
+		err := fmt.Errorf("expect resource to be '%s'", webhooks.VirtualMachineInstanceReplicaSetGroupVersionResource.Resource)
 		return webhooks.ToAdmissionResponseError(err)
+	}
+
+	if resp := webhooks.ValidateSchema(v1.VirtualMachineInstanceReplicaSetGroupVersionKind, ar.Request.Object.Raw); resp != nil {
+		return resp
 	}
 
 	raw := ar.Request.Object.Raw
@@ -1312,7 +1438,7 @@ func admitVMIRS(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	causes := ValidateVMIRSSpec(k8sfield.NewPath("spec"), &vmirs.Spec)
 	if len(causes) > 0 {
-		return toAdmissionResponse(causes)
+		return webhooks.ToAdmissionResponse(causes)
 	}
 
 	reviewResponse := v1beta1.AdmissionResponse{}
@@ -1324,14 +1450,13 @@ func ServeVMIRS(resp http.ResponseWriter, req *http.Request) {
 	serve(resp, req, admitVMIRS)
 }
 func admitVMIPreset(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
-	resource := metav1.GroupVersionResource{
-		Group:    v1.VirtualMachineInstanceReplicaSetGroupVersionKind.Group,
-		Version:  v1.VirtualMachineInstanceReplicaSetGroupVersionKind.Version,
-		Resource: "virtualmachineinstancepresets",
-	}
-	if ar.Request.Resource != resource {
-		err := fmt.Errorf("expect resource to be '%s'", resource.Resource)
+	if ar.Request.Resource != webhooks.VirtualMachineInstancePresetGroupVersionResource {
+		err := fmt.Errorf("expect resource to be '%s'", webhooks.VirtualMachineInstancePresetGroupVersionResource.Resource)
 		return webhooks.ToAdmissionResponseError(err)
+	}
+
+	if resp := webhooks.ValidateSchema(v1.VirtualMachineInstancePresetGroupVersionKind, ar.Request.Object.Raw); resp != nil {
+		return resp
 	}
 
 	raw := ar.Request.Object.Raw
@@ -1344,7 +1469,7 @@ func admitVMIPreset(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	causes := ValidateVMIPresetSpec(k8sfield.NewPath("spec"), &vmipreset.Spec)
 	if len(causes) > 0 {
-		return toAdmissionResponse(causes)
+		return webhooks.ToAdmissionResponse(causes)
 	}
 
 	reviewResponse := v1beta1.AdmissionResponse{}
@@ -1357,13 +1482,9 @@ func ServeVMIPreset(resp http.ResponseWriter, req *http.Request) {
 }
 
 func getAdmissionReviewMigration(ar *v1beta1.AdmissionReview) (new *v1.VirtualMachineInstanceMigration, old *v1.VirtualMachineInstanceMigration, err error) {
-	migrationResource := metav1.GroupVersionResource{
-		Group:    v1.VirtualMachineInstanceMigrationGroupVersionKind.Group,
-		Version:  v1.VirtualMachineInstanceMigrationGroupVersionKind.Version,
-		Resource: "virtualmachineinstancemigrations",
-	}
-	if ar.Request.Resource != migrationResource {
-		return nil, nil, fmt.Errorf("expect resource to be '%s'", migrationResource)
+
+	if ar.Request.Resource != webhooks.MigrationGroupVersionResource {
+		return nil, nil, fmt.Errorf("expect resource to be '%s'", webhooks.MigrationGroupVersionResource)
 	}
 
 	raw := ar.Request.Object.Raw
@@ -1393,13 +1514,17 @@ func admitMigrationCreate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespons
 		return webhooks.ToAdmissionResponseError(err)
 	}
 
-	if !featuregates.LiveMigrationEnabled() {
+	if resp := webhooks.ValidateSchema(v1.VirtualMachineInstanceMigrationGroupVersionKind, ar.Request.Object.Raw); resp != nil {
+		return resp
+	}
+
+	if !virtconfig.LiveMigrationEnabled() {
 		return webhooks.ToAdmissionResponseError(fmt.Errorf("LiveMigration feature gate is not enabled in kubevirt-config"))
 	}
 
 	causes := ValidateVirtualMachineInstanceMigrationSpec(k8sfield.NewPath("spec"), &migration.Spec)
 	if len(causes) > 0 {
-		return toAdmissionResponse(causes)
+		return webhooks.ToAdmissionResponse(causes)
 	}
 
 	informers := webhooks.GetInformers()
@@ -1420,6 +1545,14 @@ func admitMigrationCreate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespons
 		return webhooks.ToAdmissionResponseError(fmt.Errorf("Cannot migrated VMI in finalized state."))
 	}
 
+	// Reject migration jobs for non-migratable VMIs
+	cond := getVMIMigrationCondition(vmi)
+	if cond != nil && cond.Status == k8sv1.ConditionFalse {
+		errMsg := fmt.Errorf("Cannot migrate VMI, Reason: %s, Message: %s",
+			cond.Reason, cond.Message)
+		return webhooks.ToAdmissionResponseError(errMsg)
+	}
+
 	// Don't allow new migration jobs to be introduced when previous migration jobs
 	// are already in flight.
 	if vmi.Status.MigrationState != nil &&
@@ -1435,6 +1568,15 @@ func admitMigrationCreate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespons
 	return &reviewResponse
 }
 
+func getVMIMigrationCondition(vmi *v1.VirtualMachineInstance) (cond *v1.VirtualMachineInstanceCondition) {
+	for _, c := range vmi.Status.Conditions {
+		if c.Type == v1.VirtualMachineInstanceIsMigratable {
+			cond = &c
+		}
+	}
+	return cond
+}
+
 func ServeMigrationCreate(resp http.ResponseWriter, req *http.Request) {
 	serve(resp, req, admitMigrationCreate)
 }
@@ -1446,9 +1588,13 @@ func admitMigrationUpdate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespons
 		return webhooks.ToAdmissionResponseError(err)
 	}
 
+	if resp := webhooks.ValidateSchema(v1.VirtualMachineInstanceMigrationGroupVersionKind, ar.Request.Object.Raw); resp != nil {
+		return resp
+	}
+
 	// Reject Migration update if spec changed
 	if !reflect.DeepEqual(newMigration.Spec, oldMigration.Spec) {
-		return toAdmissionResponse([]metav1.StatusCause{
+		return webhooks.ToAdmissionResponse([]metav1.StatusCause{
 			metav1.StatusCause{
 				Type:    metav1.CauseTypeFieldValueNotSupported,
 				Message: "update of Migration object's spec is restricted",

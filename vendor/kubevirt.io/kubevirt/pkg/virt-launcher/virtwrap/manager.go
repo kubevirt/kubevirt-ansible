@@ -29,26 +29,27 @@ import (
 	"encoding/xml"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
-	"kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
+	eventsclient "kubevirt.io/kubevirt/pkg/virt-launcher/notify-client"
 
-	"github.com/libvirt/libvirt-go"
+	libvirt "github.com/libvirt/libvirt-go"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
-	"kubevirt.io/kubevirt/pkg/cloud-init"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
+	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
 	"kubevirt.io/kubevirt/pkg/config"
+	containerdisk "kubevirt.io/kubevirt/pkg/container-disk"
 	"kubevirt.io/kubevirt/pkg/emptydisk"
-	"kubevirt.io/kubevirt/pkg/ephemeral-disk"
+	ephemeraldisk "kubevirt.io/kubevirt/pkg/ephemeral-disk"
 	"kubevirt.io/kubevirt/pkg/hooks"
-	"kubevirt.io/kubevirt/pkg/host-disk"
+	hostdisk "kubevirt.io/kubevirt/pkg/host-disk"
 	"kubevirt.io/kubevirt/pkg/log"
-	"kubevirt.io/kubevirt/pkg/registry-disk"
 	"kubevirt.io/kubevirt/pkg/util/net/dns"
-	"kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
+	migrationproxy "kubevirt.io/kubevirt/pkg/virt-handler/migration-proxy"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/cli"
 	domainerrors "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
@@ -123,7 +124,7 @@ func (l *LibvirtDomainManager) initializeMigrationMetadata(vmi *v1.VirtualMachin
 		UID:            vmi.Status.MigrationState.MigrationUID,
 		StartTimestamp: &now,
 	}
-	_, err = util.SetDomainSpec(l.virConn, vmi, *domainSpec)
+	_, err = l.setDomainSpecWithHooks(vmi, domainSpec)
 	if err != nil {
 		return false, err
 	}
@@ -190,11 +191,21 @@ func (l *LibvirtDomainManager) setMigrationResultHelper(vmi *v1.VirtualMachineIn
 	}
 	domainSpec.Metadata.KubeVirt.Migration.EndTimestamp = &now
 
-	_, err = util.SetDomainSpec(l.virConn, vmi, *domainSpec)
+	_, err = l.setDomainSpecWithHooks(vmi, domainSpec)
 	if err != nil {
 		return err
 	}
 	return nil
+
+}
+
+func prepateMigrationFlags(isBlockMigration bool) libvirt.DomainMigrateFlags {
+	migrateFlags := libvirt.MIGRATE_LIVE | libvirt.MIGRATE_PEER2PEER | libvirt.MIGRATE_TUNNELLED
+
+	if isBlockMigration {
+		migrateFlags |= libvirt.MIGRATE_NON_SHARED_INC
+	}
+	return migrateFlags
 
 }
 
@@ -234,7 +245,11 @@ func (l *LibvirtDomainManager) asyncMigrate(vmi *v1.VirtualMachineInstance) {
 			return
 		}
 
-		migrateFlags := libvirt.MIGRATE_LIVE | libvirt.MIGRATE_PEER2PEER | libvirt.MIGRATE_TUNNELLED | libvirt.MIGRATE_NON_SHARED_DISK
+		isBlockMigration := false
+		if vmi.Status.MigrationMethod == v1.BlockMigration {
+			isBlockMigration = true
+		}
+		migrateFlags := prepateMigrationFlags(isBlockMigration)
 		_, err = dom.Migrate(destConn, migrateFlags, "", "", 0)
 		if err != nil {
 
@@ -277,7 +292,7 @@ func (l *LibvirtDomainManager) PrepareMigrationTarget(vmi *v1.VirtualMachineInst
 	podCPUSet, err := util.GetPodCPUSet()
 	if err != nil {
 		logger.Reason(err).Error("failed to read pod cpuset.")
-		return err
+		return fmt.Errorf("failed to read pod cpuset: %v", err)
 	}
 
 	// Map the VirtualMachineInstance to the Domain
@@ -287,11 +302,21 @@ func (l *LibvirtDomainManager) PrepareMigrationTarget(vmi *v1.VirtualMachineInst
 		CPUSet:         podCPUSet,
 	}
 	if err := api.Convert_v1_VirtualMachine_To_api_Domain(vmi, domain, c); err != nil {
-		logger.Error("Conversion failed.")
-		return err
+		return fmt.Errorf("conversion failed: %v", err)
 	}
 
-	_, err = l.preStartHook(vmi, domain)
+	dom, err := l.preStartHook(vmi, domain)
+	if err != nil {
+		return fmt.Errorf("pre-start pod-setup failed: %v", err)
+	}
+	// TODO this should probably a OnPrepareMigration hook or something.
+	// Right now we need to call OnDefineDomain, so that additional setup, which might be done
+	// by the hook can also be done for the new target pod
+	hooksManager := hooks.GetManager()
+	_, err = hooksManager.OnDefineDomain(&dom.Spec, vmi)
+	if err != nil {
+		return fmt.Errorf("executing custom preStart hooks failed: %v", err)
+	}
 	return nil
 }
 
@@ -310,9 +335,9 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 
 	logger.Info("Executing PreStartHook on VMI pod environment")
 	// ensure registry disk files have correct ownership privileges
-	err := registrydisk.SetFilePermissions(vmi)
+	err := containerdisk.SetFilePermissions(vmi)
 	if err != nil {
-		return domain, err
+		return domain, fmt.Errorf("setting registry-disk file permissions failed: %v", err)
 	}
 
 	// generate cloud-init data
@@ -322,14 +347,14 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 
 		err := cloudinit.GenerateLocalData(vmi.Name, hostname, vmi.Namespace, cloudInitData)
 		if err != nil {
-			return domain, err
+			return domain, fmt.Errorf("generating local cloud-init data failed: %v", err)
 		}
 	}
 
 	// setup networking
 	err = network.SetupPodNetwork(vmi, domain)
 	if err != nil {
-		return domain, err
+		return domain, fmt.Errorf("preparing the pod network failed: %v", err)
 	}
 
 	// create disks images on the cluster lever
@@ -337,13 +362,13 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 	hostDiskCreator := hostdisk.NewHostDiskCreator(l.notifier, l.lessPVCSpaceToleration)
 	err = hostDiskCreator.Create(vmi)
 	if err != nil {
-		return domain, err
+		return domain, fmt.Errorf("preparing host-disks failed: %v", err)
 	}
 
 	// Create images for volumes that are marked ephemeral.
 	err = ephemeraldisk.CreateEphemeralImages(vmi)
 	if err != nil {
-		return domain, err
+		return domain, fmt.Errorf("preparing ephemeral images failed: %v", err)
 	}
 	// create empty disks if they exist
 	if err := emptydisk.CreateTemporaryDisks(vmi); err != nil {
@@ -370,14 +395,65 @@ func (l *LibvirtDomainManager) preStartHook(vmi *v1.VirtualMachineInstance, doma
 		}
 	}
 
-	hooksManager := hooks.GetManager()
-	domainSpec, err := hooksManager.OnDefineDomain(&domain.Spec, vmi)
-	if err != nil {
-		return domain, err
-	}
-	domain.Spec = *domainSpec
-
 	return domain, err
+}
+
+// This function parses variables that are set by SR-IOV device plugin listing
+// PCI IDs for devices allocated to the pod. It also parses variables that
+// virt-controller sets mapping network names to their respective resource
+// names (if any).
+//
+// Format for PCI ID variables set by SR-IOV DP is:
+// "": for no allocated devices
+// PCIDEVICE_<resourceName>="0000:81:11.1": for a single device
+// PCIDEVICE_<resourceName>="0000:81:11.1 0000:81:11.2[ ...]": for multiple devices
+//
+// Since special characters in environment variable names are not allowed,
+// resourceName is mutated as follows:
+// 1. All dots and slashes are replaced with underscore characters.
+// 2. The result is upper cased.
+//
+// Example: PCIDEVICE_INTEL_COM_SRIOV_TEST=... for intel.com/sriov_test resources.
+//
+// Format for network to resource mapping variables is:
+// KUBEVIRT_RESOURCE_NAME_<networkName>=<resourceName>
+//
+func resourceNameToEnvvar(resourceName string) string {
+	varName := strings.ToUpper(resourceName)
+	varName = strings.Replace(varName, "/", "_", -1)
+	varName = strings.Replace(varName, ".", "_", -1)
+	return fmt.Sprintf("PCIDEVICE_%s", varName)
+}
+
+func getSRIOVPCIAddresses(ifaces []v1.Interface) map[string][]string {
+	networkToAddressesMap := map[string][]string{}
+	for _, iface := range ifaces {
+		if iface.SRIOV == nil {
+			continue
+		}
+		networkToAddressesMap[iface.Name] = []string{}
+		varName := fmt.Sprintf("KUBEVIRT_RESOURCE_NAME_%s", iface.Name)
+		resourceName, isSet := os.LookupEnv(varName)
+		if isSet {
+			varName := resourceNameToEnvvar(resourceName)
+			pciAddrString, isSet := os.LookupEnv(varName)
+			if isSet {
+				addrs := strings.Split(pciAddrString, ",")
+				naddrs := len(addrs)
+				if naddrs > 0 {
+					if addrs[naddrs-1] == "" {
+						addrs = addrs[:naddrs-1]
+					}
+				}
+				networkToAddressesMap[iface.Name] = addrs
+			} else {
+				log.DefaultLogger().Warningf("%s not set for SR-IOV interface %s", varName, iface.Name)
+			}
+		} else {
+			log.DefaultLogger().Warningf("%s not set for SR-IOV interface %s", varName, iface.Name)
+		}
+	}
+	return networkToAddressesMap
 }
 
 func (l *LibvirtDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, useEmulation bool) (*api.DomainSpec, error) {
@@ -413,6 +489,7 @@ func (l *LibvirtDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, useEmulat
 		UseEmulation:   useEmulation,
 		CPUSet:         podCPUSet,
 		IsBlockPVC:     isBlockPVCMap,
+		SRIOVDevices:   getSRIOVPCIAddresses(vmi.Spec.Domain.Devices.Interfaces),
 	}
 	if err := api.Convert_v1_VirtualMachine_To_api_Domain(vmi, domain, c); err != nil {
 		logger.Error("Conversion failed.")
@@ -433,7 +510,7 @@ func (l *LibvirtDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, useEmulat
 				logger.Reason(err).Error("pre start setup for VirtualMachineInstance failed.")
 				return nil, err
 			}
-			dom, err = util.SetDomainSpec(l.virConn, vmi, domain.Spec)
+			dom, err = l.setDomainSpecWithHooks(vmi, &domain.Spec)
 			if err != nil {
 				return nil, err
 			}
@@ -453,7 +530,7 @@ func (l *LibvirtDomainManager) SyncVMI(vmi *v1.VirtualMachineInstance, useEmulat
 	// To make sure, that we set the right qemu wrapper arguments,
 	// we update the domain XML whenever a VirtualMachineInstance was already defined but not running
 	if !newDomain && cli.IsDown(domState) {
-		dom, err = util.SetDomainSpec(l.virConn, vmi, domain.Spec)
+		dom, err = l.setDomainSpecWithHooks(vmi, &domain.Spec)
 		if err != nil {
 			return nil, err
 		}
@@ -572,7 +649,7 @@ func (l *LibvirtDomainManager) SignalShutdownVMI(vmi *v1.VirtualMachineInstance)
 
 			now := metav1.Now()
 			domSpec.Metadata.KubeVirt.GracePeriod.DeletionTimestamp = &now
-			_, err = util.SetDomainSpec(l.virConn, vmi, *domSpec)
+			_, err = l.setDomainSpecWithHooks(vmi, domSpec)
 			if err != nil {
 				log.Log.Object(vmi).Reason(err).Error("Unable to update grace period start time on domain xml")
 				return err
@@ -683,4 +760,14 @@ func (l *LibvirtDomainManager) ListAllDomains() ([]*api.Domain, error) {
 	}
 
 	return list, nil
+}
+
+func (l *LibvirtDomainManager) setDomainSpecWithHooks(vmi *v1.VirtualMachineInstance, spec *api.DomainSpec) (cli.VirDomain, error) {
+
+	hooksManager := hooks.GetManager()
+	domainSpec, err := hooksManager.OnDefineDomain(spec, vmi)
+	if err != nil {
+		return nil, err
+	}
+	return util.SetDomainSpecStr(l.virConn, vmi, domainSpec)
 }

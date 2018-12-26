@@ -33,22 +33,20 @@ import (
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
-	"kubevirt.io/kubevirt/pkg/cloud-init"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
+	cloudinit "kubevirt.io/kubevirt/pkg/cloud-init"
 	"kubevirt.io/kubevirt/pkg/config"
+	containerdisk "kubevirt.io/kubevirt/pkg/container-disk"
 	"kubevirt.io/kubevirt/pkg/emptydisk"
-	"kubevirt.io/kubevirt/pkg/ephemeral-disk"
+	ephemeraldisk "kubevirt.io/kubevirt/pkg/ephemeral-disk"
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/precond"
-	"kubevirt.io/kubevirt/pkg/registry-disk"
 	"kubevirt.io/kubevirt/pkg/util"
 	"kubevirt.io/kubevirt/pkg/util/net/dns"
 )
 
 const (
-	CPUModeHostPassthrough = "host-passthrough"
-	CPUModeHostModel       = "host-model"
-	defaultIOThread        = uint(1)
+	defaultIOThread = uint(1)
 )
 
 type ConverterContext struct {
@@ -57,6 +55,7 @@ type ConverterContext struct {
 	VirtualMachine *v1.VirtualMachineInstance
 	CPUSet         []int
 	IsBlockPVC     map[string]bool
+	SRIOVDevices   map[string][]string
 }
 
 func Convert_v1_Disk_To_api_Disk(diskDevice *v1.Disk, disk *Disk, devicePerBus map[string]int, numQueues *uint) error {
@@ -174,8 +173,6 @@ func makeDeviceName(bus string, devicePerBus map[string]int) string {
 		prefix = "vd"
 	case "sata", "scsi":
 		prefix = "sd"
-	case "ide":
-		prefix = "hd"
 	case "fdc":
 		prefix = "fd"
 	default:
@@ -204,10 +201,23 @@ func toApiReadOnly(src bool) *ReadOnly {
 	return nil
 }
 
+// Add_Agent_To_api_Channel creates the channel for guest agent communication
+func Add_Agent_To_api_Channel() (channel Channel) {
+	channel.Type = "unix"
+	// let libvirt decide which path to use
+	channel.Source = nil
+	channel.Target = &ChannelTarget{
+		Name: "org.qemu.guest_agent.0",
+		Type: "virtio",
+	}
+
+	return
+}
+
 func Convert_v1_Volume_To_api_Disk(source *v1.Volume, disk *Disk, c *ConverterContext) error {
 
-	if source.RegistryDisk != nil {
-		return Convert_v1_RegistryDiskSource_To_api_Disk(source.Name, source.RegistryDisk, disk, c)
+	if source.ContainerDisk != nil {
+		return Convert_v1_ContainerDiskSource_To_api_Disk(source.Name, source.ContainerDisk, disk, c)
 	}
 
 	if source.CloudInitNoCloud != nil {
@@ -325,13 +335,13 @@ func Convert_v1_EmptyDiskSource_To_api_Disk(volumeName string, _ *v1.EmptyDiskSo
 	return nil
 }
 
-func Convert_v1_RegistryDiskSource_To_api_Disk(volumeName string, _ *v1.RegistryDiskSource, disk *Disk, c *ConverterContext) error {
+func Convert_v1_ContainerDiskSource_To_api_Disk(volumeName string, _ *v1.ContainerDiskSource, disk *Disk, c *ConverterContext) error {
 	if disk.Type == "lun" {
 		return fmt.Errorf("device %s is of type lun. Not compatible with a file based disk", disk.Alias.Name)
 	}
 
 	disk.Type = "file"
-	diskPath, diskType, err := registrydisk.GetFilePath(c.VirtualMachine, volumeName)
+	diskPath, diskType, err := containerdisk.GetFilePath(c.VirtualMachine, volumeName)
 	if err != nil {
 		return err
 	}
@@ -344,7 +354,10 @@ func Convert_v1_EphemeralVolumeSource_To_api_Disk(volumeName string, source *v1.
 	disk.Type = "file"
 	disk.Driver.Type = "qcow2"
 	disk.Source.File = ephemeraldisk.GetFilePath(volumeName)
-	disk.BackingStore = &BackingStore{}
+	disk.BackingStore = &BackingStore{
+		Format: &BackingStoreFormat{},
+		Source: &DiskSource{},
+	}
 
 	backingDisk := &Disk{Driver: &DiskDriver{}}
 	err := Convert_v1_FilesystemVolumeSource_To_api_Disk(volumeName, backingDisk, c)
@@ -491,6 +504,41 @@ func Convert_v1_FeatureHyperv_To_api_FeatureHyperv(source *v1.FeatureHyperv, hyp
 	return nil
 }
 
+func filterAddress(addrs []string, addr string) []string {
+	var res []string
+	for _, a := range addrs {
+		if a != addr {
+			res = append(res, a)
+		}
+	}
+	return res
+}
+
+func reserveAddress(addrsMap map[string][]string, addr string) {
+	// Sometimes the same address is available to multiple networks,
+	// specifically when two networks refer to the same resourceName. In this
+	// case, we should make sure that a reserved address is removed from *all*
+	// per-network lists of available devices, to avoid configuring the same
+	// device ID for multiple interfaces.
+	for networkName, addrs := range addrsMap {
+		addrsMap[networkName] = filterAddress(addrs, addr)
+	}
+	return
+}
+
+// Get the next PCI address available to a particular SR-IOV network. The
+// function makes sure that the allocated address is not allocated to next
+// callers, whether they request an address for the same network or another
+// network that is backed by the same resourceName.
+func popSRIOVPCIAddress(networkName string, addrsMap map[string][]string) (string, map[string][]string, error) {
+	if len(addrsMap[networkName]) > 0 {
+		addr := addrsMap[networkName][0]
+		reserveAddress(addrsMap, addr)
+		return addr, addrsMap, nil
+	}
+	return "", addrsMap, fmt.Errorf("no more SR-IOV PCI addresses to allocate")
+}
+
 func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, domain *Domain, c *ConverterContext) (err error) {
 	precond.MustNotBeNil(vmi)
 	precond.MustNotBeNil(domain)
@@ -525,9 +573,17 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 	}
 
 	// Spec metadata
+
+	newChannel := Add_Agent_To_api_Channel()
+	domain.Spec.Devices.Channels = append(domain.Spec.Devices.Channels, newChannel)
+
 	domain.Spec.Metadata.KubeVirt.UID = vmi.UID
+	gracePeriodSeconds := v1.DefaultGracePeriodSeconds
 	if vmi.Spec.TerminationGracePeriodSeconds != nil {
-		domain.Spec.Metadata.KubeVirt.GracePeriod.DeletionGracePeriodSeconds = *vmi.Spec.TerminationGracePeriodSeconds
+		gracePeriodSeconds = *vmi.Spec.TerminationGracePeriodSeconds
+	}
+	domain.Spec.Metadata.KubeVirt.GracePeriod = &GracePeriodMetadata{
+		DeletionGracePeriodSeconds: gracePeriodSeconds,
 	}
 
 	domain.Spec.SysInfo = &SysInfo{}
@@ -712,21 +768,19 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 
 	if vmi.Spec.Domain.CPU != nil {
 		// Set VM CPU cores
-		if vmi.Spec.Domain.CPU.Cores != 0 {
-			domain.Spec.CPU.Topology = &CPUTopology{
-				Sockets: 1,
-				Cores:   vmi.Spec.Domain.CPU.Cores,
-				Threads: 1,
-			}
-			domain.Spec.VCPU = &VCPU{
-				Placement: "static",
-				CPUs:      vmi.Spec.Domain.CPU.Cores,
-			}
+		domain.Spec.CPU.Topology = &CPUTopology{
+			Sockets: 1,
+			Cores:   calculateRequestedVCPUs(vmi),
+			Threads: 1,
+		}
+		domain.Spec.VCPU = &VCPU{
+			Placement: "static",
+			CPUs:      calculateRequestedVCPUs(vmi),
 		}
 
 		// Set VM CPU model and vendor
 		if vmi.Spec.Domain.CPU.Model != "" {
-			if vmi.Spec.Domain.CPU.Model == CPUModeHostModel || vmi.Spec.Domain.CPU.Model == CPUModeHostPassthrough {
+			if vmi.Spec.Domain.CPU.Model == v1.CPUModeHostModel || vmi.Spec.Domain.CPU.Model == v1.CPUModeHostPassthrough {
 				domain.Spec.CPU.Mode = vmi.Spec.Domain.CPU.Model
 			} else {
 				domain.Spec.CPU.Mode = "custom"
@@ -736,7 +790,7 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 	}
 
 	if vmi.Spec.Domain.CPU == nil || vmi.Spec.Domain.CPU.Model == "" {
-		domain.Spec.CPU.Mode = CPUModeHostModel
+		domain.Spec.CPU.Mode = v1.CPUModeHostModel
 	}
 
 	// Adjust guest vcpu config. Currenty will handle vCPUs to pCPUs pinning
@@ -841,83 +895,120 @@ func Convert_v1_VirtualMachine_To_api_Domain(vmi *v1.VirtualMachineInstance, dom
 		networks[network.Name] = network.DeepCopy()
 	}
 
+	sriovPciAddresses := make(map[string][]string)
+	for key, value := range c.SRIOVDevices {
+		sriovPciAddresses[key] = append([]string{}, value...)
+	}
+
 	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
 		net, isExist := networks[iface.Name]
 		if !isExist {
 			return fmt.Errorf("failed to find network %s", iface.Name)
 		}
 
-		ifaceType := getInterfaceType(&iface)
-		domainIface := Interface{
-			Model: &Model{
-				Type: ifaceType,
-			},
-			Alias: &Alias{
-				Name: iface.Name,
-			},
-		}
-
-		// if UseEmulation unset and at least one NIC model is virtio,
-		// /dev/vhost-net must be present as we should have asked for it.
-		if ifaceType == "virtio" && virtioNetProhibited {
-			return fmt.Errorf("In-kernel virtio-net device emulation '/dev/vhost-net' not present")
-		} else if ifaceType == "virtio" && virtioNetMQRequested {
-			domainIface.Driver = &InterfaceDriver{Name: "vhost", Queues: numQueues}
-		}
-
-		// Add a pciAddress if specifed
-		if iface.PciAddress != "" {
-			addr, err := decoratePciAddressField(iface.PciAddress)
-			if err != nil {
-				return fmt.Errorf("failed to configure interface %s: %v", iface.Name, err)
-			}
-			domainIface.Address = addr
-		}
-
-		if iface.Bridge != nil {
-			// TODO:(ihar) consider abstracting interface type conversion /
-			// detection into drivers
-			domainIface.Type = "bridge"
-			if value, ok := cniNetworks[iface.Name]; ok {
-				prefix := ""
-				// no error check, we assume that CNI type was set correctly
-				if net.Multus != nil {
-					prefix = "net"
-				} else if net.Genie != nil {
-					prefix = "eth"
-				}
-				domainIface.Source = InterfaceSource{
-					Bridge: fmt.Sprintf("k6t-%s%d", prefix, value),
-				}
-			} else {
-				domainIface.Source = InterfaceSource{
-					Bridge: DefaultBridgeName,
-				}
-			}
-
-			if iface.BootOrder != nil {
-				domainIface.BootOrder = &BootOrder{Order: *iface.BootOrder}
-			}
-		} else if iface.Slirp != nil {
-			domainIface.Type = "user"
-
-			// Create network interface
-			if domain.Spec.QEMUCmd == nil {
-				domain.Spec.QEMUCmd = &Commandline{}
-			}
-
-			if domain.Spec.QEMUCmd.QEMUArg == nil {
-				domain.Spec.QEMUCmd.QEMUArg = make([]Arg, 0)
-			}
-
-			// TODO: (seba) Need to change this if multiple interface can be connected to the same network
-			// append the ports from all the interfaces connected to the same network
-			err := createSlirpNetwork(iface, *net, domain)
+		if iface.SRIOV != nil {
+			var pciAddr string
+			pciAddr, sriovPciAddresses, err = popSRIOVPCIAddress(iface.Name, sriovPciAddresses)
 			if err != nil {
 				return err
 			}
+
+			dbsfFields, err := util.ParsePciAddress(pciAddr)
+			if err != nil {
+				return err
+			}
+
+			hostDev := HostDevice{
+				Source: HostDeviceSource{
+					Address: &Address{
+						Type:     "pci",
+						Domain:   "0x" + dbsfFields[0],
+						Bus:      "0x" + dbsfFields[1],
+						Slot:     "0x" + dbsfFields[2],
+						Function: "0x" + dbsfFields[3],
+					},
+				},
+				Type:    "pci",
+				Managed: "yes",
+			}
+			if iface.BootOrder != nil {
+				hostDev.BootOrder = &BootOrder{Order: *iface.BootOrder}
+			}
+			log.Log.Infof("SR-IOV PCI device allocated: %s", pciAddr)
+			domain.Spec.Devices.HostDevices = append(domain.Spec.Devices.HostDevices, hostDev)
+		} else {
+			ifaceType := getInterfaceType(&iface)
+			domainIface := Interface{
+				Model: &Model{
+					Type: ifaceType,
+				},
+				Alias: &Alias{
+					Name: iface.Name,
+				},
+			}
+
+			// if UseEmulation unset and at least one NIC model is virtio,
+			// /dev/vhost-net must be present as we should have asked for it.
+			if ifaceType == "virtio" && virtioNetProhibited {
+				return fmt.Errorf("In-kernel virtio-net device emulation '/dev/vhost-net' not present")
+			} else if ifaceType == "virtio" && virtioNetMQRequested {
+				domainIface.Driver = &InterfaceDriver{Name: "vhost", Queues: numQueues}
+			}
+
+			// Add a pciAddress if specifed
+			if iface.PciAddress != "" {
+				addr, err := decoratePciAddressField(iface.PciAddress)
+				if err != nil {
+					return fmt.Errorf("failed to configure interface %s: %v", iface.Name, err)
+				}
+				domainIface.Address = addr
+			}
+
+			if iface.Bridge != nil || iface.Masquerade != nil {
+				// TODO:(ihar) consider abstracting interface type conversion /
+				// detection into drivers
+				domainIface.Type = "bridge"
+				if value, ok := cniNetworks[iface.Name]; ok {
+					prefix := ""
+					// no error check, we assume that CNI type was set correctly
+					if net.Multus != nil {
+						prefix = "net"
+					} else if net.Genie != nil {
+						prefix = "eth"
+					}
+					domainIface.Source = InterfaceSource{
+						Bridge: fmt.Sprintf("k6t-%s%d", prefix, value),
+					}
+				} else {
+					domainIface.Source = InterfaceSource{
+						Bridge: DefaultBridgeName,
+					}
+				}
+
+				if iface.BootOrder != nil {
+					domainIface.BootOrder = &BootOrder{Order: *iface.BootOrder}
+				}
+			} else if iface.Slirp != nil {
+				domainIface.Type = "user"
+
+				// Create network interface
+				if domain.Spec.QEMUCmd == nil {
+					domain.Spec.QEMUCmd = &Commandline{}
+				}
+
+				if domain.Spec.QEMUCmd.QEMUArg == nil {
+					domain.Spec.QEMUCmd.QEMUArg = make([]Arg, 0)
+				}
+
+				// TODO: (seba) Need to change this if multiple interface can be connected to the same network
+				// append the ports from all the interfaces connected to the same network
+				err := createSlirpNetwork(iface, *net, domain)
+				if err != nil {
+					return err
+				}
+			}
+			domain.Spec.Devices.Interfaces = append(domain.Spec.Devices.Interfaces, domainIface)
 		}
-		domain.Spec.Devices.Interfaces = append(domain.Spec.Devices.Interfaces, domainIface)
 	}
 
 	return nil
@@ -927,6 +1018,9 @@ func calculateRequestedVCPUs(vmi *v1.VirtualMachineInstance) uint32 {
 	cores := uint32(0)
 	if vmi.Spec.Domain.CPU != nil && vmi.Spec.Domain.CPU.Cores != 0 {
 		return vmi.Spec.Domain.CPU.Cores
+	}
+	if !vmi.IsCPUDedicated() {
+		return uint32(1)
 	}
 	if cpuRequests, ok := vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceCPU]; ok {
 		cores = uint32(cpuRequests.Value())

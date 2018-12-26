@@ -20,7 +20,7 @@
 package v1
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -28,8 +28,10 @@ import (
 type IOThreadsPolicy string
 
 const (
-	IOThreadsPolicyShared IOThreadsPolicy = "shared"
-	IOThreadsPolicyAuto   IOThreadsPolicy = "auto"
+	IOThreadsPolicyShared  IOThreadsPolicy = "shared"
+	IOThreadsPolicyAuto    IOThreadsPolicy = "auto"
+	CPUModeHostPassthrough                 = "host-passthrough"
+	CPUModeHostModel                       = "host-model"
 )
 
 //go:generate swagger-doc
@@ -51,6 +53,8 @@ type HostDisk struct {
 	// Capacity of the sparse disk
 	// +optional
 	Capacity resource.Quantity `json:"capacity,omitempty"`
+	// Shared indicate whether the path is shared between nodes
+	Shared *bool `json:"shared,omitempty"`
 }
 
 // ConfigMapVolumeSource adapts a ConfigMap into a volume.
@@ -259,7 +263,7 @@ type Disk struct {
 	// Defaults to false.
 	// +optional
 	DedicatedIOThread *bool `json:"dedicatedIOThread,omitempty"`
-	// Cache specifies which kvm disk cache mode should be used
+	// Cache specifies which kvm disk cache mode should be used.
 	// +optional
 	Cache DriverCache `json:"cache,omitempty"`
 }
@@ -283,7 +287,7 @@ type DiskDevice struct {
 // +k8s:openapi-gen=true
 type DiskTarget struct {
 	// Bus indicates the type of disk device to emulate.
-	// supported values: virtio, sata, scsi, ide.
+	// supported values: virtio, sata, scsi.
 	Bus string `json:"bus,omitempty"`
 	// ReadOnly.
 	// Defaults to false.
@@ -297,7 +301,7 @@ type DiskTarget struct {
 // +k8s:openapi-gen=true
 type LunTarget struct {
 	// Bus indicates the type of disk device to emulate.
-	// supported values: virtio, sata, scsi, ide.
+	// supported values: virtio, sata, scsi.
 	Bus string `json:"bus,omitempty"`
 	// ReadOnly.
 	// Defaults to false.
@@ -333,7 +337,7 @@ const (
 // +k8s:openapi-gen=true
 type CDRomTarget struct {
 	// Bus indicates the type of disk device to emulate.
-	// supported values: virtio, sata, scsi, ide.
+	// supported values: virtio, sata, scsi.
 	Bus string `json:"bus,omitempty"`
 	// ReadOnly.
 	// Defaults to true.
@@ -376,10 +380,10 @@ type VolumeSource struct {
 	// More info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html
 	// +optional
 	CloudInitNoCloud *CloudInitNoCloudSource `json:"cloudInitNoCloud,omitempty"`
-	// RegistryDisk references a docker image, embedding a qcow or raw disk.
+	// ContainerDisk references a docker image, embedding a qcow or raw disk.
 	// More info: https://kubevirt.gitbooks.io/user-guide/registry-disk.html
 	// +optional
-	RegistryDisk *RegistryDiskSource `json:"registryDisk,omitempty"`
+	ContainerDisk *ContainerDiskSource `json:"containerDisk,omitempty"`
 	// Ephemeral is a special volume source that "wraps" specified source and provides copy-on-write image on top of it.
 	// +optional
 	Ephemeral *EphemeralVolumeSource `json:"ephemeral,omitempty"`
@@ -434,11 +438,13 @@ type EmptyDiskSource struct {
 // Represents a docker image with an embedded disk.
 // ---
 // +k8s:openapi-gen=true
-type RegistryDiskSource struct {
+type ContainerDiskSource struct {
 	// Image is the name of the image with the embedded disk.
 	Image string `json:"image"`
 	// ImagePullSecret is the name of the Docker registry secret required to pull the image. The secret must already exist.
 	ImagePullSecret string `json:"imagePullSecret,omitempty"`
+	// Path defines the path to disk file in the container
+	Path string `json:"path,omitempty"`
 }
 
 // Exactly one of its members must be set.
@@ -794,6 +800,18 @@ type Interface struct {
 	// If specified, the virtual network interface will be placed on the guests pci address with the specifed PCI address. For example: 0000:81:01.10
 	// +optional
 	PciAddress string `json:"pciAddress,omitempty"`
+	// If specified the network interface will pass additional DHCP options to the VMI
+	// +optional
+	DHCPOptions *DHCPOptions `json:"dhcpOptions,omitempty"`
+}
+
+type DHCPOptions struct {
+	// If specified will pass option 67 to interface's DHCP server
+	// +optional
+	BootFileName string `json:"bootFileName,omitempty"`
+	// If specified will pass option 66 to interface's DHCP server
+	// +optional
+	TFTPServerName string `json:"tftpServerName,omitempty"`
 }
 
 // Represents the method which will be used to connect the interface to the guest.
@@ -801,8 +819,10 @@ type Interface struct {
 // ---
 // +k8s:openapi-gen=true
 type InterfaceBindingMethod struct {
-	Bridge *InterfaceBridge `json:"bridge,omitempty"`
-	Slirp  *InterfaceSlirp  `json:"slirp,omitempty"`
+	Bridge     *InterfaceBridge     `json:"bridge,omitempty"`
+	Slirp      *InterfaceSlirp      `json:"slirp,omitempty"`
+	Masquerade *InterfaceMasquerade `json:"masquerade,omitempty"`
+	SRIOV      *InterfaceSRIOV      `json:"sriov,omitempty"`
 }
 
 // ---
@@ -812,6 +832,14 @@ type InterfaceBridge struct{}
 // ---
 // +k8s:openapi-gen=true
 type InterfaceSlirp struct{}
+
+// ---
+// +k8s:openapi-gen=true
+type InterfaceMasquerade struct{}
+
+// ---
+// +k8s:openapi-gen=true
+type InterfaceSRIOV struct{}
 
 // Port repesents a port to expose from the virtual machine.
 // Default protocol TCP.
@@ -875,7 +903,9 @@ type Rng struct {
 // ---
 // +k8s:openapi-gen=true
 type CniNetwork struct {
-	// References to a NetworkAttachmentDefinition CRD object in the same namespace.
+	// References to a NetworkAttachmentDefinition CRD object. Format:
+	// <networkName>, <namespace>/<networkName>. If namespace is not
+	// specified, VMI namespace is assumed.
 	// In case of genie, it references the CNI plugin name.
 	NetworkName string `json:"networkName"`
 }

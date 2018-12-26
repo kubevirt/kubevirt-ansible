@@ -24,7 +24,7 @@ var _ = Describe("Network Connectivity", func() {
 
 	tests.BeforeAll(func() {
 		for i := 0; i < 2; i++ {
-			vms[i] = tests.NewRandomVMIWithEphemeralDiskAndUserdata(tests.RegistryDiskFor(tests.RegistryDiskCirros), "#!/bin/bash\necho 'hello'\n")
+			vms[i] = tests.NewRandomVMIWithEphemeralDiskAndUserdata(tests.ContainerDiskFor(tests.ContainerDiskCirros), "#!/bin/bash\necho 'hello'\n")
 			vms[i], err = virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(vms[i])
 			Expect(err).ToNot(HaveOccurred())
 			tests.WaitForSuccessfulVMIStart(vms[i])

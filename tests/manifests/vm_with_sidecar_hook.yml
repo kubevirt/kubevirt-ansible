@@ -2,7 +2,7 @@ apiVersion: kubevirt.io/v1alpha2
 kind: VirtualMachineInstance
 metadata:
   annotations:
-    hooks.kubevirt.io/hookSidecars: '[{"image": "phoracek/example-hook-sidecar"}]'
+    hooks.kubevirt.io/hookSidecars: '[{"image": "kubevirt/example-hook-sidecar:v0.12.0-alpha.2"}]'
     smbios.vm.kubevirt.io/baseBoardManufacturer: "Radical Edward"
   creationTimestamp: null
   labels:
@@ -14,7 +14,7 @@ spec:
       disks:
       - disk:
           bus: virtio
-        name: registrydisk
+        name: containerdisk
         volumeName: registryvolume
       - disk:
           bus: virtio
@@ -28,8 +28,8 @@ spec:
   terminationGracePeriodSeconds: 0
   volumes:
   - name: registryvolume
-    registryDisk:
-      image: kubevirt/fedora-cloud-registry-disk-demo:latest
+    containerDisk:
+      image: kubevirt/fedora-cloud-container-disk-demo:latest
   - cloudInitNoCloud:
       userData: |-
         #cloud-config

@@ -20,7 +20,7 @@ objects:
         - name: mydisk
           volumeName: pvcvolume
           disk:
-            dev: vda
+            bus: virtio
     volumes:
       - name: pvcvolume
         persistentVolumeClaim:

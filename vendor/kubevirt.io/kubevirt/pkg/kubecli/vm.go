@@ -20,13 +20,17 @@
 package kubecli
 
 import (
+	"fmt"
+
 	k8smetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 )
+
+const vmSubresourceURL = "/apis/subresources.kubevirt.io/v1alpha2/namespaces/%s/virtualmachines/%s/%s"
 
 func (k *kubevirt) VirtualMachine(namespace string) VirtualMachineInterface {
 	return &vm{
@@ -130,4 +134,9 @@ func (v *vm) Patch(name string, pt types.PatchType, data []byte, subresources ..
 		Do().
 		Into(result)
 	return result, err
+}
+
+func (v *vm) Restart(name string) error {
+	uri := fmt.Sprintf(vmSubresourceURL, v.namespace, name, "restart")
+	return v.restClient.Put().RequestURI(uri).Do().Error()
 }

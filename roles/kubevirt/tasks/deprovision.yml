@@ -26,6 +26,15 @@
 - name: Delete Demo Content
   command: kubectl delete --ignore-not-found=true -f /tmp/demo-content.yaml
 
+- name: Delete Privileged Policy
+  command: "oc adm policy remove-scc-from-user privileged -z {{ item }} -n {{ namespace }}"
+  with_items: "{{ kubevirt_privileged_policies | list }}"
+  when: platform=="openshift"
+
+- name: Delete Hostmount-anyuid Policy
+  command: "oc adm policy remove-scc-from-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
+  when: platform=="openshift"
+
 # KubeVirt manifests
 - name: Check that kubevirt.yaml still exists in /tmp
   stat:
@@ -50,14 +59,16 @@
     dest: "/tmp/kubevirt.yaml"
   when: kubevirt_template.stat.exists == False
 
+- name: Delete apiservices v1alpha2.subresources.kubevirt.io
+  command: kubectl -n {{ namespace }} delete apiservices v1alpha2.subresources.kubevirt.io
+
 - name: Delete KubeVirt Resources
-  command: kubectl delete -f /tmp/kubevirt.yaml --ignore-not-found=true
+  command: kubectl delete -f /tmp/kubevirt.yaml --ignore-not-found=true --wait=false
 
-- name: Delete Privileged Policy
-  command: "oc adm policy remove-scc-from-user privileged -z {{ item }} -n {{ namespace }}"
-  with_items: "{{ kubevirt_privileged_policies | list }}"
-  when: platform=="openshift"
-
-- name: Delete Hostmount-anyuid Policy
-  command: "oc adm policy remove-scc-from-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
-  when: platform=="openshift"
+- name: Wait until {{ namespace }} namespace will dissappear
+  shell: kubectl get ns | grep -w {{ namespace }}
+  register: result
+  until: result.rc != 0
+  retries: 12
+  delay: 10
+  ignore_errors: yes

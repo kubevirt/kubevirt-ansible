@@ -1,4 +1,4 @@
-namespace: "kube-system"
+namespace: "kubevirt"
 registry_url: "docker.io"
 registry_namespace: "kubevirt"
 docker_prefix: "{{ registry_url }}/{{ registry_namespace }}"
@@ -6,7 +6,7 @@ cluster: "openshift"
 apb_action: "provision"
 release_manifest_url: "https://github.com/kubevirt/kubevirt/releases/download"
 kubevirt_template_dir: "{{ role_path }}/templates"
-version: 0.9.6
+version: 0.12.0-alpha.2
 docker_tag: "v{{ version }}"
 image_pull_policy: IfNotPresent
 

@@ -1,10 +1,10 @@
 FROM fedora:28
 
-ENV LIBVIRT_VERSION 4.2.0
+ENV LIBVIRT_VERSION 4.10.0
 
-COPY fedora-virt-preview.repo /etc/yum.repos.d/fedora-virt-preview.repo
-
-RUN dnf -y install libvirt-devel-${LIBVIRT_VERSION} make git mercurial sudo gcc findutils gradle rsync-daemon rsync qemu-img protobuf-compiler && \
+RUN dnf install -y dnf-plugins-core && \
+    dnf copr enable -y @virtmaint-sig/virt-preview && \
+    dnf -y install libvirt-devel-${LIBVIRT_VERSION} make git mercurial sudo gcc findutils gradle rsync-daemon rsync qemu-img protobuf-compiler && \
     dnf -y clean all
 
 ENV GIMME_GO_VERSION=1.10
@@ -13,14 +13,15 @@ RUN mkdir -p /gimme && curl -sL https://raw.githubusercontent.com/travis-ci/gimm
 
 ENV GOPATH="/go" GOBIN="/usr/bin"
 
-ADD rsyncd.conf /etc/rsyncd.conf
-
 RUN \
     mkdir -p /go && \
     source /etc/profile.d/gimme.sh && \
     go get github.com/mattn/goveralls && \
     go get -u github.com/Masterminds/glide && \
-    go get -u golang.org/x/tools/cmd/goimports && \
+    go get -d golang.org/x/tools/cmd/goimports && \
+    cd /go/src/golang.org/x/tools/cmd/goimports && \
+    git checkout release-branch.go1.11 && \
+    go install && \
     git clone https://github.com/mvdan/sh.git $GOPATH/src/mvdan.cc/sh && \
     cd /go/src/mvdan.cc/sh/cmd/shfmt && \
     git checkout v2.5.0 && \
@@ -49,6 +50,8 @@ RUN \
 
 RUN pip install j2cli
 
-ADD entrypoint.sh /entrypoint.sh
-
 ENTRYPOINT [ "/entrypoint.sh" ]
+
+ADD rsyncd.conf /etc/rsyncd.conf
+
+ADD entrypoint.sh /entrypoint.sh

@@ -30,14 +30,20 @@ set -ex
 
 export WORKSPACE="${WORKSPACE:-$PWD}"
 readonly ARTIFACTS_PATH="$WORKSPACE/exported-artifacts"
+readonly TEMPLATES_SERVER="https://templates.ovirt.org/kubevirt/"
 
 if [[ $TARGET =~ openshift-.* ]]; then
+  # when testing on slow CI system cleanup sometimes takes very long.
+  # openshift clusters are more memory demanding. If the cleanup
+  # of old vms does not go fast enough they run out of memory.
+  # To still allow continuing with the tests, give more memory in CI.
+  export KUBEVIRT_MEMORY_SIZE=6144M
   if [[ $TARGET =~ .*-crio-.* ]]; then
-    export KUBEVIRT_PROVIDER="os-3.10.0-crio"
+    export KUBEVIRT_PROVIDER="os-3.11.0-crio"
   elif [[ $TARGET =~ .*-multus-.* ]]; then
-    export KUBEVIRT_PROVIDER="os-3.10.0-multus"
+    export KUBEVIRT_PROVIDER="os-3.11.0-multus"
   else
-    export KUBEVIRT_PROVIDER="os-3.10.0"
+    export KUBEVIRT_PROVIDER="os-3.11.0"
   fi
 elif [[ $TARGET =~ .*-1.10.4-.* ]]; then
   export KUBEVIRT_PROVIDER="k8s-1.10.4"
@@ -45,8 +51,6 @@ elif [[ $TARGET =~ .*-multus-1.11.1-.* ]]; then
   export KUBEVIRT_PROVIDER="k8s-multus-1.11.1"
 elif [[ $TARGET =~ .*-genie-1.11.1-.* ]]; then
   export KUBEVIRT_PROVIDER="k8s-genie-1.11.1"
-  # Run only Genie and Networking tests
-  ginko_params="$ginko_params --ginkgo.focus=Networking|VMIlifecycle"
 else
   export KUBEVIRT_PROVIDER="k8s-1.11.0"
 fi
@@ -72,12 +76,39 @@ wait_for_download_lock() {
   exit 1
 }
 
-release_download_lock() { 
-  if [[ -e "$1" ]]; then
-    rm -f "$1"
-    echo "Released lock: $1"
-  fi
-}
+safe_download() (
+    # Download files into shared locations using a lock.
+    # The lock will be released as soon as this subprocess will exit
+    local lockfile="${1:?Lockfile was not specified}"
+    local download_from="${2:?Download from was not specified}"
+    local download_to="${3:?Download to was not specified}"
+    local timeout_sec="${4:-3600}"
+
+    touch "$lockfile"
+    exec {fd}< "$lockfile"
+    flock -e  -w "$timeout_sec" "$fd" || {
+        echo "ERROR: Timed out after $timeout_sec seconds waiting for lock" >&2
+        exit 1
+    }
+
+    local remote_sha1_url="${download_from}.sha1"
+    local local_sha1_file="${download_to}.sha1"
+    local remote_sha1
+    # Remote file includes only sha1 w/o filename suffix
+    remote_sha1="$(curl -s "${remote_sha1_url}")"
+    if [[ "$(cat "$local_sha1_file")" != "$remote_sha1" ]]; then
+        echo "${download_to} is not up to date, corrupted or doesn't exist."
+        echo "Downloading file from: ${remote_sha1_url}"
+        curl "$download_from" --output "$download_to"
+        sha1sum "$download_to" | cut -d " " -f1 > "$local_sha1_file"
+        [[ "$(cat "$local_sha1_file")" == "$remote_sha1" ]] || {
+            echo "${download_to} is corrupted"
+            return 1
+        }
+    else
+        echo "${download_to} is up to date"
+    fi
+)
 
 if [[ $TARGET =~ openshift.* ]]; then
     # Create images directory
@@ -86,14 +117,9 @@ if [[ $TARGET =~ openshift.* ]]; then
     fi
 
     # Download RHEL image
-    if wait_for_download_lock $RHEL_LOCK_PATH; then
-        if [[ ! -f "$RHEL_NFS_DIR/disk.img" ]]; then
-            curl http://templates.ovirt.org/kubevirt/rhel7.img > $RHEL_NFS_DIR/disk.img
-        fi
-        release_download_lock $RHEL_LOCK_PATH
-    else
-        exit 1
-    fi
+    rhel_image_url="${TEMPLATES_SERVER}/rhel7.img"
+    rhel_image="$RHEL_NFS_DIR/disk.img"
+    safe_download "$RHEL_LOCK_PATH" "$rhel_image_url" "$rhel_image" || exit 1
 fi
 
 if [[ $TARGET =~ windows.* ]]; then
@@ -103,14 +129,9 @@ if [[ $TARGET =~ windows.* ]]; then
   fi
 
   # Download Windows image
-  if wait_for_download_lock $WINDOWS_LOCK_PATH; then
-    if [[ ! -f "$WINDOWS_NFS_DIR/disk.img" ]]; then
-      curl http://templates.ovirt.org/kubevirt/win01.img > $WINDOWS_NFS_DIR/disk.img
-    fi
-    release_download_lock $WINDOWS_LOCK_PATH
-  else
-    exit 1
-  fi
+  win_image_url="${TEMPLATES_SERVER}/win01.img"
+  win_image="$WINDOWS_NFS_DIR/disk.img"
+  safe_download "$WINDOWS_LOCK_PATH" "$win_image_url" "$win_image" || exit 1
 fi
 
 kubectl() { cluster/kubectl.sh "$@"; }
@@ -123,12 +144,19 @@ if [ -n "${JOB_NAME}" ]; then
 namespace=${NAMESPACE}
 EOF
 else
-  export NAMESPACE="${NAMESPACE:-kube-system}"
+  export NAMESPACE="${NAMESPACE:-kubevirt}"
 fi
 
 
 # Make sure that the VM is properly shut down on exit
-trap '{ release_download_lock $RHEL_LOCK_PATH; release_download_lock $WINDOWS_LOCK_PATH; make cluster-down; }' EXIT SIGINT SIGTERM SIGSTOP
+trap '{ make cluster-down; }' EXIT SIGINT SIGTERM SIGSTOP
+
+
+# Check if we are on a pull request in jenkins.
+export KUBEVIRT_CACHE_FROM=${ghprbTargetBranch}
+if [ -n "${KUBEVIRT_CACHE_FROM}" ]; then
+    make pull-cache
+fi
 
 make cluster-down
 make cluster-up
@@ -151,8 +179,8 @@ kubectl get nodes
 make cluster-sync
 
 # OpenShift is running important containers under default namespace
-namespaces=(kube-system default)
-if [[ $NAMESPACE != "kube-system" ]]; then
+namespaces=(kubevirt default)
+if [[ $NAMESPACE != "kubevirt" ]]; then
   namespaces+=($NAMESPACE)
 fi
 
@@ -216,6 +244,11 @@ spec:
 EOF
   # Run only Windows tests
   ginko_params="$ginko_params --ginkgo.focus=Windows"
+
+elif [[ $TARGET =~ multus.* ]] || [[ $TARGET =~ genie.* ]]; then
+  # Run networking tests only (general networking, multus, genie, ...)
+  # If multus or genie is not present the test will  be skipped base on per-test checks
+  ginko_params="$ginko_params --ginkgo.focus=Networking|VMIlifecycle|Expose|Networkpolicy"
 fi
 
 # Prepare RHEL PV for Template testing
