@@ -6,15 +6,8 @@ readonly ARTIFACTS_PATH="exported-artifacts"
 readonly VMS_LOGS_PATH="${ARTIFACTS_PATH}/vm_logs"
 
 get_run_path() {
-    # if above ram_threshold KBs are available in /dev/shm, run there
     local suffix="${1:-lago}"
-    local ram_threshold=30000000
-    local avail_shm=$(df --output=avail /dev/shm | sed 1d)
-
-    [[ "$avail_shm" -ge "$ram_threshold" ]] && \
-        mkdir -p "/dev/shm/ost" && \
-        echo "/dev/shm/ost/deployment-$suffix" || \
-        echo "$PWD/deployment-$suffix"
+    echo "$PWD/deployment-$suffix"
 }
 
 on_exit() {
