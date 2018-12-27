@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -126,4 +127,25 @@ func DeleteServiceAccount(saName string) {
 
 	err = virtCli.CoreV1().ServiceAccounts(NamespaceTestDefault).Delete(saName, nil)
 	Expect(err).ToNot(HaveOccurred())
+}
+
+func RemovePVC(pvcName string) {
+
+	virtCli, err := kubecli.GetKubevirtClient()
+	Expect(err).ToNot(HaveOccurred())
+
+	err = virtCli.CoreV1().PersistentVolumeClaims(NamespaceTestDefault).Delete(pvcName, nil)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func RemovePvcWithTimeout(pvcName string, timeout time.Duration) {
+	virtCli, err := kubecli.GetKubevirtClient()
+	Expect(err).ToNot(HaveOccurred())
+
+	RemovePVC(pvcName)
+
+	Eventually(func() *k8sv1.PersistentVolumeClaim {
+		output, _ := virtCli.CoreV1().PersistentVolumeClaims(NamespaceTestDefault).Get(pvcName, metav1.GetOptions{})
+		return output
+	}, timeout, 1*time.Second).Should(BeNil())
 }
