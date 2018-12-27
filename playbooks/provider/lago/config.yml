@@ -101,15 +101,6 @@
         echo -e "${disk}\t${mount_path}\text4\tdefaults\t0 0" >> /etc/fstab
         mount "$disk" "$mount_path"
 
-- hosts: lago-node0
-  tasks:
-    - name: Mark lago-node0 as infra
-      set_fact:
-        openshift_node_labels:
-          region: infra
-          zone: default
-
-# For Openshift 3.10
 - hosts: nodes
   tasks:
     - name: Set openshift_node_group_name for nodes
