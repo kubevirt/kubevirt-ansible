@@ -1,0 +1,42 @@
+apiVersion: kubevirt.io/v1alpha2
+kind: VirtualMachine
+metadata:
+  creationTimestamp: null
+  labels:
+    kubevirt.io/vm: common-templates-test-vm
+  name: common-templates-test-vm
+spec:
+  running: false
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: common-templates-test-vm
+    spec:
+      domain:
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: registrydisk
+            volumeName: registryvolume
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+            volumeName: cloudinitvolume
+        machine:
+          type: ""
+        resources:
+          requests:
+            memory: 2024M
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - name: registryvolume
+        registryDisk:
+          image: kubevirt/fedora-cloud-registry-disk-demo:latest
+      - cloudInitNoCloud:
+          userData: |
+            #!/bin/sh
+
+            echo 'printed from cloud-init userdata'
+        name: cloudinitvolume
+status: {}
