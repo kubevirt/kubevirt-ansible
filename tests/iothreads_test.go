@@ -135,38 +135,36 @@ var _ = Describe("IOThreads", func() {
 			// How many symbols in the names of pod and VMI shoul match
 			symbols_to_compare := 30
 
+			By("Creating VMI with desired spec")
 			IOThreadVMI, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(IOThreadVMI)
-			// Step 1
 			Expect(err).ToNot(HaveOccurred())
-			Expect(len(IOThreadVMI.Name) > symbols_to_compare).To(BeTrue())
+			Expect(len(IOThreadVMI.Name) > symbols_to_compare).To(BeTrue(), "VMI Name should contain at least N symbols")
 
-			// get VMI from the pod
+			By("Checking that corresponding pod exists")
 			listOptions := metav1.ListOptions{}
 			podList, err := virtClient.CoreV1().Pods(tests.NamespaceTestDefault).List(listOptions)
-			// Step 2
 			Expect(err).ToNot(HaveOccurred())
-			Expect(podList.Items).To(HaveLen(1))
-			Expect(podList.Items[0].Name).To(HavePrefix("virt-launcher-" + IOThreadVMI.Name[:symbols_to_compare]))
+			Expect(podList.Items).To(HaveLen(1), "We should only have 1 pod")
+			Expect(podList.Items[0].Name).To(HavePrefix("virt-launcher-" + IOThreadVMI.Name[:symbols_to_compare]), "Pod name should have a name similiar to VM name")
 
+			By("Checking that VMI with this name does exist")
 			getOptions := metav1.GetOptions{}
 			resultVMI, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Get(IOThreadVMI.Name, &getOptions)
-			// Step 3
 			Expect(err).ToNot(HaveOccurred())
 
-			// Step 4.1
-			Expect(*resultVMI.Spec.Domain.IOThreadsPolicy).To(Equal(sharedPolicy))
-			// Step 4.2
+			Expect(*resultVMI.Spec.Domain.IOThreadsPolicy).To(Equal(sharedPolicy), "Spec should have shared policy")
+
+			By("Checking that spec has correct dedicated threads")
 			ded1_present := false
 			for _, disk := range resultVMI.Spec.Domain.Devices.Disks {
 				if disk.Name == "ded1" {
 					ded1_present = true
-					Expect(*disk.DedicatedIOThread).To(BeTrue())
+					Expect(*disk.DedicatedIOThread).To(BeTrue(), "Dedicated disk should have a dedicated IO thread")
 				}
 			}
-			Expect(ded1_present).To(BeTrue())
+			Expect(ded1_present).To(BeTrue(), "There should be a dedicated disk with IO thread.")
 
-			// Step 5 is NA for automatic testing
-
+			By("Checking that exported XML has correct dedicated threads")
 			duration := time.Duration(60)*time.Second
 			time.Sleep(duration)
 			//tests.WaitUntilVMIReadyWithNamespace(tests.NamespaceTestDefault, resultVMI, tests.LoggedInCirrosExpecter)
@@ -182,23 +180,22 @@ var _ = Describe("IOThreads", func() {
 			domStat := &DomStatus{}
 			err = xml.Unmarshal(output, domStat)
 
-			// Step 6
 			Expect(err).ToNot(HaveOccurred())
 			ded1_present = false
 			shr_num := 0
 			for _, disk := range domStat.Domain.Devices.Disks {
 				if disk.Alias.Name == "ded1" {
 					ded1_present = true
-					Expect(int(*disk.Driver.IOThread)).To(Equal(2))
+					Expect(int(*disk.Driver.IOThread)).To(Equal(2), "Dedicated disk should have 2nd IO thread")
 				}
 				if strings.HasPrefix(disk.Alias.Name, "shr") {
 					shr_num += 1
-					Expect(int(*disk.Driver.IOThread)).To(Equal(1))
+					Expect(int(*disk.Driver.IOThread)).To(Equal(1), "Shared disk should have 1st IO thread")
 				}
 			}
-			Expect(ded1_present).To(BeTrue())
-			Expect(shr_num).To(Equal(2))
-			Expect(domStat.Domain.IOThreads.IOThreads == 2).To(BeTrue())
+			Expect(ded1_present).To(BeTrue(), "There should be a dedicated disk")
+			Expect(shr_num).To(Equal(2), "There should be 2 shared disks")
+			Expect(domStat.Domain.IOThreads.IOThreads == 2).To(BeTrue(), "There should be 2 iothreads")
 		})
 
 	})
