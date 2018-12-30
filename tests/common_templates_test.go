@@ -23,8 +23,6 @@ import (
 	"flag"
 	"os/exec"
 	"strings"
-	"net/http"
-	"io/ioutil"
 	"regexp"
 	"os"
 	"bufio"
@@ -33,6 +31,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+        framework "kubevirt.io/kubevirt-ansible/tests/framework"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/tests"
 )
@@ -43,8 +42,9 @@ var _ = Describe("Common templates", func() {
 	virtClient, err := kubecli.GetKubevirtClient()
 	tests.PanicOnError(err)
 
-	// Common templates read into string
-	var common_templates_yaml string
+	// Getting common_templates
+	// TODO2: replace downloading common-templates with getting common-templates from RPM
+	common_templates_yaml := string(framework.DownloadFile(framework.GetLatestGitHubReleaseURL("kubevirt", "common-templates")))
 
 	BeforeEach(func() {
 		tests.BeforeTestCleanup()
@@ -55,17 +55,7 @@ var _ = Describe("Common templates", func() {
 
 		// Applying datavolume
 		// TODO1: This is currently bugged and replaced with using vm.yaml. 
-		// exec.Command("/bin/bash", "-c", "/usr/bin/oc apply -f tests/manifests/fedora_datavolume.yaml")
-
-		// Getting common_templates
-		// TODO2: replace downloading common-templates with getting common-templates from RPM
-		ct_yml_url := "https://github.com/kubevirt/common-templates/releases/download/v0.3.1/common-templates-v0.3.1.yaml"
-		response, err := http.Get(ct_yml_url)
-		tests.PanicOnError(err)
-		defer response.Body.Close()
-		data, err := ioutil.ReadAll(response.Body)
-		common_templates_yaml = string(data)
-
+		// exec.Command("/bin/bash", "-c", "/usr/bin/oc apply -f tests/manifests/fedora_datavolume.yaml")		
 	})
 
 	Context("Test loading Fedora", func() {
