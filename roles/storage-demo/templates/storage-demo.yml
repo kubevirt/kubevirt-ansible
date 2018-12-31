@@ -9,7 +9,7 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: storage-demo
-  namespace: {{ namespace }}
+  namespace: {{ storage_namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
@@ -28,7 +28,7 @@ apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: storage-demo
-  namespace: "{{ namespace }}"
+  namespace: "{{ storage_namespace }}"
   labels:
     app: storage-demo
 spec:

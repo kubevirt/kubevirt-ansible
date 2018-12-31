@@ -1,0 +1,33 @@
+---
+- import_playbook: initial_configuration.yml
+
+- name: Deploy kubevirt web UI
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  # unset http_proxy. required for running in the CI
+  environment:
+    http_proxy: ""
+  vars:
+    first_master: "{{ masters[0] }}"
+  tasks:
+    - name: Set Console install 'In Progress'
+      run_once: true
+      set_stats:
+        data:
+          installer_phase_console:
+            title: "Console Install"
+            playbook: "playbooks/kubevirt-web-ui.yml"
+            status: "In Progress"
+            start: "{{ lookup('pipe', 'date +%Y%m%d%H%M%SZ') }}"
+
+    - import_role:
+        name: kubevirt_web_ui
+
+    - name: Set Console install 'Complete'
+      run_once: true
+      set_stats:
+        data:
+          installer_phase_console:
+            status: "Complete"
+            end: "{{ lookup('pipe', 'date +%Y%m%d%H%M%SZ') }}"

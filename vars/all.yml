@@ -1,5 +1,6 @@
 ### Cluster ###
-cluster: openshift
+platform: openshift
+apb_action: "provision"
 
 # OpenShift #
 kubevirt_openshift_version: "3.10"
@@ -9,10 +10,18 @@ openshift_playbook_path: "{{ openshift_ansible_dir }}/{{ 'playbooks/byo/config.y
 ### KubeVirt ###
 version: 0.12.0-alpha.2
 image_pull_policy: IfNotPresent
+deploy_demo: true
 
-### Components ###
+### Roles ###
 storage_role: "storage-none"
 network_role: "network-multus"
+
+
+#### Network ####
+deploy_cni_plugins: true
+deploy_ovs_plugin: true
+deploy_sriov_plugin: true
+deploy_skydive: false
 
 # Example: '"05:00.0", "05:00.1"'
 # Note: this assumes that PCI ID pools are the same on all nodes which may be

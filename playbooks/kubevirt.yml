@@ -1,71 +1,12 @@
-# note: the order of plays in the playbook is important: the first play that
-# configures SR-IOV device plugin should be executed before the play that
-# identifies nodes with configured OpenShift client, otherwise the SR-IOV play
-# won't be executed for nodes that would fail on calling 'oc get projects' just
-# because they have client mis- or unconfigured.
 ---
-# note: strictly speaking, we should avoid configuring sriovdp when
-# deploy_sriov_plugin is disabled but the fact is not defined on this level so
-# instead we fall back to deploying configuration file on all nodes. This
-# shouldn't affect runtime for clusters that opt out of SRIOV.
-- hosts: nodes
-  vars:
-    network_role: network-multus
-    sriov_pci_ids: ''
-  tasks:
-    - name: configure SR-IOV device plugin
-      block:
-      - name: Create /etc/pcidp
-        file: path=/etc/pcidp state=directory
-        become: yes
+- import_playbook: initial_configuration.yml
 
-      - name: Configure SR-IOV DP allocation pool
-        template:
-          src: sriovdp-config.json
-          dest: /etc/pcidp/config.json
-        become: yes
+# Deploy network components
+- import_playbook: network.yml
 
-      - name: Fix SELinux labels for /var/lib/kubelet/device-plugins/
-        command: restorecon -Rv /var/lib/kubelet/device-plugins/
-        become: yes
-        ignore_errors: True
-
-      when: network_role == 'network-multus'
-
-- hosts: all
-  connection: local
-  gather_facts: False
-  environment:
-    http_proxy: ""
-  tasks:
-    - name: Identify cluster
-      command: "oc get projects"
-      register: result
-
-    - name: Set cluster variable
-      set_fact:
-        platform: "openshift"
-      when: "{{ result.rc }} == 0"
-
-    - name: Login As Super User
-      command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
-      when: platform == "openshift"
-            and admin_user is defined
-            and admin_password is defined
-
-- hosts: masters[0]
-  connection: local
-  gather_facts: False
-  vars:
-    network_role: network-multus
-  # unset http_proxy. required for running in the CI
-  environment:
-    http_proxy: ""
-  roles:
-    - { role: "network-multus", when: network_role == 'network-multus'}
-    - { role: "skydive", when: deploy_skydive == 'True'}
-
-- hosts: masters[0]
+# Deploy kubevirt
+- name: Deploy kubevirt role
+  hosts: localhost
   connection: local
   gather_facts: False
   # unset http_proxy. required for running in the CI
@@ -74,12 +15,9 @@
   roles:
     - role: kubevirt
 
-- hosts: masters[0]
-  connection: local
-  gather_facts: False
-  environment:
-    http_proxy: ""
-  roles:
-    - role: "cdi"
+# Deploy cdi
+- import_playbook: cdi.yml
 
-- import_playbook: kubevirt-web-ui/config.yml
+# Deploy kubevirt web UI
+- import_playbook: kubevirt-web-ui.yml
+  when: platform == "openshift"

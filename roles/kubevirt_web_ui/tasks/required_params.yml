@@ -17,7 +17,7 @@
 
 #### Autodiscovery of missing variables
 # Assumptions for autodiscovery:
-# - console's namespace is hardcoded to "openshift-console" (as done in openshift-ansible)
+# - console's namespace is hardcoded to "openshift-console" (as done in openshift-ansible version >= 3.11)
 # - the openshift console is mandatory part of OKD installation
 
 - name: Discover public_master_hostname from openshift console deployment

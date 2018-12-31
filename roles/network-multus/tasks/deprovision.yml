@@ -15,7 +15,7 @@
     dest: /tmp/multus.yml
 
 - name: Delete multus Resources
-  command: kubectl delete -f /tmp/multus.yml --ignore-not-found
+  command: "{{ cluster_command }} delete -f /tmp/multus.yml --ignore-not-found"
 
 - name: Render cni plugins deployment yaml
   template:
@@ -23,7 +23,7 @@
     dest: /tmp/cni-plugins.yml
 
 - name: Delete cni plugins Resources
-  command: kubectl delete -f /tmp/cni-plugins.yml --ignore-not-found
+  command: "{{ cluster_command }} delete -f /tmp/cni-plugins.yml --ignore-not-found"
 
 - name: Render OVS plugin deployment yaml
   template:
@@ -31,7 +31,7 @@
     dest: /tmp/ovs-cni.yml
 
 - name: Delete OVS plugin Resources
-  command: kubectl delete -f /tmp/ovs-cni.yml --ignore-not-found
+  command: "{{ cluster_command }} delete -f /tmp/ovs-cni.yml --ignore-not-found"
 
 - name: Render ovs-vsctl deployment yaml
   template:
@@ -39,4 +39,4 @@
     dest: /tmp/ovs-vsctl.yml
 
 - name: Delete ovs-vsctl Resources
-  command: kubectl delete -f /tmp/ovs-vsctl.yml --ignore-not-found
+  command: "{{ cluster_command }} delete -f /tmp/ovs-vsctl.yml --ignore-not-found"

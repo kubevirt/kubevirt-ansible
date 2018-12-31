@@ -8,4 +8,4 @@
     dest: /tmp/storage-demo.yml
 
 - name: Delete storage-demo Resources
-  command: kubectl delete -f /tmp/storage-demo.yml --ignore-not-found
+  command: "{{ cluster_command }} delete -f /tmp/storage-demo.yml --ignore-not-found"

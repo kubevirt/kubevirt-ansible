@@ -1,0 +1,22 @@
+---
+- name: Initial configuration
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  tasks:
+    - name: Login As Super User
+      command: "oc login {{ openshift_url }} -u {{ admin_user }} -p {{ admin_password }}"
+      when: platform == "openshift"
+        and openshift_url is defined
+        and admin_user is defined
+        and admin_password is defined
+
+    - name: Config kubernetes client binary
+      set_fact:
+        cluster_command: "kubectl"
+      when: platform == "kubernetes"
+
+    - name: Config openshift client binary
+      set_fact:
+        cluster_command: "oc"
+      when: platform == "openshift"

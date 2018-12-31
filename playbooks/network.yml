@@ -1,10 +1,19 @@
 ---
+- import_playbook: initial_configuration.yml
+
 - hosts: nodes masters
   remote_user: root
-  vars:
-    network_role: network-multus
   tasks:
-    - name: make sure OVS is installed & enabled
+    - name: remove multus config from nodes on deprovisioning
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /etc/cni/net.d/00-multus.conf
+        - /etc/cni/net.d/multus.d
+      when: network_role == 'network-multus' and apb_action == 'deprovision'
+
+    - name: make sure OVS is installed & enabled on provisioning
       block:
       - name: make sure ovs is installed
         package:
@@ -15,28 +24,32 @@
           state: started
           enabled: yes
           name: openvswitch
-      when: network_role == 'network-multus' and deploy_ovs_plugin and cluster == "kubernetes"
+      when: network_role == 'network-multus' and deploy_ovs_plugin and platform == "kubernetes" and apb_action == 'provision'
 
-- hosts: nodes
-  remote_user: root
-  tasks:
-    - name: remove multus config from nodes on deprovisioning
-      file:
-        path: "{{ item }}"
-        state: absent
-      with_fileglob:
-        - "/etc/cni/net.d/*-multus.conf"
-      when: network_role == 'network-multus' and apb_action == 'deprovision'
+    - name: configure SR-IOV device plugin
+      block:
+        - name: Create /etc/pcidp
+          file: path=/etc/pcidp state=directory
 
-- hosts: masters[0]
+        - name: Configure SR-IOV DP allocation pool
+          template:
+            src: roles/network-multus/templates/sriovdp-config.json
+            dest: /etc/pcidp/config.json
+
+        - name: Fix SELinux labels for /var/lib/kubelet/device-plugins/
+          command: restorecon -Rv /var/lib/kubelet/device-plugins/
+          ignore_errors: True
+
+      when: network_role == 'network-multus' and deploy_sriov_plugin == true and apb_action == 'provision'
+
+
+- name: Deploy network roles
+  hosts: localhost
   connection: local
   gather_facts: False
-  vars:
-    network_role: network-multus
-    deploy_skydive: False
   # unset http_proxy. required for running in the CI
   environment:
     http_proxy: ""
   roles:
-  - { role: "network-multus", when: network_role == 'network-multus'}
-  - { role: "skydive", when: deploy_skydive == 'True'}
+    - { role: "network-multus", when: network_role == 'network-multus'}
+    - { role: "skydive", when: deploy_skydive == true}

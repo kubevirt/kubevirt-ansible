@@ -1,33 +1,26 @@
----
-- name: Login As Super User
-  command: "oc login -u {{ admin_user }} -p {{ admin_password }}"
-  when: platform=="openshift"
-        and admin_user is defined
-        and admin_password is defined
-
-- name: Check if namespace {{ namespace }} exists
-  shell: kubectl get ns | grep -w {{ namespace }} | awk '{ print $1 }'
+- name: Check if namespace {{ storage_namespace }} exists
+  shell: "{{ cluster_command }} get ns | grep -w {{ storage_namespace }} | awk '{ print $1 }'"
   register: ns
 
-- name: Create {{ namespace }} namespace
-  shell: kubectl create namespace {{ namespace }}
-  when: ns.stdout != namespace
+- name: Create {{ storage_namespace }} namespace
+  shell: "{{ cluster_command }} create namespace {{ storage_namespace }}"
+  when: ns.stdout != storage_namespace
 
 - name: Check for storage-demo serviceaccount
-  command: kubectl get serviceaccount storage-demo -n {{ namespace }}
+  command: "{{ cluster_command }} get serviceaccount storage-demo -n {{ storage_namespace }}"
   register: user
   failed_when: user.rc > 1
 
 - name: Create storage-demo serviceaccount
-  command: kubectl create serviceaccount storage-demo -n {{ namespace }}
+  command: "{{ cluster_command }} create serviceaccount storage-demo -n {{ storage_namespace }}"
   when: user.stdout == ""
 
 - name: Grant privileged access to storage-demo serviceaccount
-  command: oc adm policy add-scc-to-user privileged system:serviceaccount:{{ namespace }}:storage-demo
+  command: oc adm policy add-scc-to-user privileged system:serviceaccount:{{ storage_namespace }}:storage-demo
   when: platform=="openshift"
 
 - name: Select a target node
-  command: kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="Hostname")].address}'
+  command: "{{ cluster_command }} get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="Hostname")].address}'"
   register: node_hostname
   when: storage_demo_node_hostname is not defined
 
@@ -42,4 +35,4 @@
     dest: /tmp/storage-demo.yml
 
 - name: Create storage-demo Resources
-  command: kubectl apply -f /tmp/storage-demo.yml
+  command: "{{ cluster_command }} apply -f /tmp/storage-demo.yml"

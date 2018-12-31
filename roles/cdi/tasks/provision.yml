@@ -1,22 +1,18 @@
 ---
 # CDI Deployment
-- name: Determine Environment
-  shell: "oc version> /dev/null 2>&1; if [ \"$?\" -eq 127 ]; then echo 'kubectl'; else echo 'oc'; fi"
-  register: cli
-
 - name: Check if namespace {{ cdi_namespace }} exists
-  shell: kubectl get ns | grep -w {{ cdi_namespace }} | awk '{ print $1 }'
+  shell: "{{ cluster_command }} get ns | grep -w {{ cdi_namespace }} | awk '{ print $1 }'"
   register: ns
 
 - name: Create {{ cdi_namespace }} namespace using kubectl
   shell: kubectl create namespace {{ cdi_namespace }}
   when: ns.stdout != cdi_namespace
-        and cli.stdout == "kubectl"
+        and platform == "kubernetes"
 
 - name: Create {{ cdi_namespace }} namespace using oc
   shell: oc new-project {{ cdi_namespace }}
   when: ns.stdout != cdi_namespace
-        and cli.stdout == "oc"
+        and platform == "openshift"
 
 - name: Render {{ cdi_namespace }} ResourceQuota deployment yaml
   template:
@@ -24,7 +20,7 @@
     dest: /tmp/cdi-provision-resourcequota.yml
 
 - name: Create {{ cdi_namespace }} ResourceQuota
-  command: "kubectl apply -f /tmp/cdi-provision-resourcequota.yml -n {{ cdi_namespace }}"
+  command: "{{ cluster_command }} apply -f /tmp/cdi-provision-resourcequota.yml -n {{ cdi_namespace }}"
 
 - name: Check for cdi-controller.yaml.j2 template in {{ cdi_template_dir }}
   stat:
@@ -56,8 +52,8 @@
   when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
 
 - name: Create CDI deployment
-  command: "kubectl apply -f /tmp/cdi-provision.yml"
+  command: "{{ cluster_command }} apply -f /tmp/cdi-provision.yml"
 
 - name: Enable privileged containers in the security context
   command: "oc adm policy add-scc-to-user privileged -z cdi-sa -n {{ cdi_namespace }}"
-  when: cli.stdout == "oc"
+  when: platform == "openshift"

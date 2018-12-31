@@ -24,7 +24,7 @@
   when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
 
 - name: Delete Demo Content
-  command: kubectl delete --ignore-not-found=true -f /tmp/demo-content.yaml
+  command: "{{ cluster_command }} delete --ignore-not-found=true -f /tmp/demo-content.yaml"
 
 - name: Delete Privileged Policy
   command: "oc adm policy remove-scc-from-user privileged -z {{ item }} -n {{ namespace }}"
@@ -60,13 +60,13 @@
   when: kubevirt_template.stat.exists == False
 
 - name: Delete apiservices v1alpha2.subresources.kubevirt.io
-  command: kubectl -n {{ namespace }} delete apiservices v1alpha2.subresources.kubevirt.io
+  command: "{{ cluster_command }} -n {{ namespace }} delete apiservices v1alpha2.subresources.kubevirt.io"
 
 - name: Delete KubeVirt Resources
-  command: kubectl delete -f /tmp/kubevirt.yaml --ignore-not-found=true --wait=false
+  command: "{{ cluster_command }} delete -f /tmp/kubevirt.yaml --ignore-not-found=true --wait=false"
 
 - name: Wait until {{ namespace }} namespace will dissappear
-  shell: kubectl get ns | grep -w {{ namespace }}
+  shell: "{{ cluster_command }} get ns | grep -w {{ namespace }}"
   register: result
   until: result.rc != 0
   retries: 12
