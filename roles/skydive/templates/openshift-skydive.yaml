@@ -132,6 +132,27 @@ objects:
     test: false
     triggers:
     - type: ConfigChange
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    labels:
+      app: skydive-agent
+    name: skydive-agent-yaml
+  data:
+    skydive.yml: |
+      agent:
+        topology:
+          probes:
+            - ovsdb
+            - docker
+            - runc
+
+        runc:
+          run_path:
+            - /run/runc
+
+      analyzer:
+        listen: 0.0.0.0:8082
 - apiVersion: extensions/v1beta1
   kind: DaemonSet
   metadata:
@@ -166,18 +187,26 @@ objects:
           securityContext:
             privileged: true
           volumeMounts:
+          - name: config-skidive-volume
+            mountPath: /etc/skydive.yml
+            subPath: skydive.yml
           - mountPath: /var/run/docker.sock
             name: docker
           - mountPath: /host/run
             name: run
           - mountPath: /var/run/openvswitch/db.sock
             name: ovsdb
+          - mountPath: /run/runc
+            name: runc
         dnsPolicy: ClusterFirst
         hostNetwork: true
         hostPID: true
         restartPolicy: Always
         terminationGracePeriodSeconds: 30
         volumes:
+        - name: config-skidive-volume
+          configMap:
+            name: skydive-agent-yaml
         - hostPath:
             path: /var/run/docker.sock
           name: docker
@@ -187,6 +216,9 @@ objects:
         - hostPath:
             path: /var/run/openvswitch/db.sock
           name: ovsdb
+        - hostPath:
+            path: /run/runc-ctrs
+          name: runc
 - apiVersion: v1
   kind: Route
   metadata:
