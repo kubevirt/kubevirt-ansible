@@ -12,44 +12,46 @@ import (
 	ktests "kubevirt.io/kubevirt/tests"
 )
 
-// template parameters
 const (
-	invalidURL     = "https://noneexist.com"
-	dstPVCFilePath = "/tmp/test-pvc.json"
-	dstVMFilePath  = "/tmp/test-vm.json"
+	invalidURL            = "https://noneexist.com"
+	dataVolumeName        = "golden-data-volume"
+	dstDataVolumeFilePath = "/tmp/test-data-volume.json"
+	rawDataVolumeFilePath = "tests/manifests/golden-data-volume.yml"
+	apiVersion            = "cdi.kubevirt.io/v1alpha1"
+	timeout               = 1 * 60 * time.Second
 )
 
-var _ = FDescribe("Importing image using CDI with invalid URL", func() {
+var _ = Describe("Importing image using CDI with invalid URL", func() {
 
 	flag.Parse()
 
 	ktests.BeforeAll(func() {
 		ktests.BeforeTestCleanup()
-		By("Create a PVC with invalid image URL")
-		tests.ProcessTemplateWithParameters(rawPVCFilePath, dstPVCFilePath, "PVC_NAME="+pvcName, "EP_URL="+invalidURL)
-		tests.CreateResourceWithFilePathTestNamespace(dstPVCFilePath)
-
+		By("Create a Data Volume with invalid image URL")
+		tests.ProcessTemplateWithParameters(rawDataVolumeFilePath, dstDataVolumeFilePath, "DV_NAME="+dataVolumeName, "EP_URL="+invalidURL, "API_VERSION="+apiVersion)
+		tests.CreateResourceWithFilePathTestNamespace(dstDataVolumeFilePath)
 	})
 
-	Context("PVC with invalid image url", func() {
-		It("Importer pod should be in CrashLoopBackOff status", func() {
+	Context("Data Volume with invalid image url", func() {
+		It("Importer pod should be removed once data volume is deleted", func() {
+			By("Importer pod should be in CrashLoopBackOff status")
 			tests.WaitUntilResourceReadyByLabelTestNamespace("pod", tests.CDI_LABEL_SELECTOR, "", "CrashLoopBackOff")
-		})
-		It("PVC deleted successfully", func() {
-			importer_pod := GetImporterPodName(pvcName)
-			Expect(importer_pod).ToNot(BeEmpty())
-			timeout := 5 * 60 * time.Second
-			tests.RemovePvcWithTimeout(pvcName, timeout)
 
-		})
-		It("Importer pod should be removed", func() {
-			importer_pod := GetImporterPodName(pvcName)
-			Expect(importer_pod).To(BeEmpty())
+			By("Data Volume deleted successfully")
+			importer_pod := GetImporterPodName(dataVolumeName)
+			Expect(importer_pod).ToNot(BeEmpty())
+			tests.RemoveDataVolume(dataVolumeName, tests.NamespaceTestDefault)
+
+			By("Importer pod should be removed")
+			Eventually(func() string {
+				importer_pod := GetImporterPodName(dataVolumeName)
+				return importer_pod
+			}, timeout, 1*time.Second).Should(BeEmpty())
 		})
 	})
 })
 
-func GetImporterPodName(pvcName string) string {
+func GetImporterPodName(dataVolumeName string) string {
 	var importer_pod string
 	args := []string{"get", "pods", "-o=custom-columns=NAME:.metadata.name"}
 	output, _, err := ktests.RunCommand("oc", args...)
@@ -57,7 +59,7 @@ func GetImporterPodName(pvcName string) string {
 	Expect(output).ToNot(BeEmpty())
 	pods := strings.Split(output, "\n")
 	for _, pod := range pods {
-		if strings.Contains(pod, pvcName) && strings.Contains(pod, "importer") {
+		if strings.Contains(pod, dataVolumeName) && strings.Contains(pod, "importer") {
 			importer_pod = pod
 			break
 		}

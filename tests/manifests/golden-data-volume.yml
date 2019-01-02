@@ -1,0 +1,27 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: cdi-test
+objects:
+- apiVersion: "${API_VERSION}"
+  kind: DataVolume
+  metadata:
+    name: ${DV_NAME}
+  spec:
+    source:
+        http:
+           url: "${EP_URL}"
+           secretRef: "${EP_SECRET}"
+    pvc:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: "64Mi"
+parameters:
+- name: DV_NAME
+- name: EP_URL
+- name: EP_SECRET
+- name: API_VERSION
