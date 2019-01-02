@@ -22,7 +22,6 @@ package tests_test
 import (
 	"flag"
 	"os/exec"
-	"time"
 	"encoding/xml"
 	"strings"
 
@@ -187,6 +186,8 @@ var _ = Describe("IOThreads", func() {
 			By("Creating VMI with desired spec")
 			IOThreadVMI, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(IOThreadVMI)
 			Expect(err).ToNot(HaveOccurred())
+			tests.WaitForSuccessfulVMIStart(IOThreadVMI)
+
 			Expect(len(IOThreadVMI.Name) > symbols_to_compare).To(BeTrue(), "VMI Name should contain at least N symbols")
 
 			By("Checking that corresponding pod exists")
@@ -198,7 +199,11 @@ var _ = Describe("IOThreads", func() {
 			// VM names with pod names, since they both have a number or random symbols at the end,
 			// and these symbols are different for pod name and vm name. So, I only can compare their names before
 			// these random symbols.
-			Expect(podList.Items[0].Name).To(HavePrefix("virt-launcher-" + IOThreadVMI.Name[:symbols_to_compare]), "Pod name should have a name similiar to VM name")
+
+			podObj := tests.GetRunningPodByVirtualMachineInstance(IOThreadVMI,tests.NamespaceTestDefault)
+			podName := podObj.Name
+
+			Expect(podName).To(HavePrefix("virt-launcher-" + IOThreadVMI.Name[:symbols_to_compare]), "Pod name should have a name similiar to VM name")
 
 			By("Checking that VMI with this name does exist")
 			getOptions := metav1.GetOptions{}
@@ -218,12 +223,10 @@ var _ = Describe("IOThreads", func() {
 			Expect(ded_n).To(Equal(2), "There should be 2 disks with dedicated threads")
 
 			By("Checking that exported XML has correct dedicated threads")
-			duration := time.Duration(60)*time.Second
-			time.Sleep(duration)
-			//tests.WaitUntilVMIReadyWithNamespace(tests.NamespaceTestDefault, resultVMI, tests.LoggedInCirrosExpecter)
 			command := "/usr/local/bin/oc project kubevirt-test-default && "
 			command += "/usr/local/bin/kubectl"
-			command += " exec " + podList.Items[0].Name
+			command += " exec " + podName
+
 			command += " --container compute cat"
 			command += " /var/run/libvirt/qemu/kubevirt-test-default_" + IOThreadVMI.Name + ".xml"
 			output, err := exec.Command("/bin/bash", "-c", command).Output()
@@ -266,6 +269,8 @@ var _ = Describe("IOThreads", func() {
 			By("Creating VMI with desired spec")
 			IOThreadVMI, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(IOThreadVMI)
 			Expect(err).ToNot(HaveOccurred())
+			tests.WaitForSuccessfulVMIStart(IOThreadVMI)
+
 			Expect(len(IOThreadVMI.Name) > symbols_to_compare).To(BeTrue(), "VMI Name should contain at least N symbols")
 
 			By("Checking that corresponding pod exists")
@@ -277,7 +282,11 @@ var _ = Describe("IOThreads", func() {
 			// VM names with pod names, since they both have a number or random symbols at the end,
 			// and these symbols are different for pod name and vm name. So, I only can compare their names before
 			// these random symbols.
-			Expect(podList.Items[0].Name).To(HavePrefix("virt-launcher-" + IOThreadVMI.Name[:symbols_to_compare]), "Pod name should have a name similiar to VM name")
+
+			podObj := tests.GetRunningPodByVirtualMachineInstance(IOThreadVMI,tests.NamespaceTestDefault)
+			podName := podObj.Name
+
+			Expect(podName).To(HavePrefix("virt-launcher-" + IOThreadVMI.Name[:symbols_to_compare]), "Pod name should have a name similiar to VM name")
 
 			By("Checking that VMI with this name does exist")
 			getOptions := metav1.GetOptions{}
@@ -297,12 +306,9 @@ var _ = Describe("IOThreads", func() {
 			Expect(ded_n).To(Equal(2), "There should be 2 disks with dedicated threads")
 
 			By("Checking that exported XML has correct dedicated threads")
-			duration := time.Duration(60)*time.Second
-			time.Sleep(duration)
-			//tests.WaitUntilVMIReadyWithNamespace(tests.NamespaceTestDefault, resultVMI, tests.LoggedInCirrosExpecter)
 			command := "/usr/local/bin/oc project kubevirt-test-default && "
 			command += "/usr/local/bin/kubectl"
-			command += " exec " + podList.Items[0].Name
+			command += " exec " + podName
 			command += " --container compute cat"
 			command += " /var/run/libvirt/qemu/kubevirt-test-default_" + IOThreadVMI.Name + ".xml"
 			output, err := exec.Command("/bin/bash", "-c", command).Output()
