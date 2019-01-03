@@ -228,6 +228,10 @@ run() {
         -e "${args[*]}" \
         playbooks/automation/check-patch.yml
 
+    # TODO:(SchSeba) Remove this.
+    # Try to sleep before running the integration tests
+    sleep 30
+
     # Run integration tests
     wait "$MAKE_TESTS_PID" || {
         local ret="$?"
