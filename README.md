@@ -19,9 +19,11 @@ KubeVirt Ansible consists of a set of Ansible playbooks that deploy fully functi
 ## Usage
 
 ### Deploy
-To deploy KubeVirt on an existing OpenShift cluster run the command below. For more information on clusters and other deployment scenarious see [playbooks instructions](./playbooks/README.md).
+To deploy KubeVirt on an existing OpenShift cluster run the commands below. For more information on clusters and other deployment scenarious see [playbooks instructions](./playbooks/README.md).
 
 ```
+oc login -u <admin_user> -p <admin_password>
+
 ansible-playbook -i localhost playbooks/kubevirt.yml -e@vars/all.yml
 ```
 >**Note:** Check default variables in [vars/all.yml](./vars/all.yml) and update them if needed.
