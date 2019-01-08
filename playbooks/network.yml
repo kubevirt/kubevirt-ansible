@@ -32,7 +32,7 @@
           command: restorecon -Rv /var/lib/kubelet/device-plugins/
           ignore_errors: True
 
-      when: network_role == 'network-multus' and deploy_sriov_plugin == true and apb_action == 'provision'
+      when: network_role == 'network-multus' and deploy_sriov_plugin | bool and apb_action == 'provision'
 
 
 - name: Deploy network roles
@@ -44,4 +44,4 @@
     http_proxy: ""
   roles:
     - { role: "network-multus", when: network_role == 'network-multus'}
-    - { role: "skydive", when: deploy_skydive == true}
+    - { role: "skydive", when: deploy_skydive | bool }
