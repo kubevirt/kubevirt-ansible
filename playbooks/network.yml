@@ -26,14 +26,6 @@
           name: openvswitch
       when: network_role == 'network-multus' and deploy_ovs_plugin and platform == "kubernetes" and apb_action == 'provision'
 
-    - name: configure SR-IOV device plugin
-      block:
-        - name: Fix SELinux labels for /var/lib/kubelet/device-plugins/
-          command: restorecon -Rv /var/lib/kubelet/device-plugins/
-          ignore_errors: True
-
-      when: network_role == 'network-multus' and deploy_sriov_plugin == true and apb_action == 'provision'
-
 
 - name: Deploy network roles
   hosts: localhost
