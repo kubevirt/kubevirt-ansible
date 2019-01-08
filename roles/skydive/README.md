@@ -13,5 +13,5 @@ This role deploys the [skydive-project](http://skydive.network/)
 ### Usage
 
 ```
-ansible-playbook -i inventory -e apb_action=provision -e deploy_skydive=True playbooks/network.yml
+ansible-playbook -i inventory playbooks/network.yml -e@vars/all.yml -e apb_action=provision -e deploy_skydive=true
 ```
