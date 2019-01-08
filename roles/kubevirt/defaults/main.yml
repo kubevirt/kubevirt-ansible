@@ -13,6 +13,7 @@ docker_tag: "v{{ version }}"
 image_pull_policy: IfNotPresent
 
 offline_template_dir: "/opt/apb/kubevirt-templates"
+common_templates_version: "0.3.2"
 
 default_vm_templates:
   - "vm-template-fedora"
