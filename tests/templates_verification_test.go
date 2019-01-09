@@ -21,17 +21,16 @@ package tests_test
 
 import (
 	"flag"
-	"strings"
-	"net/http"
 	"io/ioutil"
+	"net/http"
 	"regexp"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"kubevirt.io/kubevirt/tests"
-        "os/exec"
-
+	"os/exec"
 )
 
 func search_for_pattern(yaml_segment string, pattern string) bool {
@@ -59,9 +58,9 @@ var _ = Describe("Common templates", func() {
 			// Getting common_templates
 			// TODO: replace downloading common-templates with getting common-templates from RPM
 
-                        ct_yml_url_byte, err := exec.Command("/bin/bash", "-c", "curl -s https://api.github.com/repos/kubevirt/common-templates/releases/latest | grep browser_download_url | cut -d '\"' -f 4").Output()
-                        ct_yml_url :=  string(ct_yml_url_byte)
-                        Expect(err).ToNot(HaveOccurred())
+			ct_yml_url_byte, err := exec.Command("/bin/bash", "-c", "curl -s https://api.github.com/repos/kubevirt/common-templates/releases/latest | grep browser_download_url | cut -d '\"' -f 4").Output()
+			ct_yml_url := string(ct_yml_url_byte)
+			Expect(err).ToNot(HaveOccurred())
 			response, err := http.Get(ct_yml_url)
 			Expect(err).NotTo(HaveOccurred())
 			defer response.Body.Close()
@@ -84,4 +83,3 @@ var _ = Describe("Common templates", func() {
 		})
 	})
 })
-
