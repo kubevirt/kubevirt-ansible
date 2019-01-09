@@ -127,3 +127,10 @@ func DeleteServiceAccount(saName string) {
 	err = virtCli.CoreV1().ServiceAccounts(NamespaceTestDefault).Delete(saName, nil)
 	Expect(err).ToNot(HaveOccurred())
 }
+
+func RemoveDataVolume(dvName string, namespace string) {
+	virtCli, err := kubecli.GetKubevirtClient()
+	Expect(err).ToNot(HaveOccurred())
+	err = virtCli.CdiClient().CdiV1alpha1().DataVolumes(namespace).Delete(dvName, nil)
+	Expect(err).ToNot(HaveOccurred())
+}
