@@ -66,7 +66,7 @@
   command: "{{ cluster_command }} delete -f /tmp/kubevirt.yaml --ignore-not-found=true --wait=false"
 
 - name: Wait until {{ namespace }} namespace will dissappear
-  shell: "{{ cluster_command }} get ns | grep -w {{ namespace }}"
+  shell: "{{ cluster_command }} get ns {{ namespace }}"
   register: result
   until: result.rc != 0
   retries: 12
