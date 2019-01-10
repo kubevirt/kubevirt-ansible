@@ -1,6 +1,14 @@
 ---
-# do any asserts here
-- include_tasks: required_params.yml
+# TODO: wait for deprovision fo Web UI before removing the operator
+- name: Deprovision Web UI and its operator
+  block:
+    - include_tasks: "deprovision.web-ui.yml"
+    - include_tasks: "deprovision.operator.yml"
+  when: apb_action == "deprovision"
 
-- include_tasks: "{{ apb_action}}.yml"
+- name: Provision Web UI via operator
+  block:
+    - include_tasks: "provision.operator.yml"
+    - include_tasks: "provision.web-ui.yml"
+  when: apb_action != "deprovision"
 
