@@ -94,37 +94,37 @@
   shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ multus_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
-  retries: 20
-  delay: 5
+  retries: 24
+  delay: 10
 
 - name: Wait until CNI plugins are running
   shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ cni_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
-  retries: 20
-  delay: 5
+  retries: 24
+  delay: 10
   when: deploy_cni_plugins
 
 - name: Wait until OVS Plugin is running
   shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ ovs_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
-  retries: 20
-  delay: 5
+  retries: 24
+  delay: 10
   when: deploy_ovs_plugin
 
 - name: Wait until SR-IOV DP plugin is running
   shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ sriovdp_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
-  retries: 20
-  delay: 5
+  retries: 24
+  delay: 10
   when: deploy_sriov_plugin
 
 - name: Wait until SR-IOV CNI plugin is running
   shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ sriovcni_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
-  retries: 20
-  delay: 5
+  retries: 24
+  delay: 10
   when: deploy_sriov_plugin
