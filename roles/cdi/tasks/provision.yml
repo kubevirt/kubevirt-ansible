@@ -1,17 +1,18 @@
 ---
 # CDI Deployment
 - name: Check if namespace {{ cdi_namespace }} exists
-  shell: "{{ cluster_command }} get ns | grep -w {{ cdi_namespace }} | awk '{ print $1 }'"
+  shell: "{{ cluster_command }} get ns {{ cdi_namespace }}"
+  ignore_errors: yes
   register: ns
 
 - name: Create {{ cdi_namespace }} namespace using kubectl
   shell: kubectl create namespace {{ cdi_namespace }}
-  when: ns.stdout != cdi_namespace
+  when: ns.rc != 0
         and platform == "kubernetes"
 
 - name: Create {{ cdi_namespace }} namespace using oc
   shell: oc new-project {{ cdi_namespace }}
-  when: ns.stdout != cdi_namespace
+  when: ns.rc != 0
         and platform == "openshift"
 
 - name: Render {{ cdi_namespace }} ResourceQuota deployment yaml
@@ -27,32 +28,34 @@
     path: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
   register: byo_template
 
-- name: Check for cdi-controller.yaml.j2 version v{{ version }} in {{ cdi_offline_template_dir }}
-  stat:
-    path: "{{ cdi_offline_template_dir }}/v{{ version }}/cdi-controller.yaml.j2"
-  register: offline_templates
-  when: byo_template.stat.exists == False
-
-- name: Download CDI Template
-  get_url:
-    url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
-    dest: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
-  when: byo_template.stat.exists == False and offline_templates.stat.exists == False
-
-- name: Render offline template
-  template:
-    src: "{{ cdi_offline_template_dir }}/v{{ version }}/cdi-controller.yaml.j2"
-    dest: "/tmp/cdi-provision.yaml"
-  when: (offline_templates is not skipped) and (offline_templates.stat.exists == True)
-
-- name: Render CDI deployment yaml
+- name: Render CDI deployment yaml from template in {{ cdi_template_dir }}
   template:
     src: "cdi-controller.yaml.j2"
-    dest: "/tmp/cdi-provision.yml"
-  when: (offline_templates is skipped) or (offline_templates.stat.exists == False)
+    dest: "/tmp/cdi-controller.yml"
+  when: byo_template.stat.exists == true
+
+- name: Get CDI from {{ cdi_release_manifest_url }}
+  block:
+  - name: Check for cdi-controller.yaml.j2 template in /tmp
+    stat:
+      path: "/tmp/cdi-controller.yaml.j2"
+    register: downloaded_template
+
+  - name: Download CDI Template
+    get_url:
+      url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
+      dest: "/tmp/cdi-controller.yaml.j2"
+    when: downloaded_template.stat.exists == false
+
+  - name: Render CDI deployment yaml
+    template:
+      src: "/tmp/cdi-controller.yaml.j2"
+      dest: "/tmp/cdi-controller.yaml"
+
+  when: byo_template.stat.exists == false
 
 - name: Create CDI deployment
-  command: "{{ cluster_command }} apply -f /tmp/cdi-provision.yml"
+  command: "{{ cluster_command }} apply -f /tmp/cdi-controller.yaml"
 
 - name: Enable privileged containers in the security context
   command: "oc adm policy add-scc-to-user privileged -z cdi-sa -n {{ cdi_namespace }}"
