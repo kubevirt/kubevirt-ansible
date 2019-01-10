@@ -1,0 +1,5 @@
+#TODO change default namespace?
+kubevirt_ssp_namespace: "{{ kubevirt_ssp_image_namespace | default('kube-system') }}"
+kubevirt_ssp_template_dir: "{{ role_path }}/templates"
+
+

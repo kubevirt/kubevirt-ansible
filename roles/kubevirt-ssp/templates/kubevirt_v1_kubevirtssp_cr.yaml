@@ -1,0 +1,7 @@
+apiVersion: kubevirt.io/v1
+kind: KubevirtSsp
+metadata:
+  name: example-kubevirtssp
+spec:
+  version: v0.3.2
+  # Add fields here

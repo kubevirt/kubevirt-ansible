@@ -1,0 +1,20 @@
+---
+- name: Render Kubevirt-SSP operator
+  template:
+    src: "kubevirt-ssp-operator.yaml.j2"
+    dest: "/tmp/kubevirt-ssp-operator.yml"
+
+- name: Render Kubevirt-SSP Custom Resource
+  template:
+    src: "kubevirt_v1_kubevirtssp_cr.yaml.j2"
+    dest: "/tmp/kubevirt_v1_kubevirtssp_crd.yaml"
+
+- name: Create Kubevirt-SSP operator
+  command: "{{ cluster_command }} apply -f /tmp/kubevirt-ssp-operator.yml"
+
+- name: Create Kubevirt-SSP
+  block:
+  - name:
+  command: "{{ cluster_command }} apply -f /tmp/kubevirt_v1_kubevirtssp_crd.yaml"
+#  - name:
+#  command: "{{ cluster_command }} apply -f /tmp/kubevirt_v1_kubevirtssp_cr.yaml"

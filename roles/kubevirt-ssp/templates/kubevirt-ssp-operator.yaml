@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubevirt-ssp-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: kubevirt-ssp-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - kubevirt.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - template.openshift.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: kubevirt-ssp-operator
+subjects:
+- kind: ServiceAccount
+  name: kubevirt-ssp-operator
+roleRef:
+  kind: Role
+  name: kubevirt-ssp-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kubevirt-ssp-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: kubevirt-ssp-operator
+  template:
+    metadata:
+      labels:
+        name: kubevirt-ssp-operator
+    spec:
+      serviceAccountName: kubevirt-ssp-operator
+      containers:
+        - name: kubevirt-ssp-operator
+          #FIXME Replace this with the built image name
+          image: REPLACE_IMAGE
+          ports:
+          - containerPort: 60000
+            name: metrics
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_NAMEs
+              value: "kubevirt-ssp-operator"  
+          #securityContext:
+          #  runAsUser: 0

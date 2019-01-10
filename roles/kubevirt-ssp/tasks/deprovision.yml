@@ -1,0 +1,18 @@
+---
+- name: Check that kubevirt-ssp-operator.yml still exists in /tmp
+  stat:
+    path: "/tmp/kubevirt-ssp-operator.yml"
+  register: kubevirt_ssp_template
+
+- name: Check for kubevirt-ssp-operator.yml.j2 template in {{ kubevirt_ssp_template_dir }}
+  stat:
+    path: "{{ kubevirt_ssp_template_dir }}/kubevirt-ssp-operator.yaml.j2"
+  when: kubevirt_ssp_template.stat.exists == False
+
+- name: Render Kubevirt-SSP operator yaml
+  template:
+    src: "kubevirt-ssp-operator.yaml.j2"
+    dest: "/tmp/kubevirt-ssp-operator.yml"
+
+- name: Delete Kubevirt-SSP Resources
+  command: kubectl delete -f /tmp/kubevirt-ssp-operator.yml -n {{ kubevirt_ssp_namespace }} --ignore-not-found
