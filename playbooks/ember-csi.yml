@@ -1,0 +1,11 @@
+---
+- import_playbook: initial_configuration.yml
+
+- name: Deploy Ember CSI role
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  environment:
+    http_proxy: ""
+  roles:
+    - role: "ember-csi"

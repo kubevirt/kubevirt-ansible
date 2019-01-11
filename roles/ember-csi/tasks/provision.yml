@@ -1,0 +1,9 @@
+---
+- name: Render Ember CSI operator
+  template:
+    src: "deployment.yml.j2"
+    dest: "/tmp/ember-csi-deployment.yml"
+
+- name: Deploy the Ember CSI operator
+  command: "{{ cluster_command }} apply -f /tmp/ember-csi-deployment.yml"
+

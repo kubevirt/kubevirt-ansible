@@ -1,0 +1,9 @@
+---
+- name: Render Ember CSI operator uninstaller
+  template:
+    src: "undeploy.yml.j2"
+    dest: "/tmp/ember-csi-uninstall.yml"
+
+- name: Uninstall the Ember CSI operator
+  command: "{{ cluster_command }} delete -f /tmp/ember-csi-uninstall.yml"
+

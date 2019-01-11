@@ -1,0 +1,284 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ember-csi
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ember-csi-operator
+  namespace: {{ ember_csi_namespace }}
+
+---
+# Create an SCC for OCP
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: ember-csi-scc
+allowPrivilegedContainer: true
+allowPrivilegeEscalation: true
+allowHostDirVolumePlugin: true
+allowHostIPC: false
+allowHostNetwork: true
+allowHostPID: false
+allowHostPorts: false
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: RunAsAny
+fsGroup:
+  type: RunAsAny
+supplementalGroups:
+  type: RunAsAny
+users:
+- system:serviceaccount:ember-csi:ember-csi-operator
+groups: []
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- hostPath
+- nfs
+- persistentVolumeClaim
+- projected
+- secret
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: ember-csi-operator
+  namespace: {{ ember_csi_namespace }}
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - ember-csi.io
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ember-csi-operator
+  namespace: {{ ember_csi_namespace }}
+subjects:
+- kind: ServiceAccount
+  name: ember-csi-operator
+roleRef:
+  kind: Role
+  name: ember-csi-operator
+  apiGroup: rbac.authorization.k8s.io
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ember-csi-operator
+  namespace: {{ ember_csi_namespace }}
+rules:
+- apiGroups:
+  - ember-csi.io
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - clusterrole
+  - clusterrolebindings
+  - role
+  - rolebindings
+  - serviceaccounts
+  verbs:
+  - get
+  - create
+  - delete
+  - patch
+  - update
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - list
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - "*"
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  verbs:
+  - create
+  - delete
+  - list
+  - get
+  - watch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get 
+  - list 
+  - watch 
+  - update
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - volumeattachments
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - delete
+  - create
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - create
+  - get
+  - list
+  - watch
+  - update
+  - delete
+- apiGroups: 
+  - "*"
+  resources:
+  - events
+  verbs: 
+  - create
+  - list
+  - watch
+  - update
+  - delete
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ember-csi-operator
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: ember-csi-operator
+subjects:
+- kind: ServiceAccount
+  name: ember-csi-operator
+  namespace: {{ ember_csi_namespace }}
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: embercsis.ember-csi.io
+  namespace: {{ ember_csi_namespace }}
+spec:
+  group: ember-csi.io
+  names:
+    kind: EmberCSI
+    listKind: EmberCSIList
+    plural: embercsis
+    singular: embercsi
+  scope: Namespaced
+  version: v1alpha1
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ember-csi-operator
+  namespace: {{ ember_csi_namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ember-csi-operator
+  template:
+    metadata:
+      labels:
+        name: ember-csi-operator
+    spec:
+      serviceAccountName: ember-csi-operator
+      containers:
+        - name: ember-csi-operator
+          image: {{ repo_name }}/{{ operator_image }}:{{ release_tag }}
+          ports:
+          - containerPort: 60000
+            name: metrics
+          command:
+          - ember-csi-operator
+          imagePullPolicy: Always
+          readinessProbe:
+            exec:
+              command:
+                - stat
+                - /tmp/operator-sdk-ready
+            initialDelaySeconds: 4
+            periodSeconds: 10
+            failureThreshold: 1
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "ember-csi-operator"

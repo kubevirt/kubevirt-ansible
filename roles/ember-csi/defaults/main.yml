@@ -1,0 +1,7 @@
+---
+apb_action: "provision"
+ember_csi_namespace: "ember-csi"
+repo_name: "quay.io/kirankt"
+operator_image: "ember-csi-operator"
+release_tag: "v0.0.3"
+cluster_command: "oc"
