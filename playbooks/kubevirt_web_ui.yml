@@ -1,0 +1,9 @@
+---
+- name: Kubevirt Web UI
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  tasks:
+  - import_role:
+      name: kubevirt_web_ui
+

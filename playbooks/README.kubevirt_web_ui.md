@@ -52,16 +52,16 @@ Prior running the playbook, the user needs to be logged in OC (see `~/.kube/conf
 ### Invocation Examples
 For default parameters:
 ```
-$ ansible-playbook -e@vars/all.yml -e@vars/cnv.yml playbooks/kubevirt-web-ui/config.yml -vvv
+$ ansible-playbook -e@vars/all.yml ./playbooks/kubevirt_web_ui.yml -vvv
 ```
 
 For customization:
 ```
-$ ansible-playbook -e@vars/all.yml -e@vars/cnv.yml playbooks/kubevirt-web-ui/config.yml -vvv
+$ ansible-playbook -e@vars/all.yml -e@vars/my_vars.yml ./playbooks/kubevirt_web_ui.yml -vvv
 
-$ cat vars/cnv.yml
-registry_url: brew-pulp-docker01.web.prod.ext.phx2.redhat.com:8888
-registry_namespace: cnv-tech-preview
+$ cat vars/my_vars.yml
+registry_url: my.registry.com:8888
+registry_namespace: my-registry-namespace
 
 kubevirt_web_ui_operator_image_tag: v1.4.0-3
 kubevirt_web_ui_version: 1.4.0-9

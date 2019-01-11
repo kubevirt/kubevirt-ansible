@@ -19,5 +19,5 @@
 - import_playbook: cdi.yml
 
 # Deploy kubevirt web UI
-- import_playbook: kubevirt-web-ui/config.yml
+- import_playbook: kubevirt_web_ui.yml
   when: platform == "openshift"
