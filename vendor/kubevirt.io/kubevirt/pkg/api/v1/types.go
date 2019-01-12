@@ -32,6 +32,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"k8s.io/api/autoscaling/v1"
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -68,6 +69,8 @@ var VirtualMachineGroupVersionKind = schema.GroupVersionKind{Group: GroupName, V
 
 var VirtualMachineInstanceMigrationGroupVersionKind = schema.GroupVersionKind{Group: GroupName, Version: GroupVersion.Version, Kind: "VirtualMachineInstanceMigration"}
 
+var KubeVirtGroupVersionKind = schema.GroupVersionKind{Group: GroupName, Version: GroupVersion.Version, Kind: "KubeVirt"}
+
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
@@ -84,9 +87,14 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&metav1.GetOptions{},
 		&VirtualMachine{},
 		&VirtualMachineList{},
+		&KubeVirt{},
+		&KubeVirtList{},
 	)
 	scheme.AddKnownTypes(metav1.Unversioned,
 		&metav1.Status{},
+	)
+	scheme.AddKnownTypes(schema.GroupVersion{Group: "autoscaling", Version: "v1"},
+		&v1.Scale{},
 	)
 	return nil
 }
@@ -211,11 +219,6 @@ func (v *VirtualMachineInstance) GetObjectMeta() metav1.Object {
 	return &v.ObjectMeta
 }
 
-func (v *VirtualMachineInstance) IsReady() bool {
-	// TODO once we support a ready condition, use it instead
-	return v.IsRunning()
-}
-
 func (v *VirtualMachineInstance) IsScheduling() bool {
 	return v.Status.Phase == Scheduling
 }
@@ -318,6 +321,10 @@ type VirtualMachineInstanceNetworkInterface struct {
 	// Name of the interface, corresponds to name of the network assigned to the interface
 	// TODO: remove omitempty, when api breaking changes are allowed
 	Name string `json:"name,omitempty"`
+	// List of all IP addresses of a Virtual Machine interface
+	IPs []string `json:"ipAddresses,omitempty"`
+	// The interface name inside the Virtual Machine
+	InterfaceName string `json:"interfaceName,omitempty"`
 }
 
 type VirtualMachineInstanceMigrationState struct {
@@ -411,6 +418,9 @@ const (
 	// if a particular node is alive and hence should be available for new
 	// virtual machine instance scheduling. Used on Node.
 	VirtHandlerHeartbeat string = "kubevirt.io/heartbeat"
+	// This label will be set on all resources created by the operator
+	ManagedByLabel              = "app.kubernetes.io/managed-by"
+	ManagedByLabelOperatorValue = "kubevirt-operator"
 
 	VirtualMachineInstanceFinalizer string = "foregroundDeleteVirtualMachine"
 	CPUManager                      string = "cpumanager"
@@ -599,6 +609,9 @@ type VirtualMachineInstanceReplicaSetStatus struct {
 	ReadyReplicas int32 `json:"readyReplicas,omitempty" protobuf:"varint,4,opt,name=readyReplicas"`
 
 	Conditions []VirtualMachineInstanceReplicaSetCondition `json:"conditions,omitempty" optional:"true"`
+
+	// Canonical form of the label selector for HPA which consumes it through the scale subresource.
+	LabelSelector string `json:"labelSelector,omitempty"`
 }
 
 // ---
@@ -960,3 +973,101 @@ type Probe struct {
 	// +optional
 	FailureThreshold int32 `json:"failureThreshold,omitempty"`
 }
+
+// KubeVirt represents the object deploying all KubeVirt resources
+// ---
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
+type KubeVirt struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              KubeVirtSpec   `json:"spec,omitempty" valid:"required"`
+	Status            KubeVirtStatus `json:"status,omitempty"`
+}
+
+// Required to satisfy Object interface
+func (k *KubeVirt) GetObjectKind() schema.ObjectKind {
+	return &k.TypeMeta
+}
+
+// Required to satisfy ObjectMetaAccessor interface
+func (k *KubeVirt) GetObjectMeta() metav1.Object {
+	return &k.ObjectMeta
+}
+
+// KubeVirtList is a list of KubeVirts
+// ---
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +k8s:openapi-gen=true
+type KubeVirtList struct {
+	metav1.TypeMeta `json:",inline"`
+	ListMeta        metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []KubeVirt      `json:"items"`
+}
+
+// Required to satisfy Object interface
+func (kl *KubeVirtList) GetObjectKind() schema.ObjectKind {
+	return &kl.TypeMeta
+}
+
+// Required to satisfy ListMetaAccessor interface
+func (kl *KubeVirtList) GetListMeta() meta.List {
+	return &kl.ListMeta
+}
+
+// ---
+// +k8s:openapi-gen=true
+type KubeVirtSpec struct {
+	// The ImagePullPolicy to use.
+	ImagePullPolicy k8sv1.PullPolicy `json:"imagePullPolicy,omitempty" valid:"required"`
+}
+
+// KubeVirtStatus represents information pertaining to a KubeVirt deployment.
+// ---
+// +k8s:openapi-gen=true
+type KubeVirtStatus struct {
+	Phase                   KubeVirtPhase       `json:"phase,omitempty"`
+	Conditions              []KubeVirtCondition `json:"conditions,omitempty" optional:"true"`
+	OperatorVersion         string              `json:"operatorVersion,omitempty" optional:"true"`
+	TargetKubeVirtVersion   string              `json:"targetKubeVirtVersion,omitempty" optional:"true"`
+	ObservedKubeVirtVersion string              `json:"observedKubeVirtVersion,omitempty" optional:"true"`
+}
+
+// KubeVirtPhase is a label for the phase of a KubeVirt deployment at the current time.
+// ---
+// +k8s:openapi-gen=true
+type KubeVirtPhase string
+
+// These are the valid KubeVirt deployment phases
+const (
+	// The deployment is processing
+	KubeVirtPhaseDeploying KubeVirtPhase = "Deploying"
+	// The deployment succeeded
+	KubeVirtPhaseDeployed KubeVirtPhase = "Deployed"
+	// The deletion is processing
+	KubeVirtPhaseDeleting KubeVirtPhase = "Deleting"
+	// The deletion succeeeded
+	KubeVirtPhaseDeleted KubeVirtPhase = "Deleted"
+)
+
+// KubeVirtCondition represents a condition of a KubeVirt deployment
+// ---
+// +k8s:openapi-gen=true
+type KubeVirtCondition struct {
+	Type               KubeVirtConditionType `json:"type"`
+	Status             k8sv1.ConditionStatus `json:"status"`
+	LastProbeTime      metav1.Time           `json:"lastProbeTime,omitempty"`
+	LastTransitionTime metav1.Time           `json:"lastTransitionTime,omitempty"`
+	Reason             string                `json:"reason,omitempty"`
+	Message            string                `json:"message,omitempty"`
+}
+
+// ---
+// +k8s:openapi-gen=true
+type KubeVirtConditionType string
+
+// These are the valid KubeVirt condition types
+const (
+	// Whether the deployment or deletion was successful
+	KubeVirtConditionSynchronized KubeVirtConditionType = "KubeVirtSynchronized"
+)

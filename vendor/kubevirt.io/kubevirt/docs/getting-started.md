@@ -31,7 +31,7 @@ dockerizied environment, clone the KubeVirt repository, `cd` into it, and:
 
 ```bash
 # Build and deploy KubeVirt on Kubernetes 1.10.4 in our vms inside containers
-export KUBEVIRT_PROVIDER=k8s-1.10.4 # this is also the default if no KUBEVIRT_PROVIDER is set
+export KUBEVIRT_PROVIDER=k8s-1.10.11 # this is also the default if no KUBEVIRT_PROVIDER is set
 make cluster-up
 make cluster-sync
 ```
@@ -182,11 +182,8 @@ tap networking device attached.
 $ ./cluster/kubectl.sh create -f cluster/examples/vmi-ephemeral.yaml
 vm "vmi-ephemeral" created
 
-$ ./cluster/kubectl.sh -n kubevirt get pods
+$ ./cluster/kubectl.sh get pods
 NAME                              READY     STATUS    RESTARTS   AGE
-virt-api                          1/1       Running   1          10h
-virt-controller                   1/1       Running   1          10h
-virt-handler-z90mp                1/1       Running   1          10h
 virt-launcher-vmi-ephemeral9q7es  1/1       Running   0          10s
 
 $ ./cluster/kubectl.sh get vmis

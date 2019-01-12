@@ -22,11 +22,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/ghodss/yaml"
+	"kubevirt.io/kubevirt/tools/util"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sfield "k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -36,8 +36,8 @@ import (
 )
 
 func main() {
-	flag.StringVar(&utils.DockerPrefix, "docker-prefix", utils.DockerPrefix, "")
-	flag.StringVar(&utils.DockerTag, "docker-tag", utils.DockerTag, "")
+	flag.StringVar(&utils.DockerPrefix, "container-prefix", utils.DockerPrefix, "")
+	flag.StringVar(&utils.DockerTag, "container-tag", utils.DockerTag, "")
 	genDir := flag.String("generated-vms-dir", "", "")
 	flag.Parse()
 
@@ -109,15 +109,15 @@ func main() {
 	}
 
 	dumpObject := func(name string, obj interface{}) error {
-		data, err := yaml.Marshal(obj)
-		if err != nil {
-			return fmt.Errorf("Failed to generate yaml for %s: %s", name, err)
-		}
 
-		err = ioutil.WriteFile(filepath.Join(*genDir, fmt.Sprintf("%s.yaml", name)), data, 0644)
+		filename := filepath.Join(*genDir, fmt.Sprintf("%s.yaml", name))
+		file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
-			return fmt.Errorf("Failed to write yaml file: %s", err)
+			return fmt.Errorf("Failed to open file %v, %v", filename, err)
 		}
+		defer file.Close()
+
+		util.MarshallObject(obj, file)
 
 		return nil
 	}
