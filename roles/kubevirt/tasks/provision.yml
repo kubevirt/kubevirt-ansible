@@ -1,11 +1,12 @@
 ---
 - name: Check if {{ namespace }} exists
-  shell: "{{ cluster_command }} get ns | grep -w {{ namespace }} | awk '{ print $1 }'"
+  shell: "{{ cluster_command }} get ns {{ namespace }}"
+  ignore_errors: yes
   register: ns
 
 - name: Create {{ namespace }} namespace
   shell: "{{ cluster_command }} create namespace {{ namespace }}"
-  when: ns.stdout != namespace
+  when: ns.rc != 0
 
 - name: Add Privileged Policy
   command: "oc adm policy add-scc-to-user privileged -z {{ item }} -n {{ namespace }}"

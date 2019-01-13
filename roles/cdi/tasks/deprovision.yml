@@ -7,28 +7,40 @@
 - name: Delete {{ cdi_namespace }} ResourceQuota
   command: kubectl delete -f /tmp/cdi-deprovision-resourcequota.yml -n {{ cdi_namespace }} --ignore-not-found
 
-- name: Check that cdi-provision.yml still exists in /tmp
+- name: Check that cdi-controller.yaml still exists in /tmp
   stat:
-    path: "/tmp/cdi-provision.yml"
+    path: "/tmp/cdi-controller.yaml"
   register: cdi_template
 
-- name: Check for cdi-controller.yml.j2 template in {{ cdi_template_dir }}
-  stat:
-    path: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
-  register: byo_template
-  when: cdi_template.stat.exists == False
+- name: Get cdi-controller.yaml
+  block:
+    - name: Check for cdi-controller.yaml.j2 template in {{ cdi_template_dir }}
+      stat:
+        path: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
+      register: byo_template
 
-- name: Download CDI Template
-  get_url:
-    url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
-    dest: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
-  when: (cdi_template.stat.exists == False) and (byo_template.stat.exists == False)
+    - name: Render CDI deprovision yaml
+      template:
+        src: "cdi-controller.yaml.j2"
+        dest: "/tmp/cdi-controller.yaml"
+      when: byo_template.stat.exists == true
 
-- name: Render CDI deprovision yaml
-  template:
-    src: "cdi-controller.yaml.j2"
-    dest: "/tmp/cdi-deprovision.yml"
+    - name: Download and render cdi-controller.yaml from {{ cdi_release_manifest_url }}
+      block:
+        - name: Download CDI Template
+          get_url:
+            url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
+            dest: "/tmp/cdi-controller.yaml.j2"
+
+        - name: Render CDI deprovision yaml
+          template:
+            src: "/tmp/cdi-controller.yaml.j2"
+            dest: "/tmp/cdi-controller.yaml"
+
+      when: byo_template.stat.exists == false
+
+  when: cdi_template.stat.exists == false
 
 - name: Delete CDI Resources
-  command: kubectl delete -f /tmp/cdi-deprovision.yml -n {{ cdi_namespace }} --ignore-not-found
+  command: kubectl delete -f /tmp/cdi-controller.yaml -n {{ cdi_namespace }} --ignore-not-found
 
