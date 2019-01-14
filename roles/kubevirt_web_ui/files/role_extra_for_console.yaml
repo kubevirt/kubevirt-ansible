@@ -4,7 +4,7 @@ kind: Role
 metadata:
   creationTimestamp: null
   name: kubevirt-web-ui-operator
-  namespace: openshift-console
+  namespace: {{ openshift_console_namespace }}
 rules:
 - apiGroups:
   - ""

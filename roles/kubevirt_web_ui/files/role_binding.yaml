@@ -18,7 +18,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: kubevirt-web-ui-operator
-  namespace: kubevirt-web-ui
+  namespace: {{ kubevirt_web_ui_namespace }}
 roleRef:
   kind: ClusterRole
   name: kubevirt-web-ui-operator
