@@ -1,9 +1,13 @@
 ---
+- import_playbook: initial_configuration.yml
+
+# unset http_proxy, required for running in the CI
 - name: Kubevirt Web UI
   hosts: localhost
   connection: local
   gather_facts: False
-  tasks:
-  - import_role:
-      name: kubevirt_web_ui
+  environment:
+    http_proxy: ""
+  roles:
+    - role: "kubevirt_web_ui"
 
