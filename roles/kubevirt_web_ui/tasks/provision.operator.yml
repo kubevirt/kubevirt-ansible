@@ -10,9 +10,6 @@
 
 ### End of preparation
 
-- name: Debug only - check for oc login
-  shell: "oc ; oc status ; oc whoami; oc projects"
-
 - name: Check if project for kubevirt-web-ui exists
   shell: "{{ cluster_command }} projects -q | grep -w {{ kubevirt_web_ui_namespace }} | awk '{ print $1 }'"
   register: ns
@@ -20,6 +17,10 @@
 - name: Create project for kubevirt-web-ui
   shell: "{{ cluster_command }} new-project {{ kubevirt_web_ui_namespace }}"
   when: ns.stdout == ""
+
+- name: Change project for kubevirt-web-ui
+  shell: "{{ cluster_command }} project {{ kubevirt_web_ui_namespace }}"
+  when: ns.stdout != ""
 
 # Determine if we can gather facts from openshift-console ConfigMap
 - name: Check if openshift-console project exists

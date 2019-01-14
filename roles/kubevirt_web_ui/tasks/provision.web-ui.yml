@@ -4,6 +4,10 @@
   register: mktemp
   changed_when: False
 
+# Must be already created by provision.operator.yml. Fail if not.
+- name: Change project for kubevirt-web-ui
+  shell: "{{ cluster_command }} project {{ kubevirt_web_ui_namespace }}"
+
 - name: Deploy Web UI custom resource
   block:
     - name: Copy custom resource yaml to temp directory
