@@ -1,0 +1,23 @@
+---
+- name: Check that common-templates.yaml still exists in /tmp
+  stat:
+    path: "/tmp/common-templates.yaml"
+  register: common_templates
+
+- name: Get Common Templates from {{ common_templates_manifest_url }}
+  block:
+  - name: Check for common-templates manifest in /tmp
+    stat:
+      path: "/tmp/common-templates.yaml"
+    register: downloaded_templates
+
+  - name: Download common-templates manifest
+    get_url:
+      url: "{{ common_templates_manifest_url }}/{{ release_tag }}/common-templates-{{ release_tag }}.yaml"
+      dest: "/tmp/common-templates.yaml"
+    when: downloaded_templates.stat.exists == false
+
+  when: common_templates.stat.exists == false
+
+- name: Delete Kubevirt Templates
+  shell: "{{ cluster_command }} delete -f /tmp/common-templates.yaml -n {{ kubevirt_ssp_namespace }}"
