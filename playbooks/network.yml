@@ -28,14 +28,6 @@
 
     - name: configure SR-IOV device plugin
       block:
-        - name: Create /etc/pcidp
-          file: path=/etc/pcidp state=directory
-
-        - name: Configure SR-IOV DP allocation pool
-          template:
-            src: roles/network-multus/templates/sriovdp-config.json
-            dest: /etc/pcidp/config.json
-
         - name: Fix SELinux labels for /var/lib/kubelet/device-plugins/
           command: restorecon -Rv /var/lib/kubelet/device-plugins/
           ignore_errors: True
