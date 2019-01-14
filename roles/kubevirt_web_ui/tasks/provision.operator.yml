@@ -10,6 +10,9 @@
 
 ### End of preparation
 
+- name: Debug only - check for oc login
+  shell: "oc ; oc status ; oc whoami; oc projects"
+
 - name: Check if project for kubevirt-web-ui exists
   shell: "{{ cluster_command }} projects -q | grep -w {{ kubevirt_web_ui_namespace }} | awk '{ print $1 }'"
   register: ns
@@ -34,14 +37,32 @@
   shell: "{{ cluster_command }} apply -f {{ files_dir }}/role.yaml"
 
 - name: Add roles to access openshift-console
-  shell: "{{ cluster_command }} apply -f {{ files_dir }}/role_extra_for_console.yaml"
+  block:
+  - name: Render roles bindings for openshift-console
+    template:
+      src: "{{ files_dir }}/role_extra_for_console.yaml"
+      dest: "{{ mktemp.stdout }}/role_extra_for_console.yaml"
+  - name: Apply roles for openshift-console
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/role_extra_for_console.yaml"
   when: ns_console != ""
 
 - name: Add role bindings
-  shell: "{{ cluster_command }} apply -f {{ files_dir }}/role_binding.yaml"
+  block:
+  - name: Render role bindings
+    template:
+      src: "{{ files_dir }}/role_binding.yaml"
+      dest: "{{ mktemp.stdout }}/role_binding.yaml"
+  - name: Apply role bindings
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/role_binding.yaml"
 
 - name: Add role bindings for openshift-console
-  shell: "{{ cluster_command }} apply -f {{ files_dir }}/role_binding_extra_for_console.yaml"
+  block:
+  - name: Render role bindings for openshift-console
+    template:
+      src: "{{ files_dir }}/role_binding_extra_for_console.yaml"
+      dest: "{{ mktemp.stdout }}/role_binding_extra_for_console.yaml"
+  - name: Apply role bindings for openshift-console
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/role_binding_extra_for_console.yaml"
   when: ns_console != ""
 
 - name: Add Custom Resource Definition for operator
@@ -49,15 +70,10 @@
 
 - name: Deploy Web UI Operator
   block:
-    - name: Copy operator.yaml to temp directory
-      copy:
-        src: "{{ files_dir }}/operator.yaml"
-        dest: "{{ mktemp.stdout }}/operator.yaml"
-    - name: Set kubevirt-web-ui operator image
-      lineinfile:
-        path: "{{ mktemp.stdout }}/operator.yaml"
-        regexp: "^          image:.*$"
-        line: "          image: {{ kubevirt_web_ui_operator_image }}"
-    - name: Deploy Web UI Operator
-      shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/operator.yaml"
+  - name: Render Operator yaml
+    template:
+      src: "{{ files_dir }}/operator.yaml"
+      dest: "{{ mktemp.stdout }}/operator.yaml"
+  - name: Deploy Web UI Operator
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/operator.yaml"
 

@@ -3,11 +3,11 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: kubevirt-web-ui-operator
-  namespace: openshift-console
+  namespace: {{ openshift_console_namespace }}
 subjects:
 - kind: ServiceAccount
   name: kubevirt-web-ui-operator
-  namespace: kubevirt-web-ui
+  namespace: {{ kubevirt_web_ui_namespace }}
 roleRef:
   kind: Role
   name: kubevirt-web-ui-operator

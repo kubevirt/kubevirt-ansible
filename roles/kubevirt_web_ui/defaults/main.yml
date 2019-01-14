@@ -1,5 +1,6 @@
 ---
 kubevirt_web_ui_namespace: "kubevirt-web-ui"
+openshift_console_namespace: "openshift-console"
 registry_url: "quay.io"
 registry_namespace: "kubevirt"
 
