@@ -59,18 +59,24 @@
     ignore_errors: yes
   when: deploy_sriov_plugin
 
-- name: Render OVS plugin deployment yaml
+- name: Render Kubernetes OVS plugin deployment yaml
   template:
-    src: ovs-cni.yml
+    src: kubernetes-ovs-cni.yml
     dest: /tmp/ovs-cni.yml
+  when: platform=="kubernetes"
+
+- name: Render OpenShift OVS plugin deployment yaml
+  template:
+    src: openshift-ovs-cni.yml
+    dest: /tmp/ovs-cni.yml
+  when: platform=="openshift"
 
 - name: Delete OVS plugin Resources
   command: "{{ cluster_command }} delete -f /tmp/ovs-cni.yml --ignore-not-found"
 
-- name: Render ovs-vsctl deployment yaml
-  template:
-    src: ovs-vsctl.yml
-    dest: /tmp/ovs-vsctl.yml
+- name: Delete pre-0.3 OVS CNI plugin Resources
+  command: "{{ cluster_command }} delete daemonset --namespace {{ network_namespace }} {{ legacy_ovs_provisioner_name }} --ignore-not-found"
 
-- name: Delete ovs-vsctl Resources
-  command: "{{ cluster_command }} delete -f /tmp/ovs-vsctl.yml --ignore-not-found"
+- name: Delete pre-0.4 OVS CNI plugin Resources
+  command: "{{ cluster_command }} delete daemonset --namespace {{ network_namespace }} {{ legacy_origin_node_provisioner_name }} --ignore-not-found"
+  when: platform=="openshift"

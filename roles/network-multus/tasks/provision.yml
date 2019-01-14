@@ -38,23 +38,21 @@
 
 - name: Deploy OVS Plugin
   block:
-  - name: Render OVS deployment yaml
+  - name: Render Kubernetes OVS deployment yaml
     template:
-      src: ovs-cni.yml
+      src: kubernetes-ovs-cni.yml
       dest: /tmp/ovs-cni.yml
+    when: platform=="kubernetes"
+
+  - name: Render OpenShift OVS deployment yaml
+    template:
+      src: openshift-ovs-cni.yml
+      dest: /tmp/ovs-cni.yml
+    when: platform=="openshift"
 
   - name: Create ovs Resources
     shell: "{{ cluster_command }} apply -f /tmp/ovs-cni.yml"
 
-  - name: Render and create ovs-vsctl
-    block:
-    - name: Render ovs-vsctl deployment yaml
-      template:
-        src: ovs-vsctl.yml
-        dest: /tmp/ovs-vsctl.yml
-    - name: Create ovs-vsctl resources
-      shell: "{{ cluster_command }} apply -f /tmp/ovs-vsctl.yml"
-    when: platform == "openshift"
   when: deploy_ovs_plugin
 
 - name: Deploy SR-IOV device plugin
@@ -106,7 +104,7 @@
   when: deploy_cni_plugins
 
 - name: Wait until OVS Plugin is running
-  shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ ovs_provisioner_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  shell: "{{ cluster_command }} -n {{ network_namespace }} get daemonset | grep {{ ovs_cni_daemonset_name }} | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
   register: result
   until: result.stdout == "0"
   retries: 24
