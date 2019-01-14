@@ -1,0 +1,5 @@
+---
+kubevirt_ssp_namespace: "{{ kubevirt_templates_namespace | default('openshift') }}"
+cluster_command: "oc" # in case the roles/playbook is not executed from kubevirt.yml
+common_templates_manifest_url: "https://github.com/kubevirt/common-templates/releases/download"
+release_tag: "v0.4.0"
