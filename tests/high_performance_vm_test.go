@@ -13,7 +13,7 @@ import (
 	ktests "kubevirt.io/kubevirt/tests"
 )
 
-var _ = Describe("High performance vm test", func() {
+var _ = Describe("[rfe_id:609][crit:medium][vendor:cnv-qe@redhat.com][level:component]High performance vm test", func() {
 	/*
 	* This test includes the features:
 	* 1. Headless
@@ -43,17 +43,17 @@ var _ = Describe("High performance vm test", func() {
 		headlessDstVMFilePath := "/tmp/headlesstest-vm.json"
 		headlesstestVMName := "headlesstest"
 
-		It("Create headless VM", func() {
+		It("[test_id:707]Create headless VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, headlessDstVMFilePath, "VM_NAME="+headlesstestVMName, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+containerDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(headlessDstVMFilePath)
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", headlesstestVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
 
-		It("Check VM settings with 'oc describe'", func() {
+		It("[test_id:708]Check VM settings with 'oc describe'", func() {
 			res := tests.RunOcDescribeCommand("vmis", headlesstestVMName)
 			Expect(strings.Contains(res, graphicDeviceOffStr)).To(BeTrue())
 		})
-		It("[Negative] Check console VNC is disable", func() {
+		It("[test_id:712][posneg:negative]Check console VNC is disable", func() {
 			_, _, err := tests.OpenConsole(virtClient, headlesstestVMName, tests.NamespaceTestDefault, 20*time.Second, "vnc")
 			Expect(strings.Contains(string(err.Error()), vncErr)).To(BeTrue())
 		})
@@ -63,12 +63,12 @@ var _ = Describe("High performance vm test", func() {
 		memoryOvercommitDstVMFilePath := "/tmp/memoryOvercommit-vm.json"
 		memoryOvercommitVMName := "memoryovercommit"
 
-		It("Create memoryOvercommit VM", func() {
+		It("[test_id:730]Create memoryOvercommit VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "IMAGE_NAME="+containerDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
-		It("Check VM settings with 'oc describe'", func() {
+		It("[test_id:731]Check VM settings with 'oc describe'", func() {
 			res := tests.RunOcDescribeCommand("vmis", memoryOvercommitVMName)
 			Expect(strings.Contains(res, overcommitGuestOverheadStr)).To(BeTrue())
 		})
@@ -83,12 +83,12 @@ var _ = Describe("High performance vm test", func() {
 			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
-		It("Check VM settings with 'oc describe'", func() {
+		It("[test_id:737]Check VM settings with 'oc describe'", func() {
 			res := tests.RunOcDescribeCommand("vmis", memoryOvercommitVMName)
 			Expect(strings.Contains(res, overcommitGuestOverheadStr)).To(BeTrue())
 			Expect(strings.Contains(res, graphicDeviceOffStr)).To(BeTrue())
 		})
-		It("[Negative] Check console VNC is disable", func() {
+		It("[test_id:738][posneg:negative]Check console VNC is disable", func() {
 			_, _, err := tests.OpenConsole(virtClient, memoryOvercommitVMName, tests.NamespaceTestDefault, 20*time.Second, "vnc")
 			Expect(strings.Contains(string(err.Error()), vncErr)).To(BeTrue())
 		})
