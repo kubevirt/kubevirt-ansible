@@ -1,7 +1,7 @@
 # Kubevirt-web-ui Deployment
 Used for deployment of the [Kubevirt Web UI](https://github.com/kubevirt/web-ui) application into running OpenShift cluster.
 
-The playbook deploys:
+The role deploys:
 - [KubeVirt Web UI Operator](https://github.com/kubevirt/web-ui-operator)
 - Custom Resource for the Operator to initiate application deployment
 
