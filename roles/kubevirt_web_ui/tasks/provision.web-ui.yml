@@ -1,0 +1,50 @@
+---
+- name: Make temp directory
+  command: mktemp -d /tmp/web-ui-XXXXXX
+  register: mktemp
+  changed_when: False
+
+# Must be already created by provision.operator.yml. Fail if not.
+- name: Change project for kubevirt-web-ui
+  shell: "{{ cluster_command }} project {{ kubevirt_web_ui_namespace }}"
+
+- name: Deploy Web UI custom resource
+  block:
+    - name: Copy custom resource yaml to temp directory
+      copy:
+        src: "{{ files_dir }}/crds/kubevirt_v1alpha1_kwebui_cr.yaml"
+        dest: "{{ mktemp.stdout }}/cr.yaml"
+    - name: Set kubevirt-web-ui version
+      lineinfile:
+        path: "{{ mktemp.stdout }}/cr.yaml"
+        regexp: "^  version:.*$"
+        line: "  version: {{ kubevirt_web_ui_version }}"
+    - name: Set kubevirt-web-ui registry_url
+      lineinfile:
+        path: "{{ mktemp.stdout }}/cr.yaml"
+        regexp: "^  registry_url:.*$"
+        line: "  registry_url: {{ registry_url }}"
+    - name: Set kubevirt-web-ui registry_namespace
+      lineinfile:
+        path: "{{ mktemp.stdout }}/cr.yaml"
+        regexp: "^  registry_namespace:.*$"
+        line: "  registry_namespace: {{ registry_namespace }}"
+    - name: Set kubevirt-web-ui branding
+      lineinfile:
+        path: "{{ mktemp.stdout }}/cr.yaml"
+        regexp: "^  branding:.*$"
+        line: "  branding: {{ kubevirt_web_ui_branding }}"
+    - name: Set public_master_hostname
+      lineinfile:
+        path: "{{ mktemp.stdout }}/cr.yaml"
+        line: "  public_master_hostname: {{ public_master_hostname }}"
+        state: present
+      when: public_master_hostname is defined
+    - name: Set openshift_master_default_subdomain
+      lineinfile:
+        path: "{{ mktemp.stdout }}/cr.yaml"
+        line: "  openshift_master_default_subdomain: {{ openshift_master_default_subdomain }}"
+        state: present
+      when: openshift_master_default_subdomain is defined
+    - name: Create operator custom resource to (un)deploy the Web UI
+      shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/cr.yaml"
