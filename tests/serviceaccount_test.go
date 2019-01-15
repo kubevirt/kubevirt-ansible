@@ -15,7 +15,7 @@ import (
 	ktests "kubevirt.io/kubevirt/tests"
 )
 
-var _ = Describe("Config", func() {
+var _ = Describe("[rfe_id:905][crit:medium][vendor:cnv-qe@redhat.com][level:component]Config", func() {
 
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
@@ -44,7 +44,7 @@ var _ = Describe("Config", func() {
 				tests.DeleteServiceAccount(serviceAccountName)
 			})
 
-			It("Should be the fs layout the same for a pod and vmi", func() {
+			It("[test_id:999]Should be the fs layout the same for a pod and vmi", func() {
 				By("Running VMI")
 				vmi := ktests.NewRandomVMIWithEphemeralDiskAndUserdataHighMemory(
 					ktests.ContainerDiskFor(
@@ -103,7 +103,7 @@ var _ = Describe("Config", func() {
 				tests.DeleteServiceAccount(serviceAccountName2)
 			})
 
-			It("Should not run the vm with 2 service accounts", func() {
+			It("[test_id:1001][posneg:negative]Should not run the vm with 2 service accounts", func() {
 				By("Ensuring VMI is not running")
 				vmi := ktests.NewRandomVMIWithEphemeralDiskAndUserdataHighMemory(
 					ktests.ContainerDiskFor(
