@@ -1,0 +1,6 @@
+---
+- name: Set empty version to deprovision the Web UI
+  set_fact: kubevirt_web_ui_version=""
+
+- include_tasks: provision.web-ui.yml
+

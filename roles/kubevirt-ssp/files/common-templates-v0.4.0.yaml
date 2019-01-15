@@ -1,0 +1,2891 @@
+# Version v0.4.0
+---
+# Source: dist/templates/centos7-generic-large.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: centos7-generic-large
+  annotations:
+    openshift.io/display-name: "CentOS 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      CentOS 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary CentOS disk image.
+    tags: "kubevirt,virtualmachine,linux,centos"
+
+    iconClass: "icon-centos"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/centos7.0: CentOS 7.0
+
+  labels:
+    os.template.cnv.io/centos7.0: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/large: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: centos7-generic-large
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 2
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 6G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: centos
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'centos7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/centos7-generic-medium.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: centos7-generic-medium
+  annotations:
+    openshift.io/display-name: "CentOS 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      CentOS 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary CentOS disk image.
+    tags: "kubevirt,virtualmachine,linux,centos"
+
+    iconClass: "icon-centos"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/centos7.0: CentOS 7.0
+
+  labels:
+    os.template.cnv.io/centos7.0: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/medium: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: centos7-generic-medium
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 4G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: centos
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'centos7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/centos7-generic-small.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: centos7-generic-small
+  annotations:
+    openshift.io/display-name: "CentOS 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      CentOS 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary CentOS disk image.
+    tags: "kubevirt,virtualmachine,linux,centos"
+
+    iconClass: "icon-centos"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/centos7.0: CentOS 7.0
+
+  labels:
+    os.template.cnv.io/centos7.0: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/small: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: centos7-generic-small
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 2G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: centos
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'centos7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/centos7-generic-tiny.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: centos7-generic-tiny
+  annotations:
+    openshift.io/display-name: "CentOS 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      CentOS 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary CentOS disk image.
+    tags: "kubevirt,virtualmachine,linux,centos"
+
+    iconClass: "icon-centos"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/centos7.0: CentOS 7.0
+
+  labels:
+    os.template.cnv.io/centos7.0: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/tiny: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: centos7-generic-tiny
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 1G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: centos
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'centos7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/fedora-generic-large.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: fedora-generic-large
+  annotations:
+    openshift.io/display-name: "Fedora 23+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Fedora 23 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary Fedora disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+    tags: "kubevirt,virtualmachine,fedora,rhel"
+
+    iconClass: "icon-fedora"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/fedora26: Fedora 26
+    name.os.template.cnv.io/fedora27: Fedora 27
+    name.os.template.cnv.io/fedora28: Fedora 28
+
+  labels:
+    os.template.cnv.io/fedora26: "true"
+    os.template.cnv.io/fedora27: "true"
+    os.template.cnv.io/fedora28: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/large: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: fedora-generic-large
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 2
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 6G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: fedora
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'fedora-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/fedora-generic-medium.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: fedora-generic-medium
+  annotations:
+    openshift.io/display-name: "Fedora 23+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Fedora 23 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary Fedora disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+    tags: "kubevirt,virtualmachine,fedora,rhel"
+
+    iconClass: "icon-fedora"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/fedora26: Fedora 26
+    name.os.template.cnv.io/fedora27: Fedora 27
+    name.os.template.cnv.io/fedora28: Fedora 28
+
+  labels:
+    os.template.cnv.io/fedora26: "true"
+    os.template.cnv.io/fedora27: "true"
+    os.template.cnv.io/fedora28: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/medium: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: fedora-generic-medium
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 4G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: fedora
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'fedora-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/fedora-generic-small.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: fedora-generic-small
+  annotations:
+    openshift.io/display-name: "Fedora 23+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Fedora 23 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary Fedora disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+    tags: "kubevirt,virtualmachine,fedora,rhel"
+
+    iconClass: "icon-fedora"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/fedora26: Fedora 26
+    name.os.template.cnv.io/fedora27: Fedora 27
+    name.os.template.cnv.io/fedora28: Fedora 28
+
+  labels:
+    os.template.cnv.io/fedora26: "true"
+    os.template.cnv.io/fedora27: "true"
+    os.template.cnv.io/fedora28: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/small: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: fedora-generic-small
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 2G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: fedora
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'fedora-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/fedora-generic-tiny.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: fedora-generic-tiny
+  annotations:
+    openshift.io/display-name: "Fedora 23+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Fedora 23 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary Fedora disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+    tags: "kubevirt,virtualmachine,fedora,rhel"
+
+    iconClass: "icon-fedora"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/fedora26: Fedora 26
+    name.os.template.cnv.io/fedora27: Fedora 27
+    name.os.template.cnv.io/fedora28: Fedora 28
+
+  labels:
+    os.template.cnv.io/fedora26: "true"
+    os.template.cnv.io/fedora27: "true"
+    os.template.cnv.io/fedora28: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/tiny: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: fedora-generic-tiny
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 1G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: fedora
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'fedora-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/fedora-highperformance-large.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: fedora-highperformance-large
+  annotations:
+    openshift.io/display-name: "Fedora 23+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Fedora 23 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary Fedora disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+    tags: "kubevirt,virtualmachine,fedora,rhel"
+
+    iconClass: "icon-fedora"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/fedora26: Fedora 26
+    name.os.template.cnv.io/fedora27: Fedora 27
+    name.os.template.cnv.io/fedora28: Fedora 28
+
+  labels:
+    os.template.cnv.io/fedora26: "true"
+    os.template.cnv.io/fedora27: "true"
+    os.template.cnv.io/fedora28: "true"
+    workload.template.cnv.io/highperformance: "true"
+    flavor.template.cnv.io/large: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: fedora-highperformance-large
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          ioThreadsPolicy: shared
+
+          cpu:
+            sockets: 2
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 6G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: fedora
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'fedora-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/fedora-highperformance-medium.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: fedora-highperformance-medium
+  annotations:
+    openshift.io/display-name: "Fedora 23+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Fedora 23 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary Fedora disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+    tags: "kubevirt,virtualmachine,fedora,rhel"
+
+    iconClass: "icon-fedora"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/fedora26: Fedora 26
+    name.os.template.cnv.io/fedora27: Fedora 27
+    name.os.template.cnv.io/fedora28: Fedora 28
+
+  labels:
+    os.template.cnv.io/fedora26: "true"
+    os.template.cnv.io/fedora27: "true"
+    os.template.cnv.io/fedora28: "true"
+    workload.template.cnv.io/highperformance: "true"
+    flavor.template.cnv.io/medium: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: fedora-highperformance-medium
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          ioThreadsPolicy: shared
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 4G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: fedora
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'fedora-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/fedora-highperformance-small.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: fedora-highperformance-small
+  annotations:
+    openshift.io/display-name: "Fedora 23+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Fedora 23 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary Fedora disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+    tags: "kubevirt,virtualmachine,fedora,rhel"
+
+    iconClass: "icon-fedora"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/fedora26: Fedora 26
+    name.os.template.cnv.io/fedora27: Fedora 27
+    name.os.template.cnv.io/fedora28: Fedora 28
+
+  labels:
+    os.template.cnv.io/fedora26: "true"
+    os.template.cnv.io/fedora27: "true"
+    os.template.cnv.io/fedora28: "true"
+    workload.template.cnv.io/highperformance: "true"
+    flavor.template.cnv.io/small: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: fedora-highperformance-small
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          ioThreadsPolicy: shared
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 2G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: fedora
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'fedora-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/fedora-highperformance-tiny.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: fedora-highperformance-tiny
+  annotations:
+    openshift.io/display-name: "Fedora 23+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Fedora 23 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary Fedora disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.fedoraproject.org/pub/fedora/linux/releases/28/Cloud/x86_64/images/Fedora-Cloud-Base-28-1.1.x86_64.qcow2
+    tags: "kubevirt,virtualmachine,fedora,rhel"
+
+    iconClass: "icon-fedora"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/fedora26: Fedora 26
+    name.os.template.cnv.io/fedora27: Fedora 27
+    name.os.template.cnv.io/fedora28: Fedora 28
+
+  labels:
+    os.template.cnv.io/fedora26: "true"
+    os.template.cnv.io/fedora27: "true"
+    os.template.cnv.io/fedora28: "true"
+    workload.template.cnv.io/highperformance: "true"
+    flavor.template.cnv.io/tiny: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: fedora-highperformance-tiny
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          ioThreadsPolicy: shared
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 1G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: fedora
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'fedora-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/opensuse-generic-large.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: opensuse-generic-large
+  annotations:
+    openshift.io/display-name: "OpenSUSE Leap 15.0 VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      OpenSUSE Leap 15.0.
+      The template assumes that a PVC is available which is providing the
+      necessary OpenSUSE disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.0/images/
+    tags: "kubevirt,virtualmachine,linux,opensuse"
+
+    iconClass: "icon-opensuse"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/opensuse15.0: openSUSE Leap 15.0
+
+  labels:
+    os.template.cnv.io/opensuse15.0: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/large: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: opensuse-generic-large
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 2
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 6G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: opensuse
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'opensuse-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+---
+# Source: dist/templates/opensuse-generic-medium.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: opensuse-generic-medium
+  annotations:
+    openshift.io/display-name: "OpenSUSE Leap 15.0 VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      OpenSUSE Leap 15.0.
+      The template assumes that a PVC is available which is providing the
+      necessary OpenSUSE disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.0/images/
+    tags: "kubevirt,virtualmachine,linux,opensuse"
+
+    iconClass: "icon-opensuse"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/opensuse15.0: openSUSE Leap 15.0
+
+  labels:
+    os.template.cnv.io/opensuse15.0: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/medium: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: opensuse-generic-medium
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 4G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: opensuse
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'opensuse-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+---
+# Source: dist/templates/opensuse-generic-small.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: opensuse-generic-small
+  annotations:
+    openshift.io/display-name: "OpenSUSE Leap 15.0 VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      OpenSUSE Leap 15.0.
+      The template assumes that a PVC is available which is providing the
+      necessary OpenSUSE disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.0/images/
+    tags: "kubevirt,virtualmachine,linux,opensuse"
+
+    iconClass: "icon-opensuse"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/opensuse15.0: openSUSE Leap 15.0
+
+  labels:
+    os.template.cnv.io/opensuse15.0: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/small: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: opensuse-generic-small
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 2G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: opensuse
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'opensuse-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+---
+# Source: dist/templates/opensuse-generic-tiny.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: opensuse-generic-tiny
+  annotations:
+    openshift.io/display-name: "OpenSUSE Leap 15.0 VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      OpenSUSE Leap 15.0.
+      The template assumes that a PVC is available which is providing the
+      necessary OpenSUSE disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      https://download.opensuse.org/repositories/Cloud:/Images:/Leap_15.0/images/
+    tags: "kubevirt,virtualmachine,linux,opensuse"
+
+    iconClass: "icon-opensuse"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/opensuse15.0: openSUSE Leap 15.0
+
+  labels:
+    os.template.cnv.io/opensuse15.0: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/tiny: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: opensuse-generic-tiny
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 1G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: opensuse
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'opensuse-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+---
+# Source: dist/templates/rhel7-generic-large.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhel7-generic-large
+  annotations:
+    openshift.io/display-name: "Red Hat Enterprise Linux 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Red Hat Enterprise Linux 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary RHEL disk image.
+    tags: "kubevirt,virtualmachine,linux,rhel"
+
+    iconClass: "icon-rhel"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/rhel7.0: Red Hat Enterprise Linux 7.0
+    name.os.template.cnv.io/rhel7.1: Red Hat Enterprise Linux 7.1
+    name.os.template.cnv.io/rhel7.2: Red Hat Enterprise Linux 7.2
+    name.os.template.cnv.io/rhel7.3: Red Hat Enterprise Linux 7.3
+    name.os.template.cnv.io/rhel7.4: Red Hat Enterprise Linux 7.4
+    name.os.template.cnv.io/rhel7.5: Red Hat Enterprise Linux 7.5
+    name.os.template.cnv.io/rhel7.6: Red Hat Enterprise Linux 7.6
+
+  labels:
+    os.template.cnv.io/rhel7.0: "true"
+    os.template.cnv.io/rhel7.1: "true"
+    os.template.cnv.io/rhel7.2: "true"
+    os.template.cnv.io/rhel7.3: "true"
+    os.template.cnv.io/rhel7.4: "true"
+    os.template.cnv.io/rhel7.5: "true"
+    os.template.cnv.io/rhel7.6: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/large: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: rhel7-generic-large
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 2
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 6G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: redhat
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'rhel7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/rhel7-generic-medium.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhel7-generic-medium
+  annotations:
+    openshift.io/display-name: "Red Hat Enterprise Linux 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Red Hat Enterprise Linux 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary RHEL disk image.
+    tags: "kubevirt,virtualmachine,linux,rhel"
+
+    iconClass: "icon-rhel"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/rhel7.0: Red Hat Enterprise Linux 7.0
+    name.os.template.cnv.io/rhel7.1: Red Hat Enterprise Linux 7.1
+    name.os.template.cnv.io/rhel7.2: Red Hat Enterprise Linux 7.2
+    name.os.template.cnv.io/rhel7.3: Red Hat Enterprise Linux 7.3
+    name.os.template.cnv.io/rhel7.4: Red Hat Enterprise Linux 7.4
+    name.os.template.cnv.io/rhel7.5: Red Hat Enterprise Linux 7.5
+    name.os.template.cnv.io/rhel7.6: Red Hat Enterprise Linux 7.6
+
+  labels:
+    os.template.cnv.io/rhel7.0: "true"
+    os.template.cnv.io/rhel7.1: "true"
+    os.template.cnv.io/rhel7.2: "true"
+    os.template.cnv.io/rhel7.3: "true"
+    os.template.cnv.io/rhel7.4: "true"
+    os.template.cnv.io/rhel7.5: "true"
+    os.template.cnv.io/rhel7.6: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/medium: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: rhel7-generic-medium
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 4G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: redhat
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'rhel7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/rhel7-generic-small.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhel7-generic-small
+  annotations:
+    openshift.io/display-name: "Red Hat Enterprise Linux 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Red Hat Enterprise Linux 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary RHEL disk image.
+    tags: "kubevirt,virtualmachine,linux,rhel"
+
+    iconClass: "icon-rhel"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/rhel7.0: Red Hat Enterprise Linux 7.0
+    name.os.template.cnv.io/rhel7.1: Red Hat Enterprise Linux 7.1
+    name.os.template.cnv.io/rhel7.2: Red Hat Enterprise Linux 7.2
+    name.os.template.cnv.io/rhel7.3: Red Hat Enterprise Linux 7.3
+    name.os.template.cnv.io/rhel7.4: Red Hat Enterprise Linux 7.4
+    name.os.template.cnv.io/rhel7.5: Red Hat Enterprise Linux 7.5
+    name.os.template.cnv.io/rhel7.6: Red Hat Enterprise Linux 7.6
+
+  labels:
+    os.template.cnv.io/rhel7.0: "true"
+    os.template.cnv.io/rhel7.1: "true"
+    os.template.cnv.io/rhel7.2: "true"
+    os.template.cnv.io/rhel7.3: "true"
+    os.template.cnv.io/rhel7.4: "true"
+    os.template.cnv.io/rhel7.5: "true"
+    os.template.cnv.io/rhel7.6: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/small: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: rhel7-generic-small
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 2G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: redhat
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'rhel7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/rhel7-generic-tiny.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhel7-generic-tiny
+  annotations:
+    openshift.io/display-name: "Red Hat Enterprise Linux 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Red Hat Enterprise Linux 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary RHEL disk image.
+    tags: "kubevirt,virtualmachine,linux,rhel"
+
+    iconClass: "icon-rhel"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/rhel7.0: Red Hat Enterprise Linux 7.0
+    name.os.template.cnv.io/rhel7.1: Red Hat Enterprise Linux 7.1
+    name.os.template.cnv.io/rhel7.2: Red Hat Enterprise Linux 7.2
+    name.os.template.cnv.io/rhel7.3: Red Hat Enterprise Linux 7.3
+    name.os.template.cnv.io/rhel7.4: Red Hat Enterprise Linux 7.4
+    name.os.template.cnv.io/rhel7.5: Red Hat Enterprise Linux 7.5
+    name.os.template.cnv.io/rhel7.6: Red Hat Enterprise Linux 7.6
+
+  labels:
+    os.template.cnv.io/rhel7.0: "true"
+    os.template.cnv.io/rhel7.1: "true"
+    os.template.cnv.io/rhel7.2: "true"
+    os.template.cnv.io/rhel7.3: "true"
+    os.template.cnv.io/rhel7.4: "true"
+    os.template.cnv.io/rhel7.5: "true"
+    os.template.cnv.io/rhel7.6: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/tiny: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: rhel7-generic-tiny
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 1G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: redhat
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'rhel7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/rhel7-highperformance-large.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhel7-highperformance-large
+  annotations:
+    openshift.io/display-name: "Red Hat Enterprise Linux 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Red Hat Enterprise Linux 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary RHEL disk image.
+    tags: "kubevirt,virtualmachine,linux,rhel"
+
+    iconClass: "icon-rhel"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/rhel7.0: Red Hat Enterprise Linux 7.0
+    name.os.template.cnv.io/rhel7.1: Red Hat Enterprise Linux 7.1
+    name.os.template.cnv.io/rhel7.2: Red Hat Enterprise Linux 7.2
+    name.os.template.cnv.io/rhel7.3: Red Hat Enterprise Linux 7.3
+    name.os.template.cnv.io/rhel7.4: Red Hat Enterprise Linux 7.4
+    name.os.template.cnv.io/rhel7.5: Red Hat Enterprise Linux 7.5
+    name.os.template.cnv.io/rhel7.6: Red Hat Enterprise Linux 7.6
+
+  labels:
+    os.template.cnv.io/rhel7.0: "true"
+    os.template.cnv.io/rhel7.1: "true"
+    os.template.cnv.io/rhel7.2: "true"
+    os.template.cnv.io/rhel7.3: "true"
+    os.template.cnv.io/rhel7.4: "true"
+    os.template.cnv.io/rhel7.5: "true"
+    os.template.cnv.io/rhel7.6: "true"
+    workload.template.cnv.io/highperformance: "true"
+    flavor.template.cnv.io/large: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: rhel7-highperformance-large
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          ioThreadsPolicy: shared
+
+          cpu:
+            sockets: 2
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 6G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: redhat
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'rhel7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/rhel7-highperformance-medium.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhel7-highperformance-medium
+  annotations:
+    openshift.io/display-name: "Red Hat Enterprise Linux 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Red Hat Enterprise Linux 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary RHEL disk image.
+    tags: "kubevirt,virtualmachine,linux,rhel"
+
+    iconClass: "icon-rhel"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/rhel7.0: Red Hat Enterprise Linux 7.0
+    name.os.template.cnv.io/rhel7.1: Red Hat Enterprise Linux 7.1
+    name.os.template.cnv.io/rhel7.2: Red Hat Enterprise Linux 7.2
+    name.os.template.cnv.io/rhel7.3: Red Hat Enterprise Linux 7.3
+    name.os.template.cnv.io/rhel7.4: Red Hat Enterprise Linux 7.4
+    name.os.template.cnv.io/rhel7.5: Red Hat Enterprise Linux 7.5
+    name.os.template.cnv.io/rhel7.6: Red Hat Enterprise Linux 7.6
+
+  labels:
+    os.template.cnv.io/rhel7.0: "true"
+    os.template.cnv.io/rhel7.1: "true"
+    os.template.cnv.io/rhel7.2: "true"
+    os.template.cnv.io/rhel7.3: "true"
+    os.template.cnv.io/rhel7.4: "true"
+    os.template.cnv.io/rhel7.5: "true"
+    os.template.cnv.io/rhel7.6: "true"
+    workload.template.cnv.io/highperformance: "true"
+    flavor.template.cnv.io/medium: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: rhel7-highperformance-medium
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          ioThreadsPolicy: shared
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 4G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: redhat
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'rhel7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/rhel7-highperformance-small.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhel7-highperformance-small
+  annotations:
+    openshift.io/display-name: "Red Hat Enterprise Linux 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Red Hat Enterprise Linux 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary RHEL disk image.
+    tags: "kubevirt,virtualmachine,linux,rhel"
+
+    iconClass: "icon-rhel"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/rhel7.0: Red Hat Enterprise Linux 7.0
+    name.os.template.cnv.io/rhel7.1: Red Hat Enterprise Linux 7.1
+    name.os.template.cnv.io/rhel7.2: Red Hat Enterprise Linux 7.2
+    name.os.template.cnv.io/rhel7.3: Red Hat Enterprise Linux 7.3
+    name.os.template.cnv.io/rhel7.4: Red Hat Enterprise Linux 7.4
+    name.os.template.cnv.io/rhel7.5: Red Hat Enterprise Linux 7.5
+    name.os.template.cnv.io/rhel7.6: Red Hat Enterprise Linux 7.6
+
+  labels:
+    os.template.cnv.io/rhel7.0: "true"
+    os.template.cnv.io/rhel7.1: "true"
+    os.template.cnv.io/rhel7.2: "true"
+    os.template.cnv.io/rhel7.3: "true"
+    os.template.cnv.io/rhel7.4: "true"
+    os.template.cnv.io/rhel7.5: "true"
+    os.template.cnv.io/rhel7.6: "true"
+    workload.template.cnv.io/highperformance: "true"
+    flavor.template.cnv.io/small: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: rhel7-highperformance-small
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          ioThreadsPolicy: shared
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 2G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: redhat
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'rhel7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/rhel7-highperformance-tiny.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: rhel7-highperformance-tiny
+  annotations:
+    openshift.io/display-name: "Red Hat Enterprise Linux 7.0+ VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Red Hat Enterprise Linux 7 and newer.
+      The template assumes that a PVC is available which is providing the
+      necessary RHEL disk image.
+    tags: "kubevirt,virtualmachine,linux,rhel"
+
+    iconClass: "icon-rhel"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/rhel7.0: Red Hat Enterprise Linux 7.0
+    name.os.template.cnv.io/rhel7.1: Red Hat Enterprise Linux 7.1
+    name.os.template.cnv.io/rhel7.2: Red Hat Enterprise Linux 7.2
+    name.os.template.cnv.io/rhel7.3: Red Hat Enterprise Linux 7.3
+    name.os.template.cnv.io/rhel7.4: Red Hat Enterprise Linux 7.4
+    name.os.template.cnv.io/rhel7.5: Red Hat Enterprise Linux 7.5
+    name.os.template.cnv.io/rhel7.6: Red Hat Enterprise Linux 7.6
+
+  labels:
+    os.template.cnv.io/rhel7.0: "true"
+    os.template.cnv.io/rhel7.1: "true"
+    os.template.cnv.io/rhel7.2: "true"
+    os.template.cnv.io/rhel7.3: "true"
+    os.template.cnv.io/rhel7.4: "true"
+    os.template.cnv.io/rhel7.5: "true"
+    os.template.cnv.io/rhel7.6: "true"
+    workload.template.cnv.io/highperformance: "true"
+    flavor.template.cnv.io/tiny: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: rhel7-highperformance-tiny
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          ioThreadsPolicy: shared
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 1G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: redhat
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'rhel7-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+
+---
+# Source: dist/templates/ubuntu-generic-large.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: ubuntu-generic-large
+  annotations:
+    openshift.io/display-name: "Ubuntu 18.04 (Xenial Xerus) VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Ubuntu 18.04 (Xenial Xerus).
+      The template assumes that a PVC is available which is providing the
+      necessary Ubuntu disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      http://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    tags: "kubevirt,virtualmachine,ubuntu"
+
+    iconClass: "icon-ubuntu"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/ubuntu18.04: Ubuntu 18.04 LTS
+
+  labels:
+    os.template.cnv.io/ubuntu18.04: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/large: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: ubuntu-generic-large
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 2
+            cores: 1
+            threads: 1
+            model: Conroe
+          resources:
+            requests:
+              memory: 6G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: ubuntu
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'ubuntu-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+---
+# Source: dist/templates/ubuntu-generic-medium.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: ubuntu-generic-medium
+  annotations:
+    openshift.io/display-name: "Ubuntu 18.04 (Xenial Xerus) VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Ubuntu 18.04 (Xenial Xerus).
+      The template assumes that a PVC is available which is providing the
+      necessary Ubuntu disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      http://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    tags: "kubevirt,virtualmachine,ubuntu"
+
+    iconClass: "icon-ubuntu"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/ubuntu18.04: Ubuntu 18.04 LTS
+
+  labels:
+    os.template.cnv.io/ubuntu18.04: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/medium: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: ubuntu-generic-medium
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+            model: Conroe
+          resources:
+            requests:
+              memory: 4G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: ubuntu
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'ubuntu-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+---
+# Source: dist/templates/ubuntu-generic-small.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: ubuntu-generic-small
+  annotations:
+    openshift.io/display-name: "Ubuntu 18.04 (Xenial Xerus) VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Ubuntu 18.04 (Xenial Xerus).
+      The template assumes that a PVC is available which is providing the
+      necessary Ubuntu disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      http://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    tags: "kubevirt,virtualmachine,ubuntu"
+
+    iconClass: "icon-ubuntu"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/ubuntu18.04: Ubuntu 18.04 LTS
+
+  labels:
+    os.template.cnv.io/ubuntu18.04: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/small: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: ubuntu-generic-small
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+            model: Conroe
+          resources:
+            requests:
+              memory: 2G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: ubuntu
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'ubuntu-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+---
+# Source: dist/templates/ubuntu-generic-tiny.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: ubuntu-generic-tiny
+  annotations:
+    openshift.io/display-name: "Ubuntu 18.04 (Xenial Xerus) VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Ubuntu 18.04 (Xenial Xerus).
+      The template assumes that a PVC is available which is providing the
+      necessary Ubuntu disk image.
+
+      Recommended disk image (needs to be converted to raw)
+      http://cloud-images.ubuntu.com/xenial/current/xenial-server-cloudimg-amd64-disk1.img
+    tags: "kubevirt,virtualmachine,ubuntu"
+
+    iconClass: "icon-ubuntu"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.sockets
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.cpu.threads
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/ubuntu18.04: Ubuntu 18.04 LTS
+
+  labels:
+    os.template.cnv.io/ubuntu18.04: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/tiny: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: ubuntu-generic-tiny
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+            model: Conroe
+          resources:
+            requests:
+              memory: 1G
+          devices:
+            rng: {}
+            disks:
+            - disk:
+                bus: virtio
+              name: rootdisk
+              volumeName: rootvolume
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        - cloudInitNoCloud:
+            userData: |-
+              #cloud-config
+              password: ubuntu
+              chpasswd: { expire: False }
+          name: cloudinitvolume
+
+parameters:
+- description: VM name
+  from: 'ubuntu-[a-z0-9]{16}'
+  generate: expression
+  name: NAME
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+---
+# Source: dist/templates/win2k12r2-generic-large.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: win2k12r2-generic-large
+  annotations:
+    openshift.io/display-name: "Microsoft Windows Server 2012 R2 VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Microsoft Windows Server 2012 R2.
+      The template assumes that a PVC is available which is providing the
+      necessary Windows disk image.
+    tags: "kubevirt,virtualmachine,windows"
+    iconClass: "icon-windows"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    defaults.template.cnv.io/network: default
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/win2k12r2: Microsoft Windows Server 2012 R2
+    name.os.template.cnv.io/win2k8r2: Microsoft Windows Server 2008 R2
+    name.os.template.cnv.io/win2k8: Microsoft Windows Server 2008
+    name.os.template.cnv.io/win10: Microsoft Windows 10
+
+  labels:
+    os.template.cnv.io/win2k12r2: "true"
+    os.template.cnv.io/win2k8r2: "true"
+    os.template.cnv.io/win2k8: "true"
+    os.template.cnv.io/win10: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/large: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: win2k12r2-generic-large
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          clock:
+            utc: {}
+            timer:
+              hpet:
+                present: false
+              pit:
+                tickPolicy: delay
+              rtc:
+                tickPolicy: catchup
+              hyperv: {}
+          cpu:
+            sockets: 2
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 6G
+          features:
+            acpi: {}
+            apic: {}
+            hyperv:
+              relaxed: {}
+              vapic: {}
+              spinlocks:
+                spinlocks: 8191
+          devices:
+            disks:
+            - disk:
+                bus: sata
+              name: rootdisk
+              volumeName: rootvolume
+            interfaces:
+            - bridge: {}
+              model: e1000e
+              name: default
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        networks:
+        - name: default
+          pod: {}
+
+parameters:
+- name: NAME
+  description: VM name
+  generate: expression
+  from: "win2k12-[a-z0-9]{6}"
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
+---
+# Source: dist/templates/win2k12r2-generic-medium.yaml
+apiVersion: v1
+kind: Template
+metadata:
+  name: win2k12r2-generic-medium
+  annotations:
+    openshift.io/display-name: "Microsoft Windows Server 2012 R2 VM"
+    description: >-
+      This template can be used to create a VM suitable for
+      Microsoft Windows Server 2012 R2.
+      The template assumes that a PVC is available which is providing the
+      necessary Windows disk image.
+    tags: "kubevirt,virtualmachine,windows"
+    iconClass: "icon-windows"
+    openshift.io/provider-display-name: "KubeVirt"
+    openshift.io/documentation-url: "https://github.com/kubevirt/common-templates"
+    openshift.io/support-url: "https://github.com/kubevirt/common-templates/issues"
+    template.openshift.io/bindable: "false"
+
+    template.cnv.io/version: v1alpha1
+    defaults.template.cnv.io/disk: rootdisk
+    defaults.template.cnv.io/network: default
+    template.cnv.io/editable: |
+      /objects[0].spec.template.spec.domain.cpu.cores
+      /objects[0].spec.template.spec.domain.resources.requests.memory
+      /objects[0].spec.template.spec.domain.devices.disks
+      /objects[0].spec.template.spec.volumes
+      /objects[0].spec.template.spec.networks
+
+    name.os.template.cnv.io/win2k12r2: Microsoft Windows Server 2012 R2
+    name.os.template.cnv.io/win2k8r2: Microsoft Windows Server 2008 R2
+    name.os.template.cnv.io/win2k8: Microsoft Windows Server 2008
+    name.os.template.cnv.io/win10: Microsoft Windows 10
+
+  labels:
+    os.template.cnv.io/win2k12r2: "true"
+    os.template.cnv.io/win2k8r2: "true"
+    os.template.cnv.io/win2k8: "true"
+    os.template.cnv.io/win10: "true"
+    workload.template.cnv.io/generic: "true"
+    flavor.template.cnv.io/medium: "true"
+    template.cnv.io/type: "base"
+
+objects:
+- apiVersion: kubevirt.io/v1alpha2
+  kind: VirtualMachine
+  metadata:
+    name: ${NAME}
+    labels:
+      vm.cnv.io/template: win2k12r2-generic-medium
+      app: ${NAME}
+  spec:
+    running: false
+    template:
+      spec:
+        domain:
+          clock:
+            utc: {}
+            timer:
+              hpet:
+                present: false
+              pit:
+                tickPolicy: delay
+              rtc:
+                tickPolicy: catchup
+              hyperv: {}
+          cpu:
+            sockets: 1
+            cores: 1
+            threads: 1
+          resources:
+            requests:
+              memory: 4G
+          features:
+            acpi: {}
+            apic: {}
+            hyperv:
+              relaxed: {}
+              vapic: {}
+              spinlocks:
+                spinlocks: 8191
+          devices:
+            disks:
+            - disk:
+                bus: sata
+              name: rootdisk
+              volumeName: rootvolume
+            interfaces:
+            - bridge: {}
+              model: e1000e
+              name: default
+        terminationGracePeriodSeconds: 0
+        volumes:
+        - name: rootvolume
+          persistentVolumeClaim:
+            claimName: ${PVCNAME}
+        networks:
+        - name: default
+          pod: {}
+
+parameters:
+- name: NAME
+  description: VM name
+  generate: expression
+  from: "win2k12-[a-z0-9]{6}"
+- name: PVCNAME
+  description: Name of the PVC with the disk image
+  required: true
