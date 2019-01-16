@@ -1,0 +1,14 @@
+---
+- name: Check that common-templates.yaml still exists in /tmp
+  stat:
+    path: "/tmp/common-templates.yaml"
+  register: common_templates
+
+- name: Copy common templates yaml to temp directory
+  copy:
+    src: "{{ kubevirt_ssp_files_dir }}/common-templates-v0.4.1.yaml"
+    dest: "/tmp/common-templates.yaml"  
+  when: common_templates.stat.exists == false
+
+- name: Delete Kubevirt Templates
+  shell: "{{ cluster_command }} delete -f /tmp/common-templates.yaml -n {{ kubevirt_templates_namespace }}"
