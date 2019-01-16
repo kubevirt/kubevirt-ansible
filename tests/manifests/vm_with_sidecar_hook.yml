@@ -2,7 +2,7 @@ apiVersion: kubevirt.io/v1alpha2
 kind: VirtualMachineInstance
 metadata:
   annotations:
-    hooks.kubevirt.io/hookSidecars: '[{"image": "kubevirt/example-hook-sidecar:v0.12.0-alpha.2"}]'
+    hooks.kubevirt.io/hookSidecars: '[{"image": "kubevirt/example-hook-sidecar:v0.13.0"}]'
     smbios.vm.kubevirt.io/baseBoardManufacturer: "Radical Edward"
   creationTimestamp: null
   labels:
