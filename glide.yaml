@@ -10,6 +10,3 @@ import:
 - package: kubevirt.io/qe-tools
   version: v0.1.2
   repo: https://github.com/kubevirt/qe-tools.git
-- package: kubevirt.io/containerized-data-importer
-  repo:    https://github.com/kubevirt/containerized-data-importer.git
-  version: v1.4.0

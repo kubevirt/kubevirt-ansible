@@ -69,6 +69,8 @@ func (CPU) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":                      "CPU allows specifying the CPU topology.",
 		"cores":                 "Cores specifies the number of cores inside the vmi.\nMust be a value greater or equal 1.",
+		"sockets":               "Sockets specifies the number of sockets inside the vmi.\nMust be a value greater or equal 1.",
+		"threads":               "Threads specifies the number of threads inside the vmi.\nMust be a value greater or equal 1.",
 		"model":                 "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\nIt is possible to specify special cases like \"host-passthrough\" to get the same CPU as the node\nand \"host-model\" to get CPU closest to the node one.\nFor more information see https://libvirt.org/formatdomain.html#elementsCPU.\nDefaults to host-model.\n+optional",
 		"dedicatedCpuPlacement": "DedicatedCPUPlacement requests the scheduler to place the VirtualMachineInstance on a node\nwith enough dedicated pCPUs and pin the vCPUs to it.\n+optional",
 	}
@@ -117,7 +119,6 @@ func (Devices) SwaggerDoc() map[string]string {
 func (Disk) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"name":              "Name is the device name",
-		"volumeName":        "Name of the volume which is referenced.\nMust match the Name of a Volume.",
 		"bootOrder":         "BootOrder is an integer value > 0, used to determine ordering of boot devices.\nLower values take precedence.\nEach disk or interface that has a boot order must have a unique value.\nDisks without a boot order are not tried if a disk with a boot order exists.\n+optional",
 		"serial":            "Serial provides the ability to specify a serial number for the disk device.\n+optional",
 		"dedicatedIOThread": "dedicatedIOThread indicates this disk should have an exclusive IO Thread.\nEnabling this implies useIOThreads = true.\nDefaults to false.\n+optional",
@@ -369,8 +370,10 @@ func (Interface) SwaggerDoc() map[string]string {
 
 func (DHCPOptions) SwaggerDoc() map[string]string {
 	return map[string]string{
+		"":               "Extra DHCP options to use in the interface.",
 		"bootFileName":   "If specified will pass option 67 to interface's DHCP server\n+optional",
 		"tftpServerName": "If specified will pass option 66 to interface's DHCP server\n+optional",
+		"ntpServers":     "If specified will pass the configured NTP server to the VM via DHCP option 042.\n+optional",
 	}
 }
 

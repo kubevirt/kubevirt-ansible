@@ -52,9 +52,11 @@ func (VirtualMachineInstanceCondition) SwaggerDoc() map[string]string {
 
 func (VirtualMachineInstanceNetworkInterface) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"ipAddress": "IP address of a Virtual Machine interface",
-		"mac":       "Hardware address of a Virtual Machine interface",
-		"name":      "Name of the interface, corresponds to name of the network assigned to the interface",
+		"ipAddress":     "IP address of a Virtual Machine interface",
+		"mac":           "Hardware address of a Virtual Machine interface",
+		"name":          "Name of the interface, corresponds to name of the network assigned to the interface",
+		"ipAddresses":   "List of all IP addresses of a Virtual Machine interface",
+		"interfaceName": "The interface name inside the Virtual Machine",
 	}
 }
 
@@ -105,6 +107,7 @@ func (VirtualMachineInstanceReplicaSetStatus) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"replicas":      "Total number of non-terminated pods targeted by this deployment (their labels match the selector).\n+optional",
 		"readyReplicas": "The number of ready replicas for this replica set.\n+optional",
+		"labelSelector": "Canonical form of the label selector for HPA which consumes it through the scale subresource.",
 	}
 }
 
@@ -216,5 +219,35 @@ func (Probe) SwaggerDoc() map[string]string {
 		"periodSeconds":       "How often (in seconds) to perform the probe.\nDefault to 10 seconds. Minimum value is 1.\n+optional",
 		"successThreshold":    "Minimum consecutive successes for the probe to be considered successful after having failed.\nDefaults to 1. Must be 1 for liveness. Minimum value is 1.\n+optional",
 		"failureThreshold":    "Minimum consecutive failures for the probe to be considered failed after having succeeded.\nDefaults to 3. Minimum value is 1.\n+optional",
+	}
+}
+
+func (KubeVirt) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"": "KubeVirt represents the object deploying all KubeVirt resources",
+	}
+}
+
+func (KubeVirtList) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"": "KubeVirtList is a list of KubeVirts",
+	}
+}
+
+func (KubeVirtSpec) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"imagePullPolicy": "The ImagePullPolicy to use.",
+	}
+}
+
+func (KubeVirtStatus) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"": "KubeVirtStatus represents information pertaining to a KubeVirt deployment.",
+	}
+}
+
+func (KubeVirtCondition) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"": "KubeVirtCondition represents a condition of a KubeVirt deployment",
 	}
 }

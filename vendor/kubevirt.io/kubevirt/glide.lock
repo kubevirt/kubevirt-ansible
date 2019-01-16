@@ -1,17 +1,13 @@
-hash: b07800e29d3f35b2b6466f1e42513f1c01018e9856739ffd576e6b556d224ca7
-updated: 2018-11-23T02:26:13.471620658Z
+hash: be9daf859dced4e6f4b1e431f8ec0d8f7c865927b9878eb6c4243942ec4fe4fb
+updated: 2019-01-09T22:17:21.235939733Z
 imports:
 - name: cloud.google.com/go
   version: 3b1ae45394a234c385be014e9a488f2bb6eef821
   subpackages:
   - compute/metadata
   - internal
-- name: github.com/ant31/crd-validation
-  version: 30f8a35d0ac2d8a2825c78ff47885979e3ee1121
-  subpackages:
-  - pkg
 - name: github.com/asaskevich/govalidator
-  version: f9ffefc3facfbe0caee3fea233cbb6e8208f4541
+  version: 593d64559f7600f29581a3ee42177f5dbded27a9
 - name: github.com/Azure/go-autorest
   version: 1ff28809256a84bb6966640ff3d0371af82ccba4
   subpackages:
@@ -23,6 +19,10 @@ imports:
   version: 3a771d992973f24aa725d07868b467d1ddfceafb
   subpackages:
   - quantile
+- name: github.com/coreos/go-iptables
+  version: 47f22b0dd3355c0ba570ba12b0b8a36bf214c04b
+  subpackages:
+  - iptables
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
@@ -96,7 +96,7 @@ imports:
   subpackages:
   - lru
 - name: github.com/golang/mock
-  version: 49a60242bb5c086a9aacc67bdd056e88f75f3c3e
+  version: e698a2ea17fee71b248fc2bba82fc544c2017f93
   subpackages:
   - gomock
 - name: github.com/golang/protobuf
@@ -110,7 +110,7 @@ imports:
 - name: github.com/google/btree
   version: 7d79101e329e5a3adf994758c578dab82b90c017
 - name: github.com/google/goexpect
-  version: b18097df138928108f35d9eb94955cc12954c0d5
+  version: 31a95e9b7189161fd216fb1f32b74eebbc3c982f
 - name: github.com/google/gofuzz
   version: 44d81051d367757e1c7c6a5a86423ece9afcf63c
 - name: github.com/google/goterm
@@ -174,7 +174,7 @@ imports:
   subpackages:
   - conn
 - name: github.com/libvirt/libvirt-go
-  version: d5e0adac44d4365a2d97e259f51ab76cc3c01b20
+  version: 9c5bdce3c18faad94cb383e7ec42f5122a8c7fa1
 - name: github.com/mailru/easyjson
   version: 2f5df55504ebc322e4d52d34df6a1f5b503bf26d
   subpackages:
@@ -182,7 +182,7 @@ imports:
   - jlexer
   - jwriter
 - name: github.com/mattn/go-runewidth
-  version: c88d7e5f2e24de48a200a2655ac8a0910be9a0f7
+  version: 703b5e6b11ae25aeb2af9ebb5d5fdf8fa2575211
 - name: github.com/matttproud/golang_protobuf_extensions
   version: fc2b8d3a73c4867e51861bbdd5ae3c1f0869dd6a
   subpackages:
@@ -194,7 +194,7 @@ imports:
 - name: github.com/modern-go/reflect2
   version: 05fbef0ca5da472bbf96c9322b84a53edc03c9fd
 - name: github.com/onsi/ginkgo
-  version: 2e1be8f7d90e9d3e3e58b0ce470f2f14d075406f
+  version: 505cc352255139defb7371000668063d1161e331
   subpackages:
   - config
   - extensions/table
@@ -215,10 +215,12 @@ imports:
   - reporters/stenographer/support/go-isatty
   - types
 - name: github.com/onsi/gomega
-  version: 65fb64232476ad9046e57c26cd0bff3d3a8dc6cd
+  version: ce690c543be4c3e5be441840219220f9ff1e8be1
   subpackages:
   - format
   - ghttp
+  - gstruct
+  - gstruct/errors
   - internal/assertion
   - internal/asyncassertion
   - internal/oraclematcher
@@ -229,6 +231,15 @@ imports:
   - matchers/support/goraph/node
   - matchers/support/goraph/util
   - types
+- name: github.com/openshift/api
+  version: 84404551741398f2300f84b16fb97ef351749982
+  subpackages:
+  - security/v1
+- name: github.com/openshift/client-go
+  version: 431ec9a26e5021f35fa41ee9a89842db9bfdb370
+  subpackages:
+  - security/clientset/versioned/scheme
+  - security/clientset/versioned/typed/security/v1
 - name: github.com/pborman/uuid
   version: ca53cad383cad2479bbba7f7a1a05797ec1386e4
 - name: github.com/peterbourgon/diskv
@@ -239,7 +250,7 @@ imports:
   - prometheus
   - prometheus/promhttp
 - name: github.com/prometheus/client_model
-  version: 5c3871d89910bfb32f5fcab2aa4b9ec68e65a99f
+  version: f287a105a20ec685d797f65cd0ce8fbeaef42da1
   subpackages:
   - go
 - name: github.com/prometheus/common
@@ -340,7 +351,7 @@ imports:
   subpackages:
   - rate
 - name: google.golang.org/appengine
-  version: 4a4468ece617fc8205e99368fa2200e9d1fad421
+  version: e9657d882bb81064595ca3b56cbe2546bbabf7b1
   subpackages:
   - internal
   - internal/app_identity
@@ -383,13 +394,13 @@ imports:
   - tap
   - transport
 - name: gopkg.in/cheggaaa/pb.v1
-  version: 007b75a044e968336a69a6c0c617251ab62ac14c
+  version: 1cc5bbe20449079337944d56292c7383510c534c
 - name: gopkg.in/fsnotify/fsnotify.v1
   version: c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9
 - name: gopkg.in/inf.v0
   version: 3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 - name: gopkg.in/ini.v1
-  version: 9c8236e659b76e87bf02044d06fde8683008ff3e
+  version: 6ed8d5f64cd79a498d1f3fab5880cc376ce41bbe
 - name: gopkg.in/tomb.v1
   version: c131134a1947e9afd9cecfe11f4c6dff0732ae58
 - name: gopkg.in/yaml.v2
@@ -433,6 +444,9 @@ imports:
   subpackages:
   - pkg/apis/apiextensions
   - pkg/apis/apiextensions/v1beta1
+  - pkg/client/clientset/clientset
+  - pkg/client/clientset/clientset/scheme
+  - pkg/client/clientset/clientset/typed/apiextensions/v1beta1
 - name: k8s.io/apimachinery
   version: 103fd098999dc9c0c88536f5c9ad2e5da39373ae
   subpackages:
@@ -608,7 +622,7 @@ imports:
   - pkg/common
   - pkg/util/proto
 - name: kubevirt.io/containerized-data-importer
-  version: 8d7a20b86c9a2ed8ac31e26aab50e362f0c84475
+  version: 254749a63d335a4ec1ef919a971cab0b68cf4980
   repo: https://github.com/kubevirt/containerized-data-importer.git
   subpackages:
   - pkg/apis/datavolumecontroller
@@ -637,8 +651,6 @@ imports:
   - pkg/ginkgo-reporters
   - pkg/polarion-xml
 testImports:
-- name: github.com/coreos/go-iptables
-  version: 47f22b0dd3355c0ba570ba12b0b8a36bf214c04b
 - name: github.com/elazarl/goproxy
   version: 07b16b6e30fcac0ad8c0435548e743bcf2ca7e92
 - name: github.com/facebookgo/structtag
@@ -652,7 +664,7 @@ testImports:
   subpackages:
   - assert
 - name: golang.org/x/sync
-  version: 42b317875d0fa942474b76e1b46a6060d720ae6e
+  version: 37e7f081c4d4c64e13b10787722085407fe5d15f
   subpackages:
   - errgroup
 - name: gopkg.in/check.v1
