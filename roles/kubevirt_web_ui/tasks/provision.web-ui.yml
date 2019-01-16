@@ -48,3 +48,26 @@
       when: openshift_master_default_subdomain is defined
     - name: Create operator custom resource to (un)deploy the Web UI
       shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/cr.yaml"
+
+# For details about the error, see logs of the operator pod
+# Example:  oc logs kubevirt-web-ui-operator-6dd9547864-pdcx5 -n kubevirt-web-ui
+- name: Wait until Web UI is ready
+  shell: "{{ cluster_command }} -n {{ kubevirt_web_ui_namespace }} get KWebUI kubevirt-web-ui -o yaml | grep -q 'phase: PROVISIONED' && echo -n DONE"
+  register: result
+  until: result.stdout == "DONE"
+  retries: 30
+  delay: 10
+  when: kubevirt_web_ui_version != ""
+
+# The Web UI is deprovisioned either when
+#   - KWebUI CR is missing
+#   - or KWebUI CR status.phase contains NOT_DEPLOYED
+# Alternatively the Deployments can be checked as well.  
+- name: Wait until Web UI is undeployed
+  shell: "({{ cluster_command }} get KWebUI kubevirt-web-ui | grep -q 'kubevirt-web-ui' || (echo -n 'MISSING'; exit 1)) && ({{ cluster_command }} get KWebUI kubevirt-web-ui -o yaml | grep -q 'phase: NOT_DEPLOYED' && echo -n NOT_DEPLOYED)"
+  register: result
+  until: result.stdout == "MISSING" or result.stdout == "NOT_DEPLOYED"
+  retries: 30
+  delay: 10
+  when: kubevirt_web_ui_version == ""
+
