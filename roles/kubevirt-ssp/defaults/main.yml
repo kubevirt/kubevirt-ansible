@@ -1,4 +1,4 @@
 ---
-kubevirt_ssp_namespace: "{{ kubevirt_ssp_namespace | default('kubevirt') }}"
+kubevirt_templates_namespace: "{{ kubevirt_ssp_namespace | default('openshift') }}"
 kubevirt_ssp_files_dir: "{{ role_path }}/files"
 cluster_command: "oc" # in case the roles/playbook is not executed from kubevirt.yml

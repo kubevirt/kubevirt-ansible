@@ -1,13 +1,14 @@
 ---
-- name: Make temp directory
-  command: mktemp -d /tmp/kubevirt-ssp-XXXXXX
-  register: mktemp
-  changed_when: False
+- name: Check that common-templates.yaml still exists in /tmp
+  stat:
+    path: "/tmp/common-templates.yaml"
+  register: common_templates
 
 - name: Copy common templates yaml to temp directory
   copy:
     src: "{{ kubevirt_ssp_files_dir }}/common-templates-v0.4.0.yaml"
-    dest: "{{ mktemp.stdout }}/common-templates.yaml"  
+    dest: "/tmp/common-templates.yaml"  
+  when: common_templates.stat.exists == false
 
 - name: Create Kubevirt Template
-  shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/common-templates.yaml -n {{ kubevirt_ssp_namespace }}"
+  shell: "{{ cluster_command }} apply -f /tmp/common-templates.yaml -n {{ kubevirt_templates_namespace }}"
