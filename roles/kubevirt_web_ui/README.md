@@ -24,9 +24,9 @@ Default parameters can be found in `vars/all.yml` or `roles/kubevirt_web_ui/defa
   - list of available tags: [see quay.io](https://quay.io/repository/kubevirt/kubevirt-web-ui-operator?tab=tags)
 - kubevirt_web_ui_version:
   - version of the Web UI to be installed by the Operator
+  - conforms kubevirt-web-ui image tag
   - can be be changed after initial deployment by patching the Custom Resource (see bellow)
-  - please note, the preffixed `v` is missing
-  - example: 1.4.0-9
+  - example: v1.4.0-9
   - list of Web UI releases: [https://github.com/kubevirt/web-ui/releases](https://github.com/kubevirt/web-ui/releases)
   - list of docker tags: [https://quay.io/repository/kubevirt/kubevirt-web-ui?tab=tags](https://quay.io/repository/kubevirt/kubevirt-web-ui?tab=tags)
 kubevirt_web_ui_branding: either `openshiftvirt` or `okdvirt`
@@ -64,7 +64,7 @@ registry_url: my.registry.com:8888
 registry_namespace: my-registry-namespace
 
 kubevirt_web_ui_operator_image_tag: v1.4.0-3
-kubevirt_web_ui_version: 1.4.0-9
+kubevirt_web_ui_version: v1.4.0-9
 kubevirt_web_ui_branding: openshiftvirt
 ```
 
@@ -83,7 +83,7 @@ kind: KWebUI
 metadata:
   name: kubevirt-web-ui
 spec:
-  version: "1.4.0-9"
+  version: "v1.4.0-9"
   registry_url: "quay.io"
   registry_namespace: "kubevirt"
   branding: "okdvirt"
