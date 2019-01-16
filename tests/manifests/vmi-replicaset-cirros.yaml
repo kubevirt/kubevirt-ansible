@@ -20,7 +20,6 @@ spec:
           - disk:
               bus: virtio
             name: containerdisk
-            volumeName: registryvolume
         machine:
           type: ""
         resources:
@@ -28,7 +27,7 @@ spec:
             memory: 64M
       terminationGracePeriodSeconds: 0
       volumes:
-      - name: registryvolume
+      - name: containerdisk
         containerDisk:
           image: kubevirt/cirros-container-disk-demo:latest
 status: {}
