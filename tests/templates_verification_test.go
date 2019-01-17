@@ -43,7 +43,7 @@ func search_for_pattern(yaml_segment string, pattern string) bool {
 	return false
 }
 
-var _ = Describe("Common templates", func() {
+var _ = Describe("[rfe_id:1235][crit:medium][vendor:cnv-qe@redhat.com][level:component]Common templates", func() {
 	flag.Parse()
 
 	BeforeEach(func() {
@@ -52,8 +52,8 @@ var _ = Describe("Common templates", func() {
 
 	Context("Testing generated templates", func() {
 
-		// CNV-1069
-		It("Check if template valid for UI", func() {
+
+		It("[test_id:1069]Check if template valid for UI", func() {
 
 			// Getting common_templates
 			// TODO: replace downloading common-templates with getting common-templates from RPM
