@@ -1,0 +1,80 @@
+---
+### Prepare
+- set_fact: kubevirt_web_ui_operator_image="{{ registry_url }}/{{ registry_namespace }}/kubevirt-web-ui-operator:{{ kubevirt_web_ui_operator_image_tag }}"
+  when: kubevirt_web_ui_operator_image is not defined
+
+- name: Make temp directory
+  command: mktemp -d /tmp/web-ui-XXXXXX
+  register: mktemp
+  changed_when: False
+
+### End of preparation
+
+- name: Check if project for kubevirt-web-ui exists
+  shell: "{{ cluster_command }} projects -q | grep -w {{ kubevirt_web_ui_namespace }} | awk '{ print $1 }'"
+  register: ns
+
+- name: Create project for kubevirt-web-ui
+  shell: "{{ cluster_command }} new-project {{ kubevirt_web_ui_namespace }}"
+  when: ns.stdout == ""
+
+- name: Change project for kubevirt-web-ui
+  shell: "{{ cluster_command }} project {{ kubevirt_web_ui_namespace }}"
+  when: ns.stdout != ""
+
+# Determine if we can gather facts from openshift-console ConfigMap
+- name: Check if openshift-console project exists
+  shell: "{{ cluster_command }} projects -q | grep -w openshift-console | awk '{ print $1 }'"
+  register: ns_console
+
+- name: Create service account
+  shell: "{{ cluster_command }} apply -f {{ files_dir }}/service_account.yaml"
+
+- name: Add SCC to the service account
+  shell: "{{ cluster_command }} adm policy add-scc-to-user anyuid -z kubevirt-web-ui-operator"
+  when: platform == "openshift"
+
+- name: Add roles
+  shell: "{{ cluster_command }} apply -f {{ files_dir }}/role.yaml"
+
+- name: Add roles to access openshift-console
+  block:
+  - name: Render roles bindings for openshift-console
+    template:
+      src: "{{ files_dir }}/role_extra_for_console.yaml"
+      dest: "{{ mktemp.stdout }}/role_extra_for_console.yaml"
+  - name: Apply roles for openshift-console
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/role_extra_for_console.yaml"
+  when: ns_console != ""
+
+- name: Add role bindings
+  block:
+  - name: Render role bindings
+    template:
+      src: "{{ files_dir }}/role_binding.yaml"
+      dest: "{{ mktemp.stdout }}/role_binding.yaml"
+  - name: Apply role bindings
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/role_binding.yaml"
+
+- name: Add role bindings for openshift-console
+  block:
+  - name: Render role bindings for openshift-console
+    template:
+      src: "{{ files_dir }}/role_binding_extra_for_console.yaml"
+      dest: "{{ mktemp.stdout }}/role_binding_extra_for_console.yaml"
+  - name: Apply role bindings for openshift-console
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/role_binding_extra_for_console.yaml"
+  when: ns_console != ""
+
+- name: Add Custom Resource Definition for operator
+  shell: "{{ cluster_command }} apply -f {{ files_dir }}/crds/kubevirt_v1alpha1_kwebui_crd.yaml"
+
+- name: Deploy Web UI Operator
+  block:
+  - name: Render Operator yaml
+    template:
+      src: "{{ files_dir }}/operator.yaml"
+      dest: "{{ mktemp.stdout }}/operator.yaml"
+  - name: Deploy Web UI Operator
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/operator.yaml"
+

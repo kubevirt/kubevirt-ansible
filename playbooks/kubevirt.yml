@@ -15,9 +15,10 @@
   roles:
     - role: kubevirt
 
+# Deploy kubevirt web UI
+- import_playbook: kubevirt_web_ui.yml
+  when: platform == "openshift"
+
 # Deploy cdi
 - import_playbook: cdi.yml
 
-# Deploy kubevirt web UI
-- import_playbook: kubevirt-web-ui.yml
-  when: platform == "openshift"

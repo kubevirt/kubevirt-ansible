@@ -23,6 +23,12 @@ deploy_ovs_plugin: true
 deploy_sriov_plugin: true
 deploy_skydive: false
 
+### Web UI ##
+kubevirt_web_ui_operator_image_tag: "latest"
+kubevirt_web_ui_branding: "okdvirt"
+kubevirt_web_ui_version: "1.4.0-9"
+
+#
 # Example: '"05:00.0", "05:00.1"'
 # Note: this assumes that PCI ID pools are the same on all nodes which may be
 # not the case in heterogeneous environment.
