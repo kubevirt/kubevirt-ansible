@@ -11,7 +11,7 @@ import (
 	ktests "kubevirt.io/kubevirt/tests"
 )
 
-var _ = Describe("Node Eviction", func() {
+var _ = Describe("[rfe_id:128][crit:medium][vendor:cnv-qe@redhat.com][level:component]Node Eviction", func() {
 	ns := ktests.NamespaceTestDefault
 
 	var vmi tests.VirtualMachine
@@ -45,7 +45,7 @@ var _ = Describe("Node Eviction", func() {
 		uncordonNodes()
 	})
 
-	Describe("VirtualMachineInstance Evictions", func() {
+	Describe("[test_id:618]VirtualMachineInstance Evictions", func() {
 		BeforeEach(func() {
 			vmi.Manifest = "tests/manifests/vmi-ephemeral.yaml"
 			vmi.Name = "vmi-ephemeral"
@@ -99,7 +99,7 @@ var _ = Describe("Node Eviction", func() {
 		})
 	})
 
-	PDescribe("VirtualMachineInstanceReplicaSet Eviction", func() {
+	Describe("[test_id:619]VirtualMachineInstanceReplicaSet Eviction", func() {
 		BeforeEach(func() {
 			vmi.Name = "vmi-replicaset-cirros"
 			vmi.Manifest = "tests/manifests/vmi-replicaset-cirros.yaml"
@@ -172,7 +172,7 @@ var _ = Describe("Node Eviction", func() {
 		})
 	})
 
-	Describe("VirtualMachine Eviction", func() {
+	Describe("[test_id:620]VirtualMachine Eviction", func() {
 		BeforeEach(func() {
 			vmi.Manifest = "tests/manifests/vm-cirros.yaml"
 			vmi.Name = "vm-cirros"
