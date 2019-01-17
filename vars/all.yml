@@ -27,6 +27,7 @@ deploy_skydive: false
 kubevirt_web_ui_operator_image_tag: "latest"
 kubevirt_web_ui_branding: "okdvirt"
 kubevirt_web_ui_version: "v1.4.0-9"
+#kubevirt_web_ui_version: ""
 
 #
 # Example: '"05:00.0", "05:00.1"'
