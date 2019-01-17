@@ -1,4 +1,23 @@
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sriov-nodes-config
+  namespace: {{ network_namespace }}
+data:
+  fallback-config: |
+    {
+        "resourceList":
+        [
+            {
+                "resourceName": "sriov",
+                "rootDevices": [{{ sriov_pci_ids }}],
+                "sriovMode": true,
+                "deviceType": "vfio"
+            }
+        ]
+    }
+---
 apiVersion: extensions/v1beta1
 kind: DaemonSet
 metadata:
@@ -21,6 +40,39 @@ spec:
       - key: node-role.kubernetes.io/master
         operator: Exists
         effect: NoSchedule
+      initContainers:
+      - name: config-container
+        image: fedora:29
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+          limits:
+            cpu: "100m"
+            memory: "50Mi"
+        command:
+        - /bin/bash
+        - -c
+        args:
+        - |
+          if [ -f /etc/sriov-nodes-config/$NODE_NAME ]; then
+            config_path=/etc/sriov-nodes-config/$NODE_NAME
+          else
+            config_path=/etc/sriov-nodes-config/fallback-config
+          fi
+          cp $config_path /etc/pcidp/config.json
+        volumeMounts:
+        - name: etc-pcidp
+          mountPath: /etc/pcidp
+        - name: sriov-nodes-config
+          mountPath: /etc/sriov-nodes-config
+        securityContext:
+          privileged: true
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
       containers:
       - name: cni-plugins
         image: {{ cni_provisioner_repo }}:{{ cni_provisioner_release }}
@@ -40,3 +92,10 @@ spec:
       - name: cnibin
         hostPath:
           path: /opt/cni/bin
+      - name: etc-pcidp
+        hostPath:
+          path: /etc/pcidp
+          type: DirectoryOrCreate
+      - name: sriov-nodes-config
+        configMap:
+          name: sriov-nodes-config

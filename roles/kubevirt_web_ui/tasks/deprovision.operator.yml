@@ -1,0 +1,4 @@
+---
+- name: Delete {{ kubevirt_web_ui_namespace }} project
+  shell: "{{ cluster_command }} delete project {{ kubevirt_web_ui_namespace }}" 
+
