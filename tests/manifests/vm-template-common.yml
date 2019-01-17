@@ -3,7 +3,7 @@ kind: Template
 metadata:
   name: vm-${NAME}
 objects:
-- apiVersion: kubevirt.io/v1alpha2
+- apiVersion: kubevirt.io/v1alpha3
   kind: VirtualMachine
   metadata:
     name: ${NAME}
@@ -23,11 +23,9 @@ objects:
             - disk:
                 bus: virtio
               name: registrydisk
-              volumeName: registryvolume
             - disk:
                 bus: virtio
               name: cloudinitdisk
-              volumeName: cloudinitvolume
           machine:
             type: ""
           resources:
@@ -35,12 +33,12 @@ objects:
               memory: ${MEMORY}
         terminationGracePeriodSeconds: 0
         volumes:
-        - name: registryvolume
-          registryDisk:
+        - name: registrydisk
+          containerDisk:
             image: ${{IMAGE_NAME}}
         - cloudInitNoCloud:
             userData: ${{CLOUD_INIT}}
-          name: cloudinitvolume
+          name: cloudinitdisk
   status: {}
 parameters:
 - description: Name for the new VM
