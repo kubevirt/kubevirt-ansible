@@ -1,46 +1,97 @@
 ---
-- name: Render {{ cdi_namespace }} ResourceQuota deprovision yaml
-  template:
-    src:  cdi-resourcequota.yml
-    dest: /tmp/cdi-deprovision-resourcequota.yml
-
-- name: Delete {{ cdi_namespace }} ResourceQuota
-  command: kubectl delete -f /tmp/cdi-deprovision-resourcequota.yml -n {{ cdi_namespace }} --ignore-not-found
-
-- name: Check that cdi-controller.yaml still exists in /tmp
+- name: Check that cdi-operator-cr.yaml still exists in /tmp
   stat:
-    path: "/tmp/cdi-controller.yaml"
-  register: cdi_template
+    path: "/tmp/cdi-operator-cr.yaml"
+  register: cdi_operator_cr
 
-- name: Get cdi-controller.yaml
-  block:
-    - name: Check for cdi-controller.yaml.j2 template in {{ cdi_template_dir }}
-      stat:
-        path: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
-      register: byo_template
+- name: Render CDI operator cr
+  template:
+    src: "cdi-operator-cr.yaml.j2"
+    dest: "/tmp/cdi-operator-cr.yaml"
+  when: cdi_operator_cr.stat.exists == False
 
-    - name: Render CDI deprovision yaml
-      template:
-        src: "cdi-controller.yaml.j2"
-        dest: "/tmp/cdi-controller.yaml"
-      when: byo_template.stat.exists == true
+- name: Delete apiservices v1alpha1.upload.cdi.kubevirt.io
+  command: "{{ cluster_command }} -n {{ cdi_namespace }} delete apiservices v1alpha1.upload.cdi.kubevirt.io --ignore-not-found=true"
 
-    - name: Download and render cdi-controller.yaml from {{ cdi_release_manifest_url }}
-      block:
-        - name: Download CDI Template
-          get_url:
-            url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
-            dest: "/tmp/cdi-controller.yaml.j2"
+- name: Ask the operator to cleanup CDI
+  command: "{{ cluster_command }} delete -f /tmp/cdi-operator-cr.yaml --ignore-not-found=true"
 
-        - name: Render CDI deprovision yaml
-          template:
-            src: "/tmp/cdi-controller.yaml.j2"
-            dest: "/tmp/cdi-controller.yaml"
+- name: Wait until cdi-api is deleted
+  shell: "{{ cluster_command }} -n {{ cdi_namespace }} get deployment | grep cdi-api || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
 
-      when: byo_template.stat.exists == false
+- name: Wait until cdi-api is deleted
+  shell: "{{ cluster_command }} -n {{ cdi_namespace }} get pods | grep cdi-api || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
 
-  when: cdi_template.stat.exists == false
+- name: Wait until cdi-deployment is deleted
+  shell: "{{ cluster_command }} -n {{ cdi_namespace }} get deployment | grep cdi-deployment || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
 
-- name: Delete CDI Resources
-  command: kubectl delete -f /tmp/cdi-controller.yaml -n {{ cdi_namespace }} --ignore-not-found
+- name: Wait until cdi-deployment is deleted
+  shell: "{{ cluster_command }} -n {{ cdi_namespace }} get pods | grep cdi-deployment || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
 
+- name: Wait until cdi-uploadproxy is deleted
+  shell: "{{ cluster_command }} -n {{ cdi_namespace }} get deployment | grep cdi-uploadproxy || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Wait until cdi-uploadproxy is deleted
+  shell: "{{ cluster_command }} -n {{ cdi_namespace }} get pods | grep cdi-uploadproxy || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Check that cdi-operator.yaml still exists in /tmp
+  stat:
+    path: "/tmp/cdi-operator.yaml"
+  register: cdi_operator_template
+
+- name: Render CDI operator template
+  template:
+    src: "cdi-operator.yaml.j2"
+    dest: "/tmp/cdi-operator.yaml"
+  when: cdi_operator_template.stat.exists == False
+
+- name: Delete CDI operator
+  command: "{{ cluster_command }} delete -f /tmp/cdi-operator.yaml --ignore-not-found=true"
+
+- name: Wait until cdi-operator is deleted
+  shell: "{{ cluster_command }} -n {{ cdi_namespace }} get deploy | grep cdi-operator || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Wait until cdi-operator is deleted
+  shell: "{{ cluster_command }} -n {{ cdi_namespace }} get pods | grep cdi-operator || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Delete CDI namespace
+  command: "{{ cluster_command }} delete namespace {{ cdi_namespace }} --ignore-not-found=true --wait=false"
+
+- name: Wait until {{ cdi_namespace }} namespace dissappears
+  shell: "{{ cluster_command }} get ns {{ cdi_namespace }} --ignore-not-found"
+  register: result
+  until: result.stdout == ""
+  retries: 20
+  delay: 10

@@ -1,0 +1,8 @@
+---
+apiVersion: cdi.kubevirt.io/v1alpha1
+kind: KubeVirt
+metadata:
+  name: CDI
+  namespace: {{ cdi_namespace }}
+spec:
+  imagePullPolicy: {{ image_pull_policy }}
