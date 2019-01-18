@@ -1,8 +1,8 @@
-apiVersion: kubevirt.io/v1alpha2
+apiVersion: kubevirt.io/v1alpha3
 kind: VirtualMachineInstance
 metadata:
   annotations:
-    hooks.kubevirt.io/hookSidecars: '[{"image": "kubevirt/example-hook-sidecar:v0.12.0-alpha.2"}]'
+    hooks.kubevirt.io/hookSidecars: '[{"image": "kubevirt/example-hook-sidecar:v0.13.0"}]'
     smbios.vm.kubevirt.io/baseBoardManufacturer: "Radical Edward"
   creationTimestamp: null
   labels:
@@ -15,11 +15,9 @@ spec:
       - disk:
           bus: virtio
         name: containerdisk
-        volumeName: registryvolume
       - disk:
           bus: virtio
         name: cloudinitdisk
-        volumeName: cloudinitvolume
     machine:
       type: ""
     resources:
@@ -27,7 +25,7 @@ spec:
         memory: 1024M
   terminationGracePeriodSeconds: 0
   volumes:
-  - name: registryvolume
+  - name: containerdisk
     containerDisk:
       image: kubevirt/fedora-cloud-container-disk-demo:latest
   - cloudInitNoCloud:
@@ -35,7 +33,7 @@ spec:
         #cloud-config
         password: fedora
         chpasswd: { expire: False }
-        bootcmd:          
+        bootcmd:
           - "sudo dnf install dmidecode -y"
-    name: cloudinitvolume
+    name: cloudinitdisk
 status: {}

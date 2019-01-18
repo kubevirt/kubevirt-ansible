@@ -37,9 +37,9 @@ var _ = Describe("Config", func() {
 
 			BeforeEach(func() {
 				configMapName = "configmap-" + uuid.NewRandom().String()
-				configMapPath = config.GetConfigMapSourcePath(configMapName + "-vol")
+				configMapPath = config.GetConfigMapSourcePath(configMapName + "-disk")
 				secretName = "secret-" + uuid.NewRandom().String()
-				secretPath = config.GetSecretSourcePath(secretName + "-vol")
+				secretPath = config.GetSecretSourcePath(secretName + "-disk")
 
 				config_data := map[string]string{
 					"config1": "value1",
@@ -150,7 +150,7 @@ var _ = Describe("Config", func() {
 
 			BeforeEach(func() {
 				secretName = "secret-" + uuid.NewRandom().String()
-				secretPath = config.GetSecretSourcePath(secretName + "-vol")
+				secretPath = config.GetSecretSourcePath(secretName + "-disk")
 
 				data := map[string]string{
 					"ssh-privatekey": string(privateKeyBytes),

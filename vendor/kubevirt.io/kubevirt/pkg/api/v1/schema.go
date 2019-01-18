@@ -162,6 +162,12 @@ type CPU struct {
 	// Cores specifies the number of cores inside the vmi.
 	// Must be a value greater or equal 1.
 	Cores uint32 `json:"cores,omitempty"`
+	// Sockets specifies the number of sockets inside the vmi.
+	// Must be a value greater or equal 1.
+	Sockets uint32 `json:"sockets,omitempty"`
+	// Threads specifies the number of threads inside the vmi.
+	// Must be a value greater or equal 1.
+	Threads uint32 `json:"threads,omitempty"`
 	// Model specifies the CPU model inside the VMI.
 	// List of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.
 	// It is possible to specify special cases like "host-passthrough" to get the same CPU as the node
@@ -243,9 +249,6 @@ type Devices struct {
 type Disk struct {
 	// Name is the device name
 	Name string `json:"name"`
-	// Name of the volume which is referenced.
-	// Must match the Name of a Volume.
-	VolumeName string `json:"volumeName"`
 	// DiskDevice specifies as which device the disk should be added to the guest.
 	// Defaults to Disk.
 	DiskDevice `json:",inline"`
@@ -805,6 +808,9 @@ type Interface struct {
 	DHCPOptions *DHCPOptions `json:"dhcpOptions,omitempty"`
 }
 
+// Extra DHCP options to use in the interface.
+// ---
+// +k8s:openapi-gen=true
 type DHCPOptions struct {
 	// If specified will pass option 67 to interface's DHCP server
 	// +optional
@@ -812,6 +818,9 @@ type DHCPOptions struct {
 	// If specified will pass option 66 to interface's DHCP server
 	// +optional
 	TFTPServerName string `json:"tftpServerName,omitempty"`
+	// If specified will pass the configured NTP server to the VM via DHCP option 042.
+	// +optional
+	NTPServers []string `json:"ntpServers,omitempty"`
 }
 
 // Represents the method which will be used to connect the interface to the guest.
