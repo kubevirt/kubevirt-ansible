@@ -1,8 +1,0 @@
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: protect-{{ cdi_namespace }}
-spec:
-  hard:
-    {{ cdi_storageclass }}.storageclass.storage.k8s.io/requests.storage: "500Gi"
-
