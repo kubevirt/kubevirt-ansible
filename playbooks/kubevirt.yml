@@ -25,3 +25,7 @@
 # Deploy kubevirt ssp
 - import_playbook: kubevirt-ssp.yml
   when: platform == "openshift"
+
+# Deploy kubevirt cpu-node-labeller
+- import_playbook: kubevirt-cpu-node-labeller.yml
+  when: platform == "openshift"
