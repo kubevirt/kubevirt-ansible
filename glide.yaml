@@ -5,11 +5,8 @@ import:
 - package: github.com/onsi/gomega
   version: dcabb60a477c2b6f456df65037cb6708210fbb02
 - package: kubevirt.io/kubevirt
-  version: v0.12.0-alpha.2
+  version: v0.13.0
   repo:    https://github.com/kubevirt/kubevirt.git
 - package: kubevirt.io/qe-tools
   version: v0.1.2
   repo: https://github.com/kubevirt/qe-tools.git
-- package: kubevirt.io/containerized-data-importer
-  repo:    https://github.com/kubevirt/containerized-data-importer.git
-  version: v1.4.0

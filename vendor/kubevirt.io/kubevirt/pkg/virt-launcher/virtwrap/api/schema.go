@@ -96,8 +96,17 @@ type Domain struct {
 }
 
 type DomainStatus struct {
-	Status LifeCycle
-	Reason StateChangeReason
+	Status     LifeCycle
+	Reason     StateChangeReason
+	Interfaces []InterfaceStatus
+}
+
+type InterfaceStatus struct {
+	Name          string
+	Mac           string
+	Ip            string
+	IPs           []string
+	InterfaceName string
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -437,6 +446,7 @@ type Interface struct {
 	Target              *InterfaceTarget `xml:"target,omitempty"`
 	Model               *Model           `xml:"model,omitempty"`
 	MAC                 *MAC             `xml:"mac,omitempty"`
+	MTU                 *MTU             `xml:"mtu,omitempty"`
 	BandWidth           *BandWidth       `xml:"bandwidth,omitempty"`
 	BootOrder           *BootOrder       `xml:"boot,omitempty"`
 	LinkState           *LinkState       `xml:"link,omitempty"`
@@ -463,6 +473,10 @@ type BootOrder struct {
 
 type MAC struct {
 	MAC string `xml:"address,attr"`
+}
+
+type MTU struct {
+	Size string `xml:"size,attr"`
 }
 
 type FilterRef struct {
