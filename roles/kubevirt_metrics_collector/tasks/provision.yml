@@ -1,0 +1,44 @@
+---
+- name: Check that kubevirt_metrics_collector_scc.yaml still exists in /tmp
+  stat:
+    path: "/tmp/kubevirt_metrics_collector_scc.yaml"
+  register: kubevirt_metrics_collector_scc
+  when: kubevirt_metrics_collector_enabled
+
+- name: Copy kubevirt_metrics_collector_scc.yaml to temp directory
+  template:
+    src: "{{ kubevirt_metrics_collector_files_dir }}/kubevirt_metrics_collector_scc.yaml"
+    dest: "/tmp/kubevirt_metrics_collector_scc.yaml"  
+  when: kubevirt_metrics_collector_enabled and kubevirt_metrics_collector_scc.stat.exists == false
+
+- name: Check that kubevirt_metrics_collector.yaml still exists in /tmp
+  stat:
+    path: "/tmp/kubevirt_metrics_collector.yaml"
+  register: kubevirt_metrics_collector_ds
+  when: kubevirt_metrics_collector_enabled
+
+- name: Copy kubevirt_metrics_collector.yaml to temp directory
+  template:
+    src: "{{ kubevirt_metrics_collector_files_dir }}/kubevirt_metrics_collector_ds.yaml"
+    dest: "/tmp/kubevirt_metrics_collector_ds.yaml"  
+  when: kubevirt_metrics_collector_enabled and kubevirt_metrics_collector_ds.stat.exists == false
+
+- name: Create kubevirt_metrics_collector_scc
+  shell: "{{ cluster_command }} create -f /tmp/kubevirt_metrics_collector_scc.yaml -n {{ kubevirt_metrics_collector_namespace }}"
+  when: kubevirt_metrics_collector_enabled
+
+- name: Fixing permissions for kubevirt_metrics_collector_scc
+  shell: "{{ cluster_command }} patch scc scc-hostpath -p '{\"allowHostPID\": true}' && {{ cluster_command }}  patch scc scc-hostpath -p '{\"allowHostDirVolumePlugin\": true}'"
+
+- name: Create kubevirt_metrics_collector
+  shell: "{{ cluster_command }} create -f /tmp/kubevirt_metrics_collector_ds.yaml -n {{ kubevirt_metrics_collector_namespace }}"
+  when: kubevirt_metrics_collector_enabled
+
+- name: Wait until kubevirt_metrics_collector deamonset is created
+  shell: "{{ cluster_command }} -n {{ kubevirt_metrics_collector_namespace }} get ds | grep -o -E kubevirt-metrics-collector | wc -l"
+  register: result
+  until: result.stdout == "1"
+  retries: 24
+  delay: 10
+  when: kubevirt_metrics_collector_enabled
+

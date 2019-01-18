@@ -1,0 +1,14 @@
+---
+kubevirt_metrics_collector_namespace: "openshift-monitoring"
+kubevirt_metrics_collector_files_dir: "{{ role_path }}/templates"
+cluster_command: "oc" # in case the roles/playbook is not executed from kubevirt.yml
+registry_url: "docker.io"
+registry_namespace: "fromanirh"
+docker_prefix: "{{ registry_url }}/{{ registry_namespace }}"
+image_name: "kubevirt-metrics-collector"
+image_version: 0.12.0.5
+docker_tag: "v{{ image_version }}"
+image_pull_policy: IfNotPresent
+platform: "openshift"
+apb_action: "provision"
+kubevirt_metrics_collector_enabled: false

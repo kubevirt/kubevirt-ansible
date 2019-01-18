@@ -1,0 +1,82 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: kubevirt-metrics-config
+data:
+  collector.conf: |-
+    {
+      "criendpoint": "unix:///var/run/dockershim.sock",
+      "listenaddress": ":9100",
+      "interval": "5s",
+      "targets": [{
+        "name": "libvirt",
+        "argv": ["/usr/sbin/libvirtd*"]
+      }, {
+        "name": "qemu",
+        "argv": ["/usr/*/qemu*"]
+      }]
+    }
+
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: kubevirt-metrics-collector
+  labels:
+    app: kubevirt-metrics-collector
+spec:
+  template:
+    metadata:
+      labels:
+        name: kubevirt-metrics-collector
+        vmi.prometheus.kubevirt.io: ""
+        k8s-app: node-exporter
+        app: node-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9100"
+    spec:
+      serviceAccountName: kubevirt-metrics-collector
+      hostPID: true
+      nodeSelector:
+        node-role.kubernetes.io/infra: "true"
+      containers:
+      - name: collector
+        args:
+        - --cert-file=/etc/tls/private/tls.crt
+        - --key-file=/etc/tls/private/tls.key
+        - /etc/kubevirt-metrics-collector/config.json
+        ports:
+        - containerPort: 9100
+          protocol: "TCP"
+          name: "https"
+        image: {{ registry_namespace }}/{{ image_name }}:v0.12.0.5
+        imagePullPolicy: {{ image_pull_policy }}
+        volumeMounts:
+        - name: kubevirt-metrics-config
+          mountPath: /etc/kubevirt-metrics-collector
+        - name: cri-runtime
+          mountPath: /var/run/dockershim.sock
+        - name: node-exporter-tls
+          mountPath: /etc/tls/private
+        env:
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+      volumes:
+      - name: kubevirt-metrics-config
+        configMap:
+          name: kubevirt-metrics-config
+          items:
+          - key: collector.conf
+            path: config.json
+      - name: cri-runtime
+        hostPath:
+          path: /var/run/dockershim.sock
+      - name: node-exporter-tls
+        secret:
+          defaultMode: 420
+          secretName: node-exporter-tls
+

@@ -1,0 +1,11 @@
+---
+- import_playbook: initial_configuration.yml
+
+- name: Deploy kubevirt_metrics_collector role
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  environment:
+    http_proxy: ""
+  roles:
+    - role: "kubevirt_metrics_collector"
