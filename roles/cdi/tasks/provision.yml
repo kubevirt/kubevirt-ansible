@@ -17,11 +17,11 @@
 
 - name: Render {{ cdi_namespace }} ResourceQuota deployment yaml
   template:
-    src:  cdi-resourcequota.yml
-    dest: /tmp/cdi-provision-resourcequota.yml
+    src:  cdi-resourcequota.yaml
+    dest: /tmp/cdi-provision-resourcequota.yaml
 
 - name: Create {{ cdi_namespace }} ResourceQuota
-  command: "{{ cluster_command }} apply -f /tmp/cdi-provision-resourcequota.yml -n {{ cdi_namespace }}"
+  command: "{{ cluster_command }} apply -f /tmp/cdi-provision-resourcequota.yaml -n {{ cdi_namespace }}"
 
 - name: Check for cdi-controller.yaml.j2 template in {{ cdi_template_dir }}
   stat:
@@ -31,7 +31,7 @@
 - name: Render CDI deployment yaml from template in {{ cdi_template_dir }}
   template:
     src: "cdi-controller.yaml.j2"
-    dest: "/tmp/cdi-controller.yml"
+    dest: "/tmp/cdi-controller.yaml"
   when: byo_template.stat.exists == true
 
 - name: Get CDI from {{ cdi_release_manifest_url }}
