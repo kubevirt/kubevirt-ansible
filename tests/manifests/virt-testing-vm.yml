@@ -24,9 +24,8 @@ objects:
         - disk:
             bus: virtio
           name: containerdisk
-          volumeName: registryvolume
     volumes:
-      - name: registryvolume
+      - name: containerdisk
         containerDisk:
           image: ${{IMAGE_NAME}}
 parameters:

@@ -2,7 +2,6 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  creationTimestamp: null
   labels:
     kubevirt.io: ""
   name: virtualmachineinstancemigrations.kubevirt.io
@@ -16,4 +15,4 @@ spec:
     - vmims
     singular: virtualmachineinstancemigration
   scope: Namespaced
-  version: v1alpha2
+  version: v1alpha3

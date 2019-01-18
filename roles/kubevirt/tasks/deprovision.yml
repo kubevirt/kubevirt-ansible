@@ -10,8 +10,8 @@
     dest: "/tmp/kubevirt-cr.yaml"
   when: kubevirt_cr.stat.exists == False
 
-- name: Delete apiservices v1alpha2.subresources.kubevirt.io
-  command: "{{ cluster_command }} -n {{ namespace }} delete apiservices v1alpha2.subresources.kubevirt.io --ignore-not-found=true"
+- name: Delete apiservices v1alpha3.subresources.kubevirt.io
+  command: "{{ cluster_command }} -n {{ namespace }} delete apiservices v1alpha3.subresources.kubevirt.io --ignore-not-found=true"
 
 - name: Ask the Operator to cleanup KubeVirt
   command: "{{ cluster_command }} delete -f /tmp/kubevirt-cr.yaml --ignore-not-found=true"

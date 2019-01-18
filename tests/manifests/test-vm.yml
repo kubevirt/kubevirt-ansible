@@ -17,12 +17,11 @@ objects:
           memory: 64M
       devices:
         disks:
-        - name: mydisk
-          volumeName: pvcvolume
+        - name: mypvcdisk
           disk:
             bus: virtio
     volumes:
-      - name: pvcvolume
+      - name: mypvcdisk
         persistentVolumeClaim:
           claimName: ${PVC_NAME}
 parameters:
