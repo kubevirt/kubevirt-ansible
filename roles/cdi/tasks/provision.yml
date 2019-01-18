@@ -2,7 +2,7 @@
 # CDI Deployment
 - name: Check if namespace {{ cdi_namespace }} exists
   shell: "{{ cluster_command }} get ns {{ cdi_namespace }}"
-  ignore_errors: yes
+  ignore_errors: true
   register: ns
 
 - name: Create {{ cdi_namespace }} namespace using kubectl
@@ -15,48 +15,28 @@
   when: ns.rc != 0
         and platform == "openshift"
 
-- name: Render {{ cdi_namespace }} ResourceQuota deployment yaml
+- name: Render CDI operator
   template:
-    src:  cdi-resourcequota.yml
-    dest: /tmp/cdi-provision-resourcequota.yml
+    src: "cdi-operator.yaml.j2"
+    dest: "/tmp/cdi-operator.yaml"
 
-- name: Create {{ cdi_namespace }} ResourceQuota
-  command: "{{ cluster_command }} apply -f /tmp/cdi-provision-resourcequota.yml -n {{ cdi_namespace }}"
+- name: Create CDI Operator
+  command: "{{ cluster_command }} apply -f /tmp/cdi-operator.yaml --validate=false"
 
-- name: Check for cdi-controller.yaml.j2 template in {{ cdi_template_dir }}
-  stat:
-    path: "{{ cdi_template_dir }}/cdi-controller.yaml.j2"
-  register: byo_template
+- name: Wait until cdi-operator is running
+  shell: "{{ cluster_command }} -n {{ cdi_namespace }} get deployment | grep cdi-operator | awk \'{ if ($2 == $5) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 24
+  delay: 10
 
-- name: Render CDI deployment yaml from template in {{ cdi_template_dir }}
+- name: Render CDI operator resources
   template:
-    src: "cdi-controller.yaml.j2"
-    dest: "/tmp/cdi-controller.yml"
-  when: byo_template.stat.exists == true
+    src: "cdi-operator-cr.yaml.j2"
+    dest: "/tmp/cdi-operator-cr.yaml"
 
-- name: Get CDI from {{ cdi_release_manifest_url }}
-  block:
-  - name: Check for cdi-controller.yaml.j2 template in /tmp
-    stat:
-      path: "/tmp/cdi-controller.yaml.j2"
-    register: downloaded_template
+- name: Create CDI operator resources
+  command: "{{ cluster_command }} apply -f /tmp/cdi-operator-cr.yaml --validate=false"
 
-  - name: Download CDI Template
-    get_url:
-      url: "{{ cdi_release_manifest_url }}/{{ release_tag }}/cdi-controller.yaml.j2"
-      dest: "/tmp/cdi-controller.yaml.j2"
-    when: downloaded_template.stat.exists == false
-
-  - name: Render CDI deployment yaml
-    template:
-      src: "/tmp/cdi-controller.yaml.j2"
-      dest: "/tmp/cdi-controller.yaml"
-
-  when: byo_template.stat.exists == false
-
-- name: Create CDI deployment
-  command: "{{ cluster_command }} apply -f /tmp/cdi-controller.yaml"
-
-- name: Enable privileged containers in the security context
-  command: "oc adm policy add-scc-to-user privileged -z cdi-sa -n {{ cdi_namespace }}"
-  when: platform == "openshift"
+- name: Wait for CDI operator to report that everything is running
+  command: "{{ cluster_command }} -n {{ cdi_namespace }} wait cdis.cdi.kubevirt.io/cdi --for=condition=running --timeout=300s"
