@@ -1,0 +1,21 @@
+---
+- name: Check that kubevirt-cpu-node-labeller.yaml still exists in /tmp
+  stat:
+    path: "/tmp/kubevirt-cpu-node-labeller.yaml"
+  register: kubevirt_cpu_node_labeller
+
+- name: Copy kubevirt-cpu-node-labeller.yaml to temp directory
+  template:
+    src: "{{ kubevirt_cpu_node_labeller_files_dir }}/kubevirt-cpu-node-labeller-0.0.1.yaml"
+    dest: "/tmp/kubevirt-cpu-node-labeller.yaml"  
+  when: kubevirt_cpu_node_labeller.stat.exists == false
+
+- name: Create kubevirt-cpu-node-labeller
+  shell: "{{ cluster_command }} create -f /tmp/kubevirt-cpu-node-labeller.yaml -n {{ kubevirt_node_labeller_namespace }}"
+
+- name: Wait until kubevirt-cpu-node-labeller deamonset is created
+  shell: "{{ cluster_command }} -n {{ kubevirt_node_labeller_namespace }} get ds | grep -o -E kubevirt-cpu-node-labeller | wc -l"
+  register: result
+  until: result.stdout == "1"
+  retries: 24
+  delay: 10

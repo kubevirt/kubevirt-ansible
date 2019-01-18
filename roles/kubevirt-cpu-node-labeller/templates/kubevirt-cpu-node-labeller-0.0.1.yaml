@@ -1,0 +1,97 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kubevirt-cpu-node-labeller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: kubevirt-cpu-node-labeller
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - nodes
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - security.openshift.io
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+  resourceName:
+  - privileged
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubevirt-cpu-node-labeller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: kubevirt-cpu-node-labeller
+subjects:
+- kind: ServiceAccount
+  name: kubevirt-cpu-node-labeller
+  namespace: {{kubevirt_node_labeller_namespace}}
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  labels:
+    app: kubevirt-cpu-node-labeller
+  name: kubevirt-cpu-node-labeller
+spec:
+  selector:
+    matchLabels:
+      app: kubevirt-cpu-node-labeller
+  template:
+    metadata:
+      labels:
+        app: kubevirt-cpu-node-labeller
+    spec:
+      serviceAccount: kubevirt-cpu-node-labeller
+      containers:
+        - env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          image: {{ docker_prefix }}/kubevirt-cpu-node-labeller:{{ docker_tag }}
+          name: kubevirt-cpu-node-labeller
+          volumeMounts:
+            - name: nfd-source
+              mountPath: "/etc/kubernetes/node-feature-discovery/source.d/"
+      initContainers:
+        - image: {{ docker_prefix }}/kubevirt-cpu-model-nfd-plugin:{{ docker_tag }}
+          command: ["/bin/sh","-c"]
+          args: ["cp /plugin/dest/cpu-model-nfd-plugin /etc/kubernetes/node-feature-discovery/source.d/;"]
+          imagePullPolicy: Always
+          name: cpu-model-nfd-plugin
+          volumeMounts:
+            - name: nfd-source
+              mountPath: "/etc/kubernetes/node-feature-discovery/source.d/"
+
+        - image: {{ libvirt_image }}
+          command: ["/bin/sh","-c"]
+          args: ["libvirtd -d; chmod o+rw /dev/kvm; virsh domcapabilities --machine q35 --arch x86_64 --virttype kvm > /etc/kubernetes/node-feature-discovery/source.d/virsh_domcapabilities.xml;"]
+          imagePullPolicy: Always
+          name: libvirt
+          securityContext:
+            privileged: true
+          resources:
+            requests:
+              devices.kubevirt.io/kvm: "1"
+            limits:
+              devices.kubevirt.io/kvm: "1"
+          volumeMounts:
+            - name: nfd-source
+              mountPath: "/etc/kubernetes/node-feature-discovery/source.d/"
+
+      volumes:
+        - name: nfd-source
+          emptyDir: {}
