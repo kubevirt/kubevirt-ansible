@@ -1,5 +1,24 @@
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sriov-nodes-config
+  namespace: {{ network_namespace }}
+data:
+  fallback-config: |
+    {
+        "resourceList":
+        [
+            {
+                "resourceName": "sriov",
+                "rootDevices": [{{ sriov_pci_ids }}],
+                "sriovMode": true,
+                "deviceType": "vfio"
+            }
+        ]
+    }
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: sriov-device-plugin
@@ -27,6 +46,39 @@ spec:
         operator: Exists
         effect: NoSchedule
       serviceAccountName: sriov-device-plugin
+      initContainers:
+      - name: config-container
+        image: fedora:29
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+          limits:
+            cpu: "100m"
+            memory: "50Mi"
+        command:
+        - /bin/bash
+        - -c
+        args:
+        - |
+          if [ -f /etc/sriov-nodes-config/$NODE_NAME ]; then
+            config_path=/etc/sriov-nodes-config/$NODE_NAME
+          else
+            config_path=/etc/sriov-nodes-config/fallback-config
+          fi
+          cp $config_path /etc/pcidp/config.json
+        volumeMounts:
+        - name: config
+          mountPath: /etc/pcidp/config.json
+        - name: configmap
+          mountPath: /etc/sriov-nodes-config
+        securityContext:
+          privileged: true
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
       containers:
       - name: kube-sriovdp
         image: {{ sriovdp_provisioner_repo }}:{{ sriovdp_provisioner_release }}
@@ -54,3 +106,7 @@ spec:
         - name: config
           hostPath:
             path: /etc/pcidp/config.json
+            type: FileOrCreate
+        - name: configmap
+          configMap:
+            name: sriov-nodes-config
