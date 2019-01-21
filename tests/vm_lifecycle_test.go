@@ -20,7 +20,7 @@ var osDict = map[string][]string{
 var clients = [2]string{"oc", "kubectl"}
 
 const (
-	templatePath  = "tests/manifests/vm-template-common.yml"
+	templatePath  = "tests/manifests/vm-fedora-template.yml"
 	temporaryJson = "/tmp/tmp-vm.yml"
 	memory        = "1024Mi"
 	cpuCores      = "1"
