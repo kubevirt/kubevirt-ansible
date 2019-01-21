@@ -72,18 +72,6 @@ func GetVirtualMachineSpecificParameters(resourceType, resourceName, query strin
 	return execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query})
 }
 
-func StartVirtualMachineVirtctl(resourceName string) string {
-	By(fmt.Sprintf("Start VM %s via virtctl command", resourceName))
-	args := []string{resourceName}
-	return execute(Result{cmd: "virtctl", verb: "start", args: args})
-}
-
-func StopVirtualMachineVirtctl(resourceName string) string {
-	By(fmt.Sprintf("Stop VM %s via virtctl command", resourceName))
-	args := []string{resourceName}
-	return execute(Result{cmd: "virtctl", verb: "stop", args: args})
-}
-
 func WaitUntilResourceDeleted(resourceType, resourceName string) {
 	Eventually(func() bool {
 		res, _ := GetObjects(NamespaceTestDefault, resourceType)

@@ -22,7 +22,6 @@ type Result struct {
 	expectOut     string
 	actualOut     string
 	params        []string
-	args          []string
 }
 
 func execute(r Result) string {
@@ -60,14 +59,6 @@ func executeWithCustomTimeout(r Result, timeout time.Duration) string {
 	if len(r.params) > 0 {
 		for _, v := range r.params {
 			cmd = append(cmd, paramFlag, v)
-		}
-	}
-	// execution when the whole commands (verb + arguments) provided in a raw format
-	if len(r.args) > 0 {
-		args := []string{r.verb}
-		for _, a := range r.args {
-			args = append(args, a)
-			cmd = args
 		}
 	}
 	if r.expectOut != "" {

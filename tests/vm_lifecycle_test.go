@@ -41,38 +41,42 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 
 		// Run tests for each OS:
 		for k := range osDict {
-			osName := k
 			registryDisk := osDict[k][0]
 			cloudInit := osDict[k][1]
+
+			var vm tests.VirtualMachine
+			vm.Name = k
+			vm.Namespace = ktests.NamespaceTestDefault
 
 			// Run for different clients: oc and kubectl
 			for _, cl := range clients {
 
 				client := cl
 
-				Context("Create/Delete "+osName+" VM from template via "+client+" command", func() {
+				Context("Create/Delete "+vm.Name+" VM from template via "+client+" command", func() {
 
-					It("Verify simple functionality of "+osName+" VM: create, start, check status, IP, stop and delete.", func() {
+					It("Verify simple functionality of "+vm.Name+" VM: create, start, check status, IP, stop and delete.", func() {
 						By("Creating VM via " + client)
-						tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME="+osName, "CPU_CORES="+cpuCores, "MEMORY="+memory, "IMAGE_NAME="+registryDisk, "CLOUD_INIT="+cloudInit)
+						tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME="+vm.Name, "CPU_CORES="+cpuCores, "MEMORY="+memory, "IMAGE_NAME="+registryDisk, "CLOUD_INIT="+cloudInit)
 						_, _, err := ktests.RunCommand(client, "create", "-f", temporaryJson)
 						Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
 
 						By("Starting VM")
-						tests.StartVirtualMachineVirtctl(osName)
+						_, _, err = vm.Start()
+						Expect(err).ToNot(HaveOccurred(), "VM should start without errors")
 
 						By("Waiting until VMI is running")
-						tests.WaitUntilResourceReadyByNameTestNamespace("vmi", osName, phaseQuery, "Running")
+						tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vm.Name, phaseQuery, "Running")
 
-						ipAddress := tests.GetVirtualMachineSpecificParameters("vmi", osName, ipQuery)
+						ipAddress := tests.GetVirtualMachineSpecificParameters("vmi", vm.Name, ipQuery)
 						// removing quotes
 						ipAddress = ipAddress[1 : len(ipAddress)-1]
 
 						By("Waiting for the console and check IP address")
-						switch osName {
+						switch vm.Name {
 						case "testvm-fedora":
 							By("Verifying the console and IP on Fedora")
-							expecter, err := tests.LoggedInFedoraExpecter(osName, tests.NamespaceTestDefault, 360)
+							expecter, err := tests.LoggedInFedoraExpecter(vm.Name, tests.NamespaceTestDefault, 360)
 							Expect(err).ToNot(HaveOccurred())
 							defer expecter.Close()
 							_, err = expecter.ExpectBatch([]expect.Batcher{
@@ -85,19 +89,20 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 						}
 
 						By("Checking if the VM's VNC server gives the valid response")
-						response, err := tests.VNCConnection(ktests.NamespaceTestDefault, osName)
-						Expect(err).ToNot(HaveOccurred(), "Should open VNC connection to VMI %q in %s namespace", osName, ktests.NamespaceTestDefault)
-						Expect(response).To(Equal("RFB 003.008"), "Should receive valid response from the VNC connection to the VMI %q in %s namespace", osName, ktests.NamespaceTestDefault)
+						response, err := tests.VNCConnection(vm.Namespace, vm.Name)
+						Expect(err).ToNot(HaveOccurred(), "Should open VNC connection to VMI %q in %s namespace", vm.Name, vm.Namespace)
+						Expect(response).To(Equal("RFB 003.008"), "Should receive valid response from the VNC connection to the VMI %q in %s namespace", vm.Name, vm.Namespace)
 
 						By("Stopping VM")
-						tests.StopVirtualMachineVirtctl(osName)
+						_, _, err = vm.Stop()
+						Expect(err).ToNot(HaveOccurred(), "VM should stopp be executed without errors")
 
 						By("Deleting VM via " + client)
 						_, _, err = ktests.RunCommand(client, "delete", "-f", temporaryJson)
 						Expect(err).ToNot(HaveOccurred(), "VM 'deleting' command should be executed without errors")
 
 						By("Verifying that VM was removed")
-						tests.WaitUntilResourceDeleted("vm", osName)
+						tests.WaitUntilResourceDeleted("vm", vm.Name)
 					})
 				})
 			}
