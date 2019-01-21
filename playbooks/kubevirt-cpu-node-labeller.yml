@@ -1,0 +1,11 @@
+---
+- import_playbook: initial_configuration.yml
+
+- name: Deploy kubevirt-cpu-node-labeller role
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  environment:
+    http_proxy: ""
+  roles:
+    - role: "kubevirt-cpu-node-labeller"

@@ -3,3 +3,5 @@
 # Except this file
 !.gitignore
 !kubevirt-config.yaml
+!kubevirt-operator.yaml.j2
+!kubevirt-cr.yaml.j2

@@ -1,5 +1,4 @@
 ---
-# TODO: wait for deprovision fo Web UI before removing the operator
 - name: Deprovision Web UI and its operator
   block:
     - include_tasks: "deprovision.web-ui.yml"

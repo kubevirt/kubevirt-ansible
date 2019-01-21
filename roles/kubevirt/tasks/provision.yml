@@ -8,126 +8,59 @@
   shell: "{{ cluster_command }} create namespace {{ namespace }}"
   when: ns.rc != 0
 
-- name: Add Privileged Policy
-  command: "oc adm policy add-scc-to-user privileged -z {{ item }} -n {{ namespace }}"
-  with_items: "{{ kubevirt_privileged_policies | list }}"
-  when: platform=="openshift"
+- name: Render KubeVirt operator
+  template:
+    src: "kubevirt-operator.yaml.j2"
+    dest: "/tmp/kubevirt-operator.yaml"
 
-- name: Add Hostmount-anyuid Policy
-  command: "oc adm policy add-scc-to-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
-  when: platform=="openshift"
+- name: Create KubeVirt Operator
+  command: "{{ cluster_command }} apply -f /tmp/kubevirt-operator.yaml --validate=false"
 
 - name: Enable kubevirt feature gates
   shell: "{{ cluster_command }} apply -f {{ kubevirt_template_dir }}/kubevirt-config.yaml -n {{ namespace }}"
 
-# Kubevirt manifest
-- name: Check for kubevirt.yaml.j2 template in {{ kubevirt_template_dir }}
-  stat:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
-  register: byo_template
-
-- name: Render kubevirt.yaml.j2 template from  {{ kubevirt_template_dir }}
+- name: Render KubeVirt resources
   template:
-    src: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
-    dest: "/tmp/kubevirt.yaml"
-  when: byo_template.stat.exists == true
-
-- name: get kubevirt-manifests from {{ release_manifest_url }}
-  block:
-  - name: Check for kubevirt.yaml.j2 template was downloaded to /tmp
-    stat:
-      path: "/tmp/kubevirt.yaml.j2"
-    register: downloaded_template
-
-  - name: Download KubeVirt Template
-    get_url:
-      url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
-      dest: "/tmp/kubevirt.yaml.j2"
-    when: downloaded_template.stat.exists == false
-
-  - name: Render Downloaded KubeVirt Yaml
-    template:
-      src: "/tmp/kubevirt.yaml.j2"
-      dest: "/tmp/kubevirt.yaml"
-
-  when: byo_template.stat.exists == false
+    src: "kubevirt-cr.yaml.j2"
+    dest: "/tmp/kubevirt-cr.yaml"
 
 - name: Create KubeVirt Resources
-  command: "{{ cluster_command }} apply -f /tmp/kubevirt.yaml --validate=false"
+  command: "{{ cluster_command }} apply -f /tmp/kubevirt-cr.yaml --validate=false"
 
-# Skipping because of https://github.com/kubevirt/kubevirt/issues/1628
-- name: Demo Content manifest
-  tags: never
-  block:
-    - name: Check for demo-content.yaml template in {{ kubevirt_template_dir }}
-      stat:
-        path: "{{ kubevirt_template_dir }}/demo-content.yaml"
-      register: byo_demo_content
+- name: Give the kubevirt-operator user privilages
+  command: "{{ cluster_command }} adm policy add-scc-to-user privileged -n {{ namespace }} -z kubevirt-operator"
 
-    - name: Check for demo-content.yaml version v{{ version }} in {{ offline_template_dir }}
-      stat:
-        path: "{{ offline_template_dir }}/v{{ version }}/demo-content.yaml"
-      register: offline_demo_content
-      when: byo_demo_content.stat.exists == False
+- name: Wait until virt-operator is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get deployment | grep virt-operator | awk \'{ if ($2 == $5) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 24
+  delay: 10
 
-    - name: Download Demo Content
-      get_url:
-        url: "{{ release_manifest_url }}/v{{ version }}/demo-content.yaml"
-        dest: "{{ kubevirt_template_dir }}/demo-content.yaml"
-      when: byo_demo_content.stat.exists == False and offline_demo_content.stat.exists == False
+- name: Wait until virt-api is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get deployment | grep virt-api | awk \'{ if ($2 == $5) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 24
+  delay: 10
 
-    - name: Copy Offline Demo Content to /tmp
-      copy:
-        src: "{{ offline_template_dir }}/v{{ version }}/demo-content.yaml"
-        dest: "/tmp/demo-content.yaml"
-      when: offline_demo_content is not skipped and offline_demo_content.stat.exists == True
+- name: Wait until virt-controller is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get deployment | grep virt-controller | awk \'{ if ($2 == $5) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 24
+  delay: 10
 
-    - name: Copy BYO Demo Content to /tmp
-      copy:
-        src: "{{ kubevirt_template_dir }}/demo-content.yaml"
-        dest: "/tmp/demo-content.yaml"
-      when: byo_demo_content.stat.exists == False and (offline_demo_content is skipped or offline_demo_content.stat.exists == False)
+- name: Wait until virt-handler is running
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep virt-handler | awk \'{ if ($3 == $4) print \"0\"; else print \"1\"}\'"
+  register: result
+  until: result.stdout == "0"
+  retries: 50
+  delay: 10
 
-    - name: Create Demo Content
-      command: "{{ cluster_command }} apply -f /tmp/demo-content.yaml"
-      when: deploy_demo == true
+- name: Debug vmis
+  command: "{{ cluster_command }} get crds"
+  register: crds
 
-# VM Templates manifests
-- name: install vm templates manifests
-  block:
-  - name: Check for vm templates in {{ kubevirt_template_dir }}
-    stat:
-      path: "{{ kubevirt_template_dir }}/common-templates.yaml"
-    register: byo_vm_templates
-
-  - name: Apply vm templates from {{ kubevirt_template_dir }}/common-templates.yaml
-    command: "{{ cluster_command }} apply -f {{ kubevirt_template_dir }}/common-templates.yaml"
-    when: byo_vm_templates.stat.exists == true
-
-  - name: Download KubeVirt VM templates
-    block:
-      - name: Download KubeVirt default VM templates for version < 0.6.0
-        get_url:
-          url: "https://raw.githubusercontent.com/kubevirt/kubevirt/v{{ version }}/cluster/examples/{{ item }}.yaml"
-          dest: "/tmp/{{ item }}.yaml"
-        with_items:
-          - "{{ default_vm_templates }}"
-        when: "version is version('0.6.0', '<')"
-
-      - name: Create default VM templates in OpenShift Namespace for version < 0.6.0
-        shell: "oc apply -f /tmp/{{ item }}.yaml -n openshift"
-        with_items:
-          - "{{ default_vm_templates }}"
-        when: "version is version('0.6.0', '<')"
-
-      - name: Download KubeVirt default VM templates for version >= 0.6.0
-        get_url:
-          url: "https://github.com/kubevirt/common-templates/releases/download/v{{ common_templates_version }}/common-templates-v{{ common_templates_version }}.yaml"
-          dest: "/tmp/common-templates-v{{ common_templates_version }}.yaml"
-        when: "version is version('0.6.0', '>=')"
-
-      - name: Create default VM templates in OpenShift Namespace for version >= 0.6.0
-        shell: "oc apply -f /tmp/common-templates-v{{ common_templates_version }}.yaml -n openshift"
-        when: "version is version('0.6.0', '>=')"
-    when: byo_vm_templates.stat.exists == false
-  when: platform == "openshift"
+- debug:
+    var: crds.stdout

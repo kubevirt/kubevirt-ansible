@@ -1,4 +1,4 @@
-apiVersion: kubevirt.io/v1alpha2
+apiVersion: kubevirt.io/v1alpha3
 kind: VirtualMachineInstance
 metadata:
   creationTimestamp: null
@@ -12,7 +12,6 @@ spec:
       - disk:
           bus: virtio
         name: containerdisk
-        volumeName: registryvolume
     machine:
       type: ""
     resources:
@@ -20,7 +19,7 @@ spec:
         memory: 64M
   terminationGracePeriodSeconds: 0
   volumes:
-  - name: registryvolume
+  - name: containerdisk
     containerDisk:
       image: kubevirt/cirros-container-disk-demo:latest
 status: {}

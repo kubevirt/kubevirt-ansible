@@ -1,74 +1,111 @@
 ---
-# Demo content
-- name: Check that demo-content.yaml still exists in /tmp
+- name: Check that kubevirt-cr.yaml still exists in /tmp
   stat:
-    path: "/tmp/demo-content.yaml"
-  register: demo_content_manifest
+    path: "/tmp/kubevirt-cr.yaml"
+  register: kubevirt_cr
 
-- name: Check for demo-content.yaml template in {{ kubevirt_template_dir }}
+- name: Render KubeVirt cr
+  template:
+    src: "kubevirt-cr.yaml.j2"
+    dest: "/tmp/kubevirt-cr.yaml"
+  when: kubevirt_cr.stat.exists == False
+
+- name: Delete apiservices v1alpha3.subresources.kubevirt.io
+  command: "{{ cluster_command }} -n {{ namespace }} delete apiservices v1alpha3.subresources.kubevirt.io --ignore-not-found=true"
+
+- name: Ask the Operator to cleanup KubeVirt
+  command: "{{ cluster_command }} delete -f /tmp/kubevirt-cr.yaml --ignore-not-found=true"
+
+- name: Wait until virt-api is deleted
+  shell: "{{ cluster_command }} -n {{ namespace }} get deployment | grep virt-api || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Wait until virt-api is deleted
+  shell: "{{ cluster_command }} -n {{ namespace }} get pods | grep virt-api || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Wait until virt-controller is deleted
+  shell: "{{ cluster_command }} -n {{ namespace }} get deployment | grep virt-controller || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Wait until virt-controller is deleted
+  shell: "{{ cluster_command }} -n {{ namespace }} get pods | grep virt-controller || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Wait until virt-handler is deleted
+  shell: "{{ cluster_command }} -n {{ namespace }} get daemonset | grep virt-handler || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Wait until virt-handler is deleted
+  shell: "{{ cluster_command }} -n {{ namespace }} get pods | grep virt-handler || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Check that kubevirt-operator.yaml still exists in /tmp
   stat:
-    path: "{{ kubevirt_template_dir }}/demo-content.yaml"
-  register: byo_demo_content
-  when: demo_content_manifest.stat.exists == False
-
-- name: Download Demo Content
-  get_url:
-    url: "{{ release_manifest_url }}/v{{ version }}/demo-content.yaml"
-    dest: "{{ kubevirt_template_dir }}/demo-content.yaml"
-  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
-
-- name: Copy BYO Demo Content to /tmp
-  copy:
-    src: "{{ kubevirt_template_dir }}/demo-content.yaml"
-    dest: "/tmp/demo-content.yaml"
-  when: demo_content_manifest.stat.exists == False and byo_demo_content.stat.exists == False
-
-- name: Delete Demo Content
-  command: "{{ cluster_command }} delete --ignore-not-found=true -f /tmp/demo-content.yaml"
-
-- name: Delete Privileged Policy
-  command: "oc adm policy remove-scc-from-user privileged -z {{ item }} -n {{ namespace }}"
-  with_items: "{{ kubevirt_privileged_policies | list }}"
-  when: platform=="openshift"
-
-- name: Delete Hostmount-anyuid Policy
-  command: "oc adm policy remove-scc-from-user hostmount-anyuid -z kubevirt-infra -n {{ namespace }}"
-  when: platform=="openshift"
-
-# KubeVirt manifests
-- name: Check that kubevirt.yaml still exists in /tmp
-  stat:
-    path: "/tmp/kubevirt.yaml"
+    path: "/tmp/kubevirt-operator.yaml"
   register: kubevirt_template
 
-- name: Check for kubevirt.yml.j2 template in {{ kubevirt_template_dir }}
-  stat:
-    path: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
-  register: byo_template
-  when: kubevirt_template.stat.exists == False
-
-- name: Download KubeVirt Template
-  get_url:
-    url: "{{ release_manifest_url }}/v{{ version }}/kubevirt.yaml.j2"
-    dest: "{{ kubevirt_template_dir }}/kubevirt.yaml.j2"
-  when: (kubevirt_template.stat.exists == False) and (byo_template.stat.exists == False)
-
-- name: Render KubeVirt template
+- name: Render KubeVirt operator template
   template:
-    src: "kubevirt.yaml.j2"
-    dest: "/tmp/kubevirt.yaml"
+    src: "kubevirt-operator.yaml.j2"
+    dest: "/tmp/kubevirt-operator.yaml"
   when: kubevirt_template.stat.exists == False
 
-- name: Delete apiservices v1alpha2.subresources.kubevirt.io
-  command: "{{ cluster_command }} -n {{ namespace }} delete apiservices v1alpha2.subresources.kubevirt.io"
+- name: Delete KubeVirt operator Resources
+  command: "{{ cluster_command }} delete -f /tmp/kubevirt-operator.yaml --ignore-not-found=true"
 
-- name: Delete KubeVirt Resources
-  command: "{{ cluster_command }} delete -f /tmp/kubevirt.yaml --ignore-not-found=true --wait=false"
-
-- name: Wait until {{ namespace }} namespace will dissappear
-  shell: "{{ cluster_command }} get ns {{ namespace }}"
+- name: Wait until virt-operator is deleted
+  shell: "{{ cluster_command }} -n {{ namespace }} get deploy | grep virt-operator || true"
   register: result
-  until: result.rc != 0
-  retries: 12
+  until: result.stdout == ""
+  retries: 24
   delay: 10
-  ignore_errors: yes
+
+- name: Wait until virt-operator is deleted
+  shell: "{{ cluster_command }} -n {{ namespace }} get pods | grep virt-operator || true"
+  register: result
+  until: result.stdout == ""
+  retries: 24
+  delay: 10
+
+- name: Check that kubevirt-config.yaml still exists in /tmp
+  stat:
+    path: "/tmp/kubevirt-config.yaml"
+  register: kubevirt_config
+
+- name: Render KubeVirt cr
+  template:
+    src: "kubevirt-config.yaml"
+    dest: "/tmp/kubevirt-cr.yaml"
+  when: kubevirt_config.stat.exists == False
+
+- name: Delete kubevirt feature gates
+  shell: "{{ cluster_command }} delete -f {{ kubevirt_template_dir }}/kubevirt-config.yaml -n {{ namespace }}"
+
+- name: Delete KubeVirt namespace
+  command: "{{ cluster_command }} delete namespace {{ namespace }} --ignore-not-found=true --wait=false"
+
+- name: Wait until {{ namespace }} namespace dissappears
+  shell: "{{ cluster_command }} get ns {{ namespace }} --ignore-not-found"
+  register: result
+  until: result.stdout == ""
+  retries: 20
+  delay: 10
