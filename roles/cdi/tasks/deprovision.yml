@@ -10,6 +10,20 @@
     dest: "/tmp/cdi-operator-cr.yaml"
   when: cdi_operator_cr.stat.exists == False
 
+- name: Check that cdi-uploadproxy-route.yaml still exists in /tmp
+  stat:
+    path: "/tmp/cdi-uploadproxy-route.yaml"
+  register: cdi_uploadproxy_route
+
+- name: Render CDI Upload Proxy Route
+  template:
+    src: "cdi-uploadproxy-route.yaml.j2"
+    dest: "/tmp/cdi-uploadproxy-route.yaml"
+  when: cdi_uploadproxy_route.stat.exists == False
+
+- name: Delete CDI Upload Proxy Route
+  command: "{{ cluster_command }} delete -f /tmp/cdi-uploadproxy-route.yaml --ignore-not-found=true"
+
 - name: Delete apiservices v1alpha1.upload.cdi.kubevirt.io
   command: "{{ cluster_command }} -n {{ cdi_namespace }} delete apiservices v1alpha1.upload.cdi.kubevirt.io --ignore-not-found=true"
 
