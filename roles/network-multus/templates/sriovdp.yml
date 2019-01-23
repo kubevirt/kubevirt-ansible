@@ -69,7 +69,7 @@ spec:
           cp $config_path /etc/pcidp/config.json
         volumeMounts:
         - name: config
-          mountPath: /etc/pcidp/config.json
+          mountPath: /etc/pcidp
         - name: configmap
           mountPath: /etc/sriov-nodes-config
         securityContext:
@@ -94,7 +94,7 @@ spec:
           mountPath: /sys
           readOnly: true
         - name: config
-          mountPath: /etc/pcidp/config.json
+          mountPath: /etc/pcidp
           readOnly: true
       volumes:
         - name: devicesock
@@ -105,8 +105,8 @@ spec:
             path: /sys
         - name: config
           hostPath:
-            path: /etc/pcidp/config.json
-            type: FileOrCreate
+            path: /etc/pcidp
+            type: DirectoryOrCreate
         - name: configmap
           configMap:
             name: sriov-nodes-config
