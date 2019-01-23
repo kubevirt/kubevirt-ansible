@@ -48,7 +48,7 @@ spec:
       serviceAccountName: sriov-device-plugin
       initContainers:
       - name: config-container
-        image: fedora:29
+        image: {{ sriovdp_provisioner_repo }}:{{ sriovdp_provisioner_release }}
         resources:
           requests:
             cpu: "100m"
@@ -57,7 +57,7 @@ spec:
             cpu: "100m"
             memory: "50Mi"
         command:
-        - /bin/bash
+        - /bin/sh
         - -c
         args:
         - |
