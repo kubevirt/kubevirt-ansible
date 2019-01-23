@@ -21,9 +21,11 @@
   template:
     src: cni-plugins.yml
     dest: /tmp/cni-plugins.yml
+  when: deploy_cni_plugins
 
 - name: Delete cni plugins Resources
   command: "{{ cluster_command }} delete -f /tmp/cni-plugins.yml --ignore-not-found"
+  when: deploy_cni_plugins
 
 - name: Render OVS plugin deployment yaml
   template:
