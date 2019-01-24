@@ -56,16 +56,10 @@ spec:
     spec:
       serviceAccount: kubevirt-cpu-node-labeller
       containers:
-        - env:
-          - name: NODE_NAME
-            valueFrom:
-              fieldRef:
-                fieldPath: spec.nodeName
-          image: {{ docker_prefix }}/kubevirt-cpu-node-labeller:{{ docker_tag }}
-          name: kubevirt-cpu-node-labeller
-          volumeMounts:
-            - name: nfd-source
-              mountPath: "/etc/kubernetes/node-feature-discovery/source.d/"
+      - name: kubevirt-cpu-node-labeller-sleeper
+        image: {{ docker_prefix }}/kubevirt-cpu-node-labeller:{{ docker_tag }}
+        command: ["sleep"]
+        args: ["infinity"]
       initContainers:
         - image: {{ docker_prefix }}/kubevirt-cpu-model-nfd-plugin:{{ docker_tag }}
           command: ["/bin/sh","-c"]
@@ -88,6 +82,16 @@ spec:
               devices.kubevirt.io/kvm: "1"
             limits:
               devices.kubevirt.io/kvm: "1"
+          volumeMounts:
+            - name: nfd-source
+              mountPath: "/etc/kubernetes/node-feature-discovery/source.d/"
+        - env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          image: {{ docker_prefix }}/kubevirt-cpu-node-labeller:{{ docker_tag }}
+          name: kubevirt-cpu-node-labeller
           volumeMounts:
             - name: nfd-source
               mountPath: "/etc/kubernetes/node-feature-discovery/source.d/"

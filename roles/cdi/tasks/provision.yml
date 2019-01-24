@@ -30,6 +30,14 @@
   retries: 24
   delay: 10
 
+- name: Render CDI Upload Proxy Route
+  template:
+    src: "cdi-uploadproxy-route.yaml.j2"
+    dest: "/tmp/cdi-uploadproxy-route.yaml"
+
+- name: Create CDI Upload Proxy Route
+  command: "{{ cluster_command }} apply -f /tmp/cdi-uploadproxy-route.yaml --validate=false"
+
 - name: Render CDI operator resources
   template:
     src: "cdi-operator-cr.yaml.j2"
