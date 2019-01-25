@@ -5,7 +5,7 @@
     dest: "/tmp/kubevirt-cpu-node-labeller.yaml"  
 
 - name: Create kubevirt-cpu-node-labeller
-  shell: "{{ cluster_command }} create -f /tmp/kubevirt-cpu-node-labeller.yaml -n {{ kubevirt_node_labeller_namespace }}"
+  shell: "{{ cluster_command }} apply -f /tmp/kubevirt-cpu-node-labeller.yaml -n {{ kubevirt_node_labeller_namespace }}"
 
 - name: Wait until kubevirt-cpu-node-labeller deamonset is created
   shell: "{{ cluster_command }} -n {{ kubevirt_node_labeller_namespace }} get ds | grep -o -E kubevirt-cpu-node-labeller | wc -l"
