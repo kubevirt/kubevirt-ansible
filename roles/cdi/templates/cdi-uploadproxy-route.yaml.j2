@@ -2,7 +2,7 @@
 apiVersion: v1
 kind: Route
 metadata:
-  name: cdi-uploadproxy-route
+  name: cdi-uploadproxy
   namespace: {{ cdi_namespace }}
 spec:
   to:
@@ -10,4 +10,3 @@ spec:
     name: cdi-uploadproxy
   tls:
     termination: passthrough
-   
