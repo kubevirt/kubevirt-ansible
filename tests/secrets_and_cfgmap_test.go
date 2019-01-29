@@ -15,7 +15,7 @@ import (
 	ktests "kubevirt.io/kubevirt/tests"
 )
 
-var _ = Describe("Config", func() {
+var _ = Describe("[rfe_id:384][crit:medium][vendor:cnv-qe@redhat.com][level:component]Config", func() {
 
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
@@ -62,7 +62,7 @@ var _ = Describe("Config", func() {
 				ktests.DeleteSecret(secretName)
 			})
 
-			It("Should be that cfgMap and secret fs layout same for the pod and vmi", func() {
+			It("[test_id:786]Should be that cfgMap and secret fs layout same for the pod and vmi", func() {
 				expectedOutput_cfgMap := "value1value2value3"
 				expectedOutput_Secret := "adminredhat"
 
@@ -163,7 +163,7 @@ var _ = Describe("Config", func() {
 				ktests.DeleteSecret(secretName)
 			})
 
-			It("Should be the fs layout the same for a pod and vmi", func() {
+			It("[test_id:778]Should be the fs layout the same for a pod and vmi", func() {
 				expectedPrivateKey := string(privateKeyBytes)
 				expectedPublicKey := string(publicKeyBytes)
 
