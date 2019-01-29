@@ -1,5 +1,24 @@
 ---
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sriov-nodes-config
+  namespace: {{ network_namespace }}
+data:
+  fallback-config: |
+    {
+        "resourceList":
+        [
+            {
+                "resourceName": "sriov",
+                "rootDevices": [{{ sriov_pci_ids }}],
+                "sriovMode": true,
+                "deviceType": "vfio"
+            }
+        ]
+    }
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: sriov-device-plugin
@@ -27,6 +46,39 @@ spec:
         operator: Exists
         effect: NoSchedule
       serviceAccountName: sriov-device-plugin
+      initContainers:
+      - name: config-container
+        image: {{ sriovdp_provisioner_repo }}:{{ sriovdp_provisioner_release }}
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+          limits:
+            cpu: "100m"
+            memory: "50Mi"
+        command:
+        - /bin/sh
+        - -c
+        args:
+        - |
+          if [ -f /etc/sriov-nodes-config/$NODE_NAME ]; then
+            config_path=/etc/sriov-nodes-config/$NODE_NAME
+          else
+            config_path=/etc/sriov-nodes-config/fallback-config
+          fi
+          cp $config_path /etc/pcidp/config.json
+        volumeMounts:
+        - name: config
+          mountPath: /etc/pcidp
+        - name: configmap
+          mountPath: /etc/sriov-nodes-config
+        securityContext:
+          privileged: true
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
       containers:
       - name: kube-sriovdp
         image: {{ sriovdp_provisioner_repo }}:{{ sriovdp_provisioner_release }}
@@ -42,7 +94,7 @@ spec:
           mountPath: /sys
           readOnly: true
         - name: config
-          mountPath: /etc/pcidp/config.json
+          mountPath: /etc/pcidp
           readOnly: true
       volumes:
         - name: devicesock
@@ -53,4 +105,8 @@ spec:
             path: /sys
         - name: config
           hostPath:
-            path: /etc/pcidp/config.json
+            path: /etc/pcidp
+            type: DirectoryOrCreate
+        - name: configmap
+          configMap:
+            name: sriov-nodes-config
