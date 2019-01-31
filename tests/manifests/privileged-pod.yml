@@ -1,0 +1,58 @@
+---
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  name: privileged-test-pod
+  namespace: kubevirt-test-default
+  labels:
+    tier: node
+    app: privileged-test-pod
+spec:
+  template:
+    metadata:
+      labels:
+        tier: node
+        app: privileged-test-pod
+    spec:
+      nodeSelector:
+        beta.kubernetes.io/arch: amd64
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: privileged-test-pod
+        command:
+        - /bin/bash
+        - -c
+        - |
+          sleep infinity
+        image: docker.io/openshift/origin-node:v3.11
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "50Mi"
+          limits:
+            cpu: "100m"
+            memory: "50Mi"
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - name: usrbin
+          mountPath: /usr/bin/
+        - name: varrun
+          mountPath: /var/run/openvswitch
+        - name: libnuma
+          mountPath: /usr/lib64/libnuma.so.1
+      serviceAccount: privileged-test-user
+      serviceAccountName: privileged-test-user
+      volumes:
+      - name: usrbin
+        hostPath:
+          path: /usr/bin/
+      - name: varrun
+        hostPath:
+          path: /var/run/openvswitch
+      - name: libnuma
+        hostPath:
+          path: /usr/lib64/libnuma.so.1
