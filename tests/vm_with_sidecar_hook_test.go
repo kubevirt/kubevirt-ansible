@@ -18,7 +18,7 @@ const (
 	checkDmidecodePackage = "sudo dmidecode -s baseboard-manufacturer | grep 'Radical Edward' | wc -l\n"
 )
 
-var _ = Describe("VMI with sidecar hook test", func() {
+var _ = Describe("[rfe_id:839][crit:medium][vendor:cnv-qe@redhat.com][level:component]VMI with sidecar hook test", func() {
 
 	flag.Parse()
 
@@ -27,7 +27,7 @@ var _ = Describe("VMI with sidecar hook test", func() {
 	})
 
 	Context("Check package installtion with hook", func() {
-		It("will succeed", func() {
+		It("[test_id:840]will succeed", func() {
 			By("Create VM with hook and install dmidecode")
 			tests.CreateResourceWithFilePathTestNamespace(vmiFilePath)
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmiName, "-o=jsonpath='{.status.phase}'", "Running")
