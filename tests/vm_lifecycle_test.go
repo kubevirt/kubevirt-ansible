@@ -20,7 +20,7 @@ const (
 	phaseQuery = "-o=jsonpath='{.status.phase}'"
 )
 
-var _ = FDescribe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:component]Create/Import VM from Template", func() {
+var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:component]Create/Import VM from Template", func() {
 
 	flag.Parse()
 
