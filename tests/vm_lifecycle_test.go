@@ -5,31 +5,22 @@ import (
 	"fmt"
 	"github.com/google/goexpect"
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	tests "kubevirt.io/kubevirt-ansible/tests/framework"
 	ktests "kubevirt.io/kubevirt/tests"
 	"time"
 )
 
-//// The list of supported Operating Systems
-//// name : { registryDisk, cloudinit }
-var osDict = map[string][]string{
-	"testvm-fedora": {"kubevirt/fedora-cloud-registry-disk-demo:latest", "#cloud-config\npassword: fedora\nchpasswd: { expire: False }"},
-}
-
-var clients = [2]string{"oc", "kubectl"}
-
 const (
 	templatePath  = "tests/manifests/vm-fedora-template.yml"
 	temporaryJson = "/tmp/tmp-vm.yml"
-	memory        = "1024Mi"
-	cpuCores      = "1"
 
 	ipQuery    = "-o=jsonpath='{.status.interfaces[0].ipAddress}'"
 	phaseQuery = "-o=jsonpath='{.status.phase}'"
 )
 
-var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
+var _ = FDescribe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:component]Create/Import VM from Template", func() {
 
 	flag.Parse()
 
@@ -39,97 +30,94 @@ var _ = Describe("Regression and Functional tests of VMs and VMIs", func() {
 
 	Describe("Creating VMs with different OS from templates via oc and kubectl", func() {
 
-		// Run tests for each OS:
-		for k := range osDict {
-			registryDisk := osDict[k][0]
-			cloudInit := osDict[k][1]
+		var vm tests.VirtualMachine
+		vm.Name = "vm-fedora"
+		vm.Namespace = ktests.NamespaceTestDefault
 
-			var vm tests.VirtualMachine
-			vm.Name = k
-			vm.Namespace = ktests.NamespaceTestDefault
+		table.DescribeTable("Create/Delete "+vm.Name+" VM from template", func(client string) {
+			Context("should create and run VM", func() {
+				By("Creating VM via " + client)
+				tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME="+vm.Name)
+				_, _, err := ktests.RunCommand(client, "create", "-f", temporaryJson)
+				Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
 
-			// Run for different clients: oc and kubectl
-			for _, cl := range clients {
+				By("Starting VM")
+				_, _, err = vm.Start()
+				Expect(err).ToNot(HaveOccurred(), "VM should start without errors")
 
-				client := cl
+				By("Waiting until VMI is running")
+				tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vm.Name, phaseQuery, "Running")
+			})
 
-				Context("Create/Delete "+vm.Name+" VM from template via "+client+" command", func() {
+			Context("[test_id:241]should verify that VM receives pod IP address", func() {
+				By("Get IP address from VMI describe")
+				ipAddress := tests.GetVirtualMachineSpecificParameters("vmi", vm.Name, ipQuery)
+				ipAddress = ipAddress[1 : len(ipAddress)-1]
 
-					It("Verify simple functionality of "+vm.Name+" VM: create, start, check status, IP, stop and delete.", func() {
-						By("Creating VM via " + client)
-						tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME="+vm.Name, "CPU_CORES="+cpuCores, "MEMORY="+memory, "IMAGE_NAME="+registryDisk, "CLOUD_INIT="+cloudInit)
-						_, _, err := ktests.RunCommand(client, "create", "-f", temporaryJson)
-						Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
+				By("Waiting for the console and check IP address")
+				switch vm.Name {
+				case "vm-fedora":
+					By("Verifying the console and IP on Fedora")
+					expecter, err := tests.LoggedInFedoraExpecter(vm.Name, tests.NamespaceTestDefault, 360)
+					Expect(err).ToNot(HaveOccurred())
+					defer expecter.Close()
+					_, err = expecter.ExpectBatch([]expect.Batcher{
+						&expect.BSnd{S: "ifconfig\n"},
+						&expect.BExp{R: ipAddress},
+					}, 200*time.Second)
+					Expect(err).ToNot(HaveOccurred(), "IP should be the same as in POD description")
+				default:
+					fmt.Println("Can't verify console on this VM")
+				}
+			})
 
-						By("Starting VM")
-						_, _, err = vm.Start()
-						Expect(err).ToNot(HaveOccurred(), "VM should start without errors")
+			Context("[test_id:242]should verify VNC connetion to running VM", func() {
+				response, err := tests.VNCConnection(vm.Namespace, vm.Name)
+				Expect(err).ToNot(HaveOccurred(), "Should open VNC connection to VMI %q in %s namespace", vm.Name, vm.Namespace)
+				Expect(response).To(Equal("RFB 003.008"), "Should receive valid response from the VNC connection to the VMI %q in %s namespace", vm.Name, vm.Namespace)
+			})
 
-						By("Waiting until VMI is running")
-						tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vm.Name, phaseQuery, "Running")
-
-						ipAddress := tests.GetVirtualMachineSpecificParameters("vmi", vm.Name, ipQuery)
-						// removing quotes
-						ipAddress = ipAddress[1 : len(ipAddress)-1]
-
-						By("Waiting for the console and check IP address")
-						switch vm.Name {
-						case "testvm-fedora":
-							By("Verifying the console and IP on Fedora")
-							expecter, err := tests.LoggedInFedoraExpecter(vm.Name, tests.NamespaceTestDefault, 360)
-							Expect(err).ToNot(HaveOccurred())
-							defer expecter.Close()
-							_, err = expecter.ExpectBatch([]expect.Batcher{
-								&expect.BSnd{S: "ifconfig\n"},
-								&expect.BExp{R: ipAddress},
-							}, 200*time.Second)
-							Expect(err).ToNot(HaveOccurred(), "IP should be the same as in POD description")
-						default:
-							fmt.Println("Can't verify console on this VM")
-						}
-
-						By("Checking if the VM's VNC server gives the valid response")
-						response, err := tests.VNCConnection(vm.Namespace, vm.Name)
-						Expect(err).ToNot(HaveOccurred(), "Should open VNC connection to VMI %q in %s namespace", vm.Name, vm.Namespace)
-						Expect(response).To(Equal("RFB 003.008"), "Should receive valid response from the VNC connection to the VMI %q in %s namespace", vm.Name, vm.Namespace)
-
-						By("Stopping VM")
-						_, _, err = vm.Stop()
-						Expect(err).ToNot(HaveOccurred(), "VM should stopp be executed without errors")
-
-						By("Deleting VM via " + client)
-						_, _, err = ktests.RunCommand(client, "delete", "-f", temporaryJson)
-						Expect(err).ToNot(HaveOccurred(), "VM 'deleting' command should be executed without errors")
-
-						By("Verifying that VM was removed")
-						tests.WaitUntilResourceDeleted("vm", vm.Name)
-					})
+			if client == "oc" {
+				Context("[test_id:300]Delete VM via oc command", func() {
+					_, _, err := ktests.RunCommand("oc", "delete", "vm", vm.Name)
+					Expect(err).ToNot(HaveOccurred(), "VM 'deleting' command should be executed without errors")
+				})
+			} else {
+				Context("[test_id:263]Delete VM via oc command using yaml file", func() {
+					_, _, err := ktests.RunCommand("oc", "delete", "-f", temporaryJson)
+					Expect(err).ToNot(HaveOccurred(), "VM 'deleting' command should be executed without errors")
 				})
 			}
-		}
+
+			Context("verify that all resources were removed", func() {
+				By("Verifying that POD was removed")
+				tests.WaitUntilResourceDeleted("pod", vm.Name)
+
+				By("Verifying that VM was removed")
+				tests.WaitUntilResourceDeleted("vm", vm.Name)
+			})
+		},
+			table.Entry("[test_id:502]using oc", "oc"),
+			table.Entry("[test_id:264]using kubectl", "kubectl"),
+		)
 	})
 
 	Describe("VM Lifecycle - negative tests", func() {
 
-		Context("Delete non existing VM", func() {
-			It("Try to delete non existing VM", func() {
-				By("Deleting VM and should get an error")
-				_, _, err := ktests.RunCommand("oc", "delete", "vm", "TESTVM-delete")
-				Expect(err).To(HaveOccurred(), "Should get an error, as VM does not exists")
-			})
+		It("[test_id:233][posneg:negative]Delete non existing VM", func() {
+			_, _, err := ktests.RunCommand("oc", "delete", "vm", "TESTVM-delete")
+			Expect(err).To(HaveOccurred(), "Should get an error, as VM does not exists")
 		})
 
-		Context("Create VM with existing name", func() {
-			It("Try to create VM with existing name", func() {
-				By("Creating first VM")
-				tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME=new-vm")
-				_, _, err := ktests.RunCommand("oc", "create", "-f", temporaryJson)
-				Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
+		It("[test_id:243][posneg:negative]Create VM with existing name", func() {
+			By("Creating first VM")
+			tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME=new-vm")
+			_, _, err := ktests.RunCommand("oc", "create", "-f", temporaryJson)
+			Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
 
-				By("Creating second VM with the same name")
-				_, _, err = ktests.RunCommand("oc", "create", "-f", temporaryJson)
-				Expect(err).To(HaveOccurred(), "Should get an error, as VM with the same name already exists")
-			})
+			By("Creating second VM with the same name")
+			_, _, err = ktests.RunCommand("oc", "create", "-f", temporaryJson)
+			Expect(err).To(HaveOccurred(), "Should get an error, as VM with the same name already exists")
 		})
 	})
 })

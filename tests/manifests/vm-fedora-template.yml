@@ -43,6 +43,7 @@ objects:
 parameters:
 - description: Name for the new VM
   name: NAME
+  value: "vm-fedora"
 - description: Amount of memory
   name: MEMORY
   value: 1024Mi
