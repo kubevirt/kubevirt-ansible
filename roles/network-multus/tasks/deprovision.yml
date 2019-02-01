@@ -25,6 +25,40 @@
 - name: Delete cni plugins Resources
   command: "{{ cluster_command }} delete -f /tmp/cni-plugins.yml --ignore-not-found"
 
+# note: this rule does NOT delete /etc/pcidp/config.json file because k8s
+# doesn't support finalizers to clean up mounted directory
+- name: Uninstall SR-IOV device plugin
+  block:
+  - name: Render SR-IOV DP deployment yaml
+    template:
+      src: sriovdp.yml
+      dest: /tmp/sriovdp.yml
+
+  - name: Delete SR-IOV DP resources
+    shell: "{{ cluster_command }} delete -f /tmp/sriovdp.yml --ignore-not-found"
+
+- name: Uninstall SR-IOV CNI plugin
+  block:
+  - name: Render SR-IOV CNI deployment yaml
+    template:
+      src: sriov-cni.yml
+      dest: /tmp/sriov-cni.yml
+
+  - name: Delete SR-IOV CNI resources
+    shell: "{{ cluster_command }} delete -f /tmp/sriov-cni.yml --ignore-not-found"
+
+- name: Uninstall SR-IOV network
+  block:
+  - name: Render SR-IOV network CRD yaml
+    template:
+      src: sriov-crd.yml
+      dest: /tmp/sriov-crd.yml
+
+  - name: Delete SR-IOV network CRD
+    shell: "{{ cluster_command }} delete -f /tmp/sriov-crd.yml --ignore-not-found"
+    # ignore in case when crd is not known
+    ignore_errors: yes
+
 - name: Render OVS plugin deployment yaml
   template:
     src: ovs-cni.yml
