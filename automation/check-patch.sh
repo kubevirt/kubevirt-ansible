@@ -16,6 +16,7 @@ on_exit() {
     local run_path="${1:?}"
     local skip_cleanup="${2:-false}"
 
+    virsh -c qemu:///system list
     print_resources_usage "$run_path"
     collect_lago_log "$run_path" "$ARTIFACTS_PATH"
     collect_logs_from_vms "$run_path" "${VMS_LOGS_PATH}/on_exit"
