@@ -34,6 +34,10 @@ func DeleteResourceWithLabelTestNamespace(resourceType, resourceLabel string) {
 	By(fmt.Sprintf("Deleting %s:%s from the json file with the oc-delete command", resourceType, resourceLabel))
 	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel})
 }
+func DeleteResourceByName(resourceType, nameSpace, resourceName string) {
+	By(fmt.Sprintf("Deleting %s:%s  from %s with oc-delete command", resourceType, resourceName, nameSpace))
+	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, nameSpace: nameSpace, resourceName: resourceName})
+}
 
 func CreateResourceWithFilePath(filePath string) {
 	By("Creating resource from the json file with the oc-create command")
