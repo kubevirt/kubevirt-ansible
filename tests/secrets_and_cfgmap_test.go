@@ -73,7 +73,7 @@ var _ = Describe("[rfe_id:384][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 						ktests.ContainerDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
 				ktests.AddConfigMapDisk(vmi, configMapName)
 				ktests.AddSecretDisk(vmi, secretName)
-				ktests.RunVMIAndExpectLaunch(vmi, false, 90)
+				ktests.RunVMIAndExpectLaunch(vmi, false, 180)
 
 				By("Checking if ConfigMap has been attached to the pod")
 				vmiPod := ktests.GetRunningPodByVirtualMachineInstance(vmi, tests.NamespaceTestDefault)
@@ -172,7 +172,7 @@ var _ = Describe("[rfe_id:384][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 					ktests.ContainerDiskFor(
 						ktests.ContainerDiskFedora), "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
 				ktests.AddSecretDisk(vmi, secretName)
-				ktests.RunVMIAndExpectLaunch(vmi, false, 90)
+				ktests.RunVMIAndExpectLaunch(vmi, false, 180)
 
 				By("Checking if Secret has been attached to the pod")
 				vmiPod := ktests.GetRunningPodByVirtualMachineInstance(vmi, tests.NamespaceTestDefault)
