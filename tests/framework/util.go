@@ -6,15 +6,15 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/crypto/ssh"
+	"io/ioutil"
 	k8sv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	ktests "kubevirt.io/kubevirt/tests"
+	"strings"
 )
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
@@ -70,6 +70,13 @@ func writeJson(jsonFile string, json string) (string, error) {
 func RunOcDescribeCommand(resourceType, resourceName string) string {
 	fmt.Printf("Getting 'oc describe' with: %s ", resourceName)
 	return execute(Result{cmd: "oc", verb: "describe", resourceType: resourceType, resourceName: resourceName})
+}
+
+func WaitUntilResourceDeleted(resourceType, resourceName string) {
+	Eventually(func() bool {
+		res, _ := GetObjects(NamespaceTestDefault, resourceType)
+		return strings.Contains(strings.Join(res, ""), resourceName)
+	}, LongTimeout).Should(BeFalse(), fmt.Sprintf("Timed out waiting for %s ", resourceType))
 }
 
 // generatePrivateKey creates a RSA Private Key of specified byte size
