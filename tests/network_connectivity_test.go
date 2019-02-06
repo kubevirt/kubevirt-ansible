@@ -27,6 +27,7 @@ const (
 	ipUpCmd            = "sudo ip link set up %s \n"
 	privilegedTestUser = "privileged-test-user"
 	noVlanPortName     = "ovs_novlan_port"
+	bondName           = "bond1"
 )
 
 type NodesToIp struct {
@@ -34,7 +35,7 @@ type NodesToIp struct {
 	ip   string
 }
 
-var _ = Describe("[rfe_id:694][crit:medium][vendor:cnv-qe@redhat.com][level:component]Network Connectivity", func() {
+var _ = FDescribe("[rfe_id:694][crit:medium][vendor:cnv-qe@redhat.com][level:component]Network Connectivity", func() {
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
@@ -47,12 +48,14 @@ var _ = Describe("[rfe_id:694][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 	var nodesToIpList [2]NodesToIp
 	var ovsNodeIps [2]string
 	var ipLinkCmd []string
+	var bondSupportedNodes bool
 
 	ktests.BeforeAll(func() {
 		ktests.BeforeTestCleanup()
 		ovsVmsIp = [2]string{"192.168.0.1", "192.168.0.2"}
 		ovsNodeIps = [2]string{"192.168.0.3", "192.168.0.4"}
 		ipLinkCmd = []string{"bash", "-c", "ip -o link show type veth | wc -l"}
+
 		_, _, err := ktests.RunCommand("oc", "create", "serviceaccount", privilegedTestUser)
 		Expect(err).ToNot(HaveOccurred())
 		_, _, err = ktests.RunCommand("oc", "adm", "policy", "add-scc-to-user", "privileged", "-z", privilegedTestUser)
@@ -83,6 +86,48 @@ var _ = Describe("[rfe_id:694][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 		for i, pod := range pods.Items {
 			nodeName := pod.Spec.NodeName
 			podContainer := pod.Spec.Containers[0].Name
+			out, err := ktests.ExecuteCommandOnPod(
+				virtClient, &pod, podContainer,
+				[]string{"bash", "-c", "ls -l /sys/class/net/ | grep -v virtual | grep net | rev | cut -d '/' -f 1 | rev"},
+			)
+			// Check if nodes have more then 3 NICs for BOND tests
+			Expect(err).ToNot(HaveOccurred())
+			interfaceList := strings.Split(out, "\n")
+			bondSupportedNodes = len(interfaceList) > 3
+			if bondSupportedNodes {
+				for _, pod := range pods.Items {
+					podContainer := pod.Spec.Containers[0].Name
+					_, err := ktests.ExecuteCommandOnPod(
+						virtClient, &pod, podContainer,
+						[]string{"bash", "-c", "ip link add " + bondName + " type bond"},
+					)
+					Expect(err).ToNot(HaveOccurred())
+					_, err = ktests.ExecuteCommandOnPod(
+						virtClient, &pod, podContainer,
+						[]string{"bash", "-c", "ip link set " + bondName + " type bond miimon 100 mode active-backup"},
+					)
+					Expect(err).ToNot(HaveOccurred())
+					for x := 2; x <= 3; x++ {
+						interfaceName := interfaceList[x]
+						_, err = ktests.ExecuteCommandOnPod(
+							virtClient, &pod, podContainer,
+							[]string{"bash", "-c", "ip link set " + interfaceName + " down"},
+						)
+						Expect(err).ToNot(HaveOccurred())
+						_, err = ktests.ExecuteCommandOnPod(
+							virtClient, &pod, podContainer,
+							[]string{"bash", "-c", "ip link set " + interfaceName + " master " + bondName},
+						)
+						Expect(err).ToNot(HaveOccurred())
+					}
+					_, err = ktests.ExecuteCommandOnPod(
+						virtClient, &pod, podContainer,
+						[]string{"bash", "-c", "ip link set " + bondName + " up"},
+					)
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
+
 			var nextNodeIp string
 			for _, nodeToIp := range nodesToIpList {
 				if nodeToIp.name != nodeName {
