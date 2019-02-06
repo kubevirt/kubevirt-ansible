@@ -28,7 +28,7 @@ var ddWithHWRandom string
 var checkFileRandom string
 var checkFileHWRng string
 
-var _ = Describe("VIRT RNG test", func() {
+var _ = Describe("[rfe_id:609][crit:medium][vendor:cnv-qe@redhat.com][level:component]VIRT RNG test", func() {
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
@@ -41,7 +41,7 @@ var _ = Describe("VIRT RNG test", func() {
 	Context("With VirtIO RNG device", func() {
 		var withRngVmi *v1.VirtualMachineInstance
 		withRngVmi = ktests.NewRandomVMIWithEphemeralDisk(ktests.ContainerDiskFor(ktests.ContainerDiskAlpine))
-		It("Virtio rng device should be present", func() {
+		It("[test_id:791]Virtio rng device should be present", func() {
 			withRngVmi.Spec.Domain.Devices.Rng = &v1.Rng{}
 
 			By("Starting a VMI")
