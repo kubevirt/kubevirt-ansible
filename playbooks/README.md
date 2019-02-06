@@ -169,6 +169,37 @@ $ ansible-playbook -i inventory -e "selinux=permissive" playbooks/selinux.yml
 
 Be sure to update the [inventory file](../inventory) according to your OpenShift cluster configuration or use the file you used to deploy the cluster.
 
+### SR-IOV
+
+```kubevirt-ansible``` enables SR-IOV by default, using the kubernetes CNI
+plugin ```multus```.
+
+```bash
+# vars/all.yml
+...
+deploy_sriov_plugin: true
+```
+
+For SR-IOV to work properly, configure your hosts to enable IOMMU, SR-IOV in
+BIOS and kernel command line, and load the ```vfio-pci``` kernel module. Also,
+enable the expected number of VFs before starting your cluster.
+
+SR-IOV device plugin uses ```/etc/pcidp/config.json``` file to determine which
+PFs should be used to allocate VFs from. By default, ```kubevirt-ansible```
+doesn't configure any PFs, meaning that the plugin has zero devices to manage.
+
+You can configure allocatable PFs as follows:
+
+$ ansible-playbook -i inventory -e@vars/all.yml -e "sriov_pci_ids=\"0000:05:00.0\",\"0000:05:00.1\"" playbooks/kubevirt.yaml
+
+Alternatively, you can, after successful deployment, edit SR-IOV ConfigMap
+resource where you can specify default as well as per node PF addresses:
+
+$ kubectl -n kubevirt edit configmap sriov-nodes-config
+
+After that, remove corresponding SR-IOV device plugin pods so that new
+instances start with the new configuration.
+
 [container_runtime]: https://github.com/openshift/openshift-ansible/tree/master/roles/container_runtime
 [docker-storage-setup]: https://docs.openshift.org/latest/install_config/install/host_preparation.html#configuring-docker-storage
 [container_runtime-defaults]: https://github.com/openshift/openshift-ansible/blob/master/roles/container_runtime/defaults/main.yml
