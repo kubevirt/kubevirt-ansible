@@ -33,9 +33,9 @@
     template:
       src: sriovdp.yml
       dest: /tmp/sriovdp.yml
-
   - name: Delete SR-IOV DP resources
     shell: "{{ cluster_command }} delete -f /tmp/sriovdp.yml --ignore-not-found"
+  when: deploy_sriov_plugin
 
 - name: Uninstall SR-IOV CNI plugin
   block:
@@ -43,9 +43,9 @@
     template:
       src: sriov-cni.yml
       dest: /tmp/sriov-cni.yml
-
   - name: Delete SR-IOV CNI resources
     shell: "{{ cluster_command }} delete -f /tmp/sriov-cni.yml --ignore-not-found"
+  when: deploy_sriov_plugin
 
 - name: Uninstall SR-IOV network
   block:
@@ -53,11 +53,11 @@
     template:
       src: sriov-crd.yml
       dest: /tmp/sriov-crd.yml
-
   - name: Delete SR-IOV network CRD
     shell: "{{ cluster_command }} delete -f /tmp/sriov-crd.yml --ignore-not-found"
     # ignore in case when crd is not known
     ignore_errors: yes
+  when: deploy_sriov_plugin
 
 - name: Render OVS plugin deployment yaml
   template:
