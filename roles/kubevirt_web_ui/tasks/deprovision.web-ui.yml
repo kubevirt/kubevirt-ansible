@@ -1,6 +1,5 @@
 ---
-- name: Set empty version to deprovision the Web UI
-  set_fact: kubevirt_web_ui_version=""
+# The kubevirt_web_ui_version_effective is expected to be empty string ("") - see main.yml
 
 - include_tasks: provision.web-ui.yml
 
