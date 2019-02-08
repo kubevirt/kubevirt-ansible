@@ -1,12 +1,16 @@
 ---
 - name: Deprovision Web UI and its operator
   block:
+    - name: Set empty version to deprovision the Web UI
+      set_fact: kubevirt_web_ui_version_effective=""
     - include_tasks: "deprovision.web-ui.yml"
     - include_tasks: "deprovision.operator.yml"
   when: apb_action == "deprovision"
 
 - name: Provision Web UI via operator
   block:
+    - name: "Use '{{ kubevirt_web_ui_version }}' KubeVirt Web UI version to provision"
+      set_fact: kubevirt_web_ui_version_effective="{{ kubevirt_web_ui_version }}"
     - include_tasks: "provision.operator.yml"
     - include_tasks: "provision.web-ui.yml"
   when: apb_action != "deprovision"
