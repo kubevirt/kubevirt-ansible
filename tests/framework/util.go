@@ -68,7 +68,7 @@ func RunOcDescribeCommand(resourceType, resourceName string) string {
 	return execute(Result{cmd: "oc", verb: "describe", resourceType: resourceType, resourceName: resourceName})
 }
 
-func GetVirtualMachineSpecificParameters(resourceType, resourceName, query string) string {
+func GetResourceSpecificParameters(resourceType, resourceName, query string) string {
 	return execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query})
 }
 

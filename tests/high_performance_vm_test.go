@@ -46,6 +46,8 @@ var _ = Describe("[rfe_id:609][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 		It("[test_id:707]Create headless VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, headlessDstVMFilePath, "VM_NAME="+headlesstestVMName, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+containerDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(headlessDstVMFilePath)
+			_, _, err = ktests.RunCommandWithNS(tests.NamespaceTestDefault, "virtctl", "start", headlesstestVMName)
+			Expect(err).ToNot(HaveOccurred(), "VM should start without errors")
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", headlesstestVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
 
@@ -66,6 +68,8 @@ var _ = Describe("[rfe_id:609][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 		It("[test_id:730]Create memoryOvercommit VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "IMAGE_NAME="+containerDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
+			_, _, err = ktests.RunCommandWithNS(tests.NamespaceTestDefault, "virtctl", "start", memoryOvercommitVMName)
+			Expect(err).ToNot(HaveOccurred(), "VM should start without errors")
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
 		It("[test_id:731]Check VM settings with 'oc describe'", func() {
@@ -81,6 +85,8 @@ var _ = Describe("[rfe_id:609][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 		It("Create headless and memory over commit VM", func() {
 			tests.ProcessTemplateWithParameters(virtRawVMFilePath, memoryOvercommitDstVMFilePath, "VM_NAME="+memoryOvercommitVMName, "OVER_COMMIT_GUEST_OVERLOAD="+memoryOvercommit, "AUTO_GRAPHIC_DEVICE="+headless, "IMAGE_NAME="+containerDisk, "VM_APIVERSION="+vmAPIVersion)
 			tests.CreateResourceWithFilePathTestNamespace(memoryOvercommitDstVMFilePath)
+			_, _, err = ktests.RunCommandWithNS(tests.NamespaceTestDefault, "virtctl", "start", memoryOvercommitVMName)
+			Expect(err).ToNot(HaveOccurred(), "VM should start without errors")
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", memoryOvercommitVMName, "-o=jsonpath='{.status.phase}'", "Running")
 		})
 		It("[test_id:737]Check VM settings with 'oc describe'", func() {

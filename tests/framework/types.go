@@ -16,6 +16,9 @@ const (
 	UsernameAdminUser     = "test_admin"
 	PasswordAdminUser     = "123456"
 
+	OcPath      = "oc"
+	VirtctlPath = "virtctl"
+
 	CDI_LABEL_KEY      = "app"
 	CDI_LABEL_VALUE    = "containerized-data-importer"
 	CDI_LABEL_SELECTOR = CDI_LABEL_KEY + "=" + CDI_LABEL_VALUE
@@ -39,22 +42,22 @@ type VirtualMachine struct {
 
 func (vm VirtualMachine) Create() (string, string, error) {
 	args := []string{"create", "-f", vm.Manifest}
-	return ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
+	return ktests.RunCommandWithNS(vm.Namespace, OcPath, args...)
 }
 
 func (vm VirtualMachine) Start() (string, string, error) {
 	args := []string{"start", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
+	return ktests.RunCommandWithNS(vm.Namespace, VirtctlPath, args...)
 }
 
 func (vm VirtualMachine) Stop() (string, string, error) {
 	args := []string{"stop", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, "virtctl", args...)
+	return ktests.RunCommandWithNS(vm.Namespace, VirtctlPath, args...)
 }
 
 func (vm VirtualMachine) Delete() (string, string, error) {
 	args := []string{"delete", vm.Type, vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
+	return ktests.RunCommandWithNS(vm.Namespace, OcPath, args...)
 }
 
 func (vm VirtualMachine) IsRunning() (bool, error) {

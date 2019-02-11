@@ -11,15 +11,17 @@ import (
 	"time"
 )
 
-const (
-	templatePath  = "tests/manifests/vm-fedora-template.yml"
-	temporaryJson = "/tmp/tmp-vm.yml"
-
-	ipQuery    = "-o=jsonpath='{.status.interfaces[0].ipAddress}'"
-	phaseQuery = "-o=jsonpath='{.status.phase}'"
-)
-
 var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:component]Create/Delete VM from Templates and yaml files", func() {
+
+	const (
+		templatePath    = "tests/manifests/virt-testing-vm.yml"
+		temporaryJson   = "/tmp/tmp-vm.yml"
+		fedoraImage     = "kubevirt/fedora-cloud-registry-disk-demo:latest"
+		fedoraCloudInit = "#cloud-config\npassword: fedora\nchpasswd: { expire: False }"
+
+		ipQuery    = "-o=jsonpath='{.status.interfaces[0].ipAddress}'"
+		phaseQuery = "-o=jsonpath='{.status.phase}'"
+	)
 
 	flag.Parse()
 
@@ -34,7 +36,7 @@ var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 	Describe("Create and Delete VM from Templates", func() {
 		table.DescribeTable("Create and Delete via oc or kubectl", func(client string) {
 			By("Creating VM via " + client)
-			tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME="+vm.Name)
+			tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "VM_NAME="+vm.Name, "IMAGE_NAME="+fedoraImage, "VM_APIVERSION="+vmAPIVersion, "CLOUD_INIT="+fedoraCloudInit)
 			_, _, err := ktests.RunCommand(client, "create", "-f", temporaryJson)
 			Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
 
@@ -70,7 +72,7 @@ var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vm.Name, phaseQuery, "Running")
 
 			By("Get IP address from VMI describe")
-			ipAddress := tests.GetVirtualMachineSpecificParameters("vmi", vm.Name, ipQuery)
+			ipAddress := tests.GetResourceSpecificParameters("vmi", vm.Name, ipQuery)
 			ipAddress = ipAddress[1 : len(ipAddress)-1]
 
 			By("Verify the console and IP on Fedora")
@@ -106,7 +108,7 @@ var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 
 		It("[test_id:243][posneg:negative]Create VM with existing name", func() {
 			By("Creating first VM")
-			tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "NAME=new-vm")
+			tests.ProcessTemplateWithParameters(templatePath, temporaryJson, "VM_NAME="+vm.Name, "IMAGE_NAME="+fedoraImage, "VM_APIVERSION="+vmAPIVersion)
 			_, _, err := ktests.RunCommand("oc", "create", "-f", temporaryJson)
 			Expect(err).ToNot(HaveOccurred(), "VM 'creating' command should be executed without errors")
 
