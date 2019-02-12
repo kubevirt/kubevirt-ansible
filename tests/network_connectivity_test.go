@@ -49,7 +49,6 @@ var _ = Describe("[rfe_id:694][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 	var ipLinkCmd []string
 
 	ktests.BeforeAll(func() {
-		ktests.SkipIfNoMultusProvider(virtClient)
 		ktests.BeforeTestCleanup()
 		ovsVmsIp = [2]string{"192.168.0.1", "192.168.0.2"}
 		ovsNodeIps = [2]string{"192.168.0.3", "192.168.0.4"}
