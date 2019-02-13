@@ -11,13 +11,29 @@ cni_provisioner_repo: "quay.io/schseba/cni-plugins"
 cni_provisioner_name: "kube-cni-plugins-amd64"
 cni_provisioner_release: "latest"
 
-ovs_provisioner_repo: "quay.io/kubevirt/ovs-cni-plugin"
-ovs_provisioner_name: "kube-ovs-cni-plugin-amd64"
-ovs_provisioner_release: "latest"
+# This daemon set includes ovs cni plugin and marker
+ovs_cni_daemonset_name: "kube-ovs-cni-amd64"
 
-origin_node_provisioner_name: "ovs-vsctl-amd64"
+ovs_cni_plugin_provisioner_repo: "quay.io/kubevirt/ovs-cni-plugin"
+ovs_cni_plugin_provisioner_release: "latest"
+ovs_cni_plugin_container_name: "plugin"
+
+ovs_cni_marker_provisioner_repo: "quay.io/kubevirt/ovs-cni-marker"
+ovs_cni_marker_provisioner_release: "latest"
+ovs_cni_marker_container_name: "marker"
+ovs_cni_marker_service_account: "ovs-cni-marker"
+ovs_cni_marker_cluster_role: "ovs-cni-marker-cr"
+ovs_cni_marker_cluster_role_binding: "ovs-cni-marker-crb"
+
 origin_node_provisioner_repo: "docker.io/openshift/origin-node"
 origin_node_provisioner_release: "latest"
+origin_node_provisioner_container_name: "ovs-vsctl"
+
+# Used for cleanup of pre-0.3 releases of OVS CNI (renamed to kube-ovs-cni-amd64)
+legacy_ovs_provisioner_name: "kube-ovs-cni-plugin-amd64"
+
+# Used for cleanup of pre-0.4 releases of OVS CNI (transformed ovs-vsctl-amd64 daemon set into ovs-cni initContainer)
+legacy_origin_node_provisioner_name: "ovs-vsctl-amd64"
 
 sriovdp_provisioner_name: "kube-sriov-device-plugin-amd64"
 # todo(ihar): switch back to docker.io/nfvpe/sriov-device-plugin when
