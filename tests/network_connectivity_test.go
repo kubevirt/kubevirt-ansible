@@ -3,6 +3,8 @@ package tests_test
 import (
 	"flag"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/goexpect"
@@ -24,6 +26,7 @@ const (
 	ipAddCmd           = "sudo ip add a %s/24 dev %s \n"
 	ipUpCmd            = "sudo ip link set up %s \n"
 	privilegedTestUser = "privileged-test-user"
+	noVlanPortName     = "ovs_novlan_port"
 )
 
 type NodesToIp struct {
@@ -31,7 +34,7 @@ type NodesToIp struct {
 	ip   string
 }
 
-var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:component]Network Connectivity", func() {
+var _ = Describe("[rfe_id:694][crit:medium][vendor:cnv-qe@redhat.com][level:component]Network Connectivity", func() {
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
@@ -42,10 +45,14 @@ var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 	var nodesNames [2]string
 	var defaultVmsIp [2]string
 	var nodesToIpList [2]NodesToIp
+	var ovsNodeIps [2]string
+	var ipLinkCmd []string
 
 	ktests.BeforeAll(func() {
 		ktests.BeforeTestCleanup()
 		ovsVmsIp = [2]string{"192.168.0.1", "192.168.0.2"}
+		ovsNodeIps = [2]string{"192.168.0.3", "192.168.0.4"}
+		ipLinkCmd = []string{"bash", "-c", "ip -o link show type veth | wc -l"}
 		_, _, err := ktests.RunCommand("oc", "create", "serviceaccount", privilegedTestUser)
 		Expect(err).ToNot(HaveOccurred())
 		_, _, err = ktests.RunCommand("oc", "adm", "policy", "add-scc-to-user", "privileged", "-z", privilegedTestUser)
@@ -73,7 +80,7 @@ var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 			nodesToIpList[i] = NodesToIp{name: nodesNames[i], ip: ip}
 		}
 
-		for _, pod := range pods.Items {
+		for i, pod := range pods.Items {
 			nodeName := pod.Spec.NodeName
 			podContainer := pod.Spec.Containers[0].Name
 			var nextNodeIp string
@@ -90,7 +97,6 @@ var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 				"-o=jsonpath='{.status.phase}'",
 				"Running",
 			)
-
 			ktests.ExecuteCommandOnPod(
 				virtClient, &pod, podContainer, []string{ovsVsCtl, "add-br", bridgeName},
 			)
@@ -102,6 +108,21 @@ var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 					"vxlan",
 					"--",
 					"set", "Interface", "vxlan", "type=vxlan", "options:remote_ip=" + nextNodeIp,
+				},
+			)
+			ktests.ExecuteCommandOnPod(
+				virtClient, &pod, podContainer, []string{
+					ovsVsCtl,
+					"add-port",
+					bridgeName,
+					noVlanPortName,
+					"--",
+					"set", "Interface", noVlanPortName, "type=internal",
+				},
+			)
+			ktests.ExecuteCommandOnPod(
+				virtClient, &pod, podContainer, []string{
+					"ip", "addr", "add", ovsNodeIps[i], "dev", noVlanPortName,
 				},
 			)
 		}
@@ -168,7 +189,7 @@ var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 				&expect.BExp{R: "3 packets transmitted"},
 				&expect.BSnd{S: "echo $?\n"},
 				&expect.BExp{R: "0"},
-			}, 60*time.Second)
+			}, 30*time.Second)
 			Expect(err).ToNot(HaveOccurred())
 		}
 	})
@@ -182,8 +203,59 @@ var _ = Describe("[rfe_id:273][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 				&expect.BExp{R: "3 packets transmitted"},
 				&expect.BSnd{S: "echo $?\n"},
 				&expect.BExp{R: "0"},
-			}, 60*time.Second)
+			}, 30*time.Second)
 			Expect(err).ToNot(HaveOccurred())
+		}
+	})
+	It("[test_id:743]Connection should failed between no VLAN specified interface and VM with VLAN network", func() {
+		expecter, err := ktests.LoggedInCirrosExpecter(vmiList[0])
+		Expect(err).ToNot(HaveOccurred())
+		defer expecter.Close()
+		_, err = expecter.ExpectBatch([]expect.Batcher{
+			&expect.BSnd{S: "ping -w 3 " + ovsNodeIps[0] + "\n"},
+			&expect.BExp{R: "3 packets transmitted"},
+			&expect.BSnd{S: "echo $?\n"},
+			&expect.BExp{R: "1"},
+		}, 30*time.Second)
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("[test_id:681]The veth will be removed after deleting the VM", func() {
+		// Make sure this test excute last since the VMs are removed in the test
+		var out string
+		var numberOfVethsBeforeDelete [2]int
+		var numberOfVethsAfterDelete [2]int
+		// Get number of veth for each node while VMs are running
+		for i, pod := range pods.Items {
+			podContainer := pod.Spec.Containers[0].Name
+			out, err = ktests.ExecuteCommandOnPod(
+				virtClient, &pod, podContainer, ipLinkCmd,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			stripOut := strings.TrimSuffix(out, "\n")
+			intOut, err := strconv.Atoi(stripOut)
+			Expect(err).ToNot(HaveOccurred())
+			numberOfVethsBeforeDelete[i] = intOut
+		}
+		By("Delete VMs")
+		for _, vm := range vmiList {
+			tests.DeleteResourceByName("vmi", tests.NamespaceTestDefault, vm.ObjectMeta.Name)
+		}
+		// Get number of veth for each node after VMs was deleted
+		for i, pod := range pods.Items {
+			podContainer := pod.Spec.Containers[0].Name
+			out, err := ktests.ExecuteCommandOnPod(
+				virtClient, &pod, podContainer, ipLinkCmd,
+			)
+			Expect(err).ToNot(HaveOccurred())
+			stripOut := strings.TrimSuffix(out, "\n")
+			intOut, err := strconv.Atoi(stripOut)
+			Expect(err).ToNot(HaveOccurred())
+			numberOfVethsAfterDelete[i] = intOut
+		}
+		// Check that we have 2 veth less for each node (each VM have 2 interfaces)
+		By("Chack that all veth interfaces that was used by the VMs are deleted from the nodes")
+		for i := range numberOfVethsBeforeDelete {
+			Expect(numberOfVethsBeforeDelete[i] - 2).To(BeEquivalentTo(numberOfVethsAfterDelete[i]))
 		}
 	})
 })
