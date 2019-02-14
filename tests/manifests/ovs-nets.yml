@@ -1,3 +1,4 @@
+---
 apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
@@ -9,4 +10,16 @@ spec:
       "type": "ovs",
       "bridge": "br1_for_vxlan",
       "vlan": 100
+    }'
+---
+apiVersion: "k8s.cni.cncf.io/v1"
+kind: NetworkAttachmentDefinition
+metadata:
+  name: ovs-net-bond
+  namespace: kubevirt-test-default
+spec:
+  config: '{
+      "cniVersion": "0.3.1",
+      "type": "ovs",
+      "bridge": "br1_for_bond"
     }'
