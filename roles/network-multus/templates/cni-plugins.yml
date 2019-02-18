@@ -24,6 +24,13 @@ spec:
       containers:
       - name: cni-plugins
         image: {{ cni_provisioner_repo }}:{{ cni_provisioner_release }}
+        command:
+        - /bin/bash
+        - -c
+        - |
+          cp -rf /usr/src/containernetworking/plugins/bin/* /opt/cni/bin/
+          echo "Entering sleep... (success)"
+          sleep infinity
         resources:
           requests:
             cpu: "100m"
