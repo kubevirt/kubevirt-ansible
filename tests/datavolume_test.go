@@ -13,7 +13,7 @@ import (
 // template parameters
 const rawDataVolumeVMFilePath = "tests/manifests/template/datavolume-vm.yml"
 const rawDataVolumeVMIFilePath = "tests/manifests/template/datavolume-vmi.yml"
-const rawDataVolumeFilePath = "tests/manifests/template/datavolume.yml"
+const rawDataVolumeTestFilePath = "tests/manifests/template/datavolume.yml"
 
 var _ = Describe("DataVolume Integration Test", func() {
 	var dataVolumeName, vmName, dstDataVolumeFilePath, url, dstVMIFilePath string
@@ -63,7 +63,7 @@ var _ = Describe("DataVolume Integration Test", func() {
 		})
 
 		It("Pre creating datavolume then create VMI will be success", func() {
-			tests.ProcessTemplateWithParameters(rawDataVolumeFilePath, dstDataVolumeFilePath, "DATAVOLUME_NAME="+dataVolumeName, "IMG_URL="+tests.ReplaceImageURL(url))
+			tests.ProcessTemplateWithParameters(rawDataVolumeTestFilePath, dstDataVolumeFilePath, "DATAVOLUME_NAME="+dataVolumeName, "IMG_URL="+tests.ReplaceImageURL(url))
 			tests.CreateResourceWithFilePathTestNamespace(dstDataVolumeFilePath)
 			tests.ProcessTemplateWithParameters(rawDataVolumeVMIFilePath, dstVMIFilePath, "VM_APIVERSION="+kubev1.GroupVersion.String(), "VM_NAME="+vmName, "DATAVOLUME_NAME="+dataVolumeName)
 			tests.CreateResourceWithFilePathTestNamespace(dstVMIFilePath)
