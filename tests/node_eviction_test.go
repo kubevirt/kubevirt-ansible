@@ -99,7 +99,7 @@ var _ = Describe("Node Eviction", func() {
 		})
 	})
 
-	PDescribe("VirtualMachineInstanceReplicaSet Eviction", func() {
+	Describe("VirtualMachineInstanceReplicaSet Eviction", func() {
 		BeforeEach(func() {
 			vmi.Name = "vmi-replicaset-cirros"
 			vmi.Manifest = "tests/manifests/vmi-replicaset-cirros.yaml"
