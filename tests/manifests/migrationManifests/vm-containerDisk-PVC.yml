@@ -1,0 +1,54 @@
+apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachine
+metadata:
+  creationTimestamp: null
+  labels:
+    kubevirt-vm: vm-container-pvc
+  name: vm-container-pvc
+spec:
+  running: false
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        kubevirt-vm: vm-container-pvc
+    spec:
+      domain:
+        cpu:
+          cores: 1
+          model: Nehalem
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: disk0
+          - disk:
+              bus: virtio
+            name: disk1
+        machine:
+          type: ""
+        resources:
+          requests:
+            memory: 128M
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - name: disk0
+        containerDisk:
+          image: kubevirt/cirros-registry-disk-demo:latest
+      - name: disk1
+        persistentVolumeClaim:
+          claimName: vm-pvc-empty
+status: {}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: null
+  name: vm-pvc-empty
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+status: {}

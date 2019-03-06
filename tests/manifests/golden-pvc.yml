@@ -14,7 +14,7 @@ objects:
       cdi.kubevirt.io/storage.import.secretName: "${EP_SECRET}"
   spec:
     accessModes:
-    - ReadWriteOnce
+    - ${ACCESS_MODE}
     resources:
       requests:
         storage: 1Gi
@@ -22,3 +22,6 @@ parameters:
 - name: PVC_NAME
 - name: EP_URL
 - name: EP_SECRET
+- name: ACCESS_MODE
+  description: Non-Shared PVC - ReadWriteOnce, Shared PVC - ReadWriteMany
+  value: ReadWriteOnce

@@ -2,8 +2,6 @@ package framework
 
 import (
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -62,32 +60,32 @@ func GetNamespaces() ([]string, error) {
 }
 
 func DumpObjectsByType(namespace string, objType string, dest string) error {
-	var filename string
-	fullDest := filepath.Join(dest, namespace, objType)
-	names, err := GetObjects(namespace, objType)
-
-	if err != nil {
-		return err
-	}
-	m, err := DescribeObjects(namespace, names)
-
-	if err != nil {
-		return err
-	}
-
-	if len(m) == 0 {
-		return nil
-	}
-
-	os.MkdirAll(fullDest, 0770)
-
-	for name, desc := range m {
-		filename = filepath.Join(fullDest, filepath.Base(name))
-		err = ioutil.WriteFile(filename, []byte(desc), 0644)
-		if err != nil {
-			return err
-		}
-	}
+	//var filename string
+	//fullDest := filepath.Join(dest, namespace, objType)
+	//names, err := GetObjects(namespace, objType)
+	//
+	//if err != nil {
+	//	return err
+	//}
+	//m, err := DescribeObjects(namespace, names)
+	//
+	//if err != nil {
+	//	return err
+	//}
+	//
+	//if len(m) == 0 {
+	//	return nil
+	//}
+	//
+	//os.MkdirAll(fullDest, 0770)
+	//
+	//for name, desc := range m {
+	//	filename = filepath.Join(fullDest, filepath.Base(name))
+	//	err = ioutil.WriteFile(filename, []byte(desc), 0644)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 
 	return nil
 }

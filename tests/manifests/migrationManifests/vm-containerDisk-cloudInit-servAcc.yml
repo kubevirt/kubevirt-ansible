@@ -1,0 +1,53 @@
+apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachine
+metadata:
+  creationTimestamp: null
+  labels:
+    kubevirt-vm: vm-container-cloud-servacc
+  name: vm-container-cloud-servacc
+spec:
+  running: false
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        kubevirt-vm: vm-container-cloud-servacc
+    spec:
+      domain:
+        cpu:
+          cores: 2
+          model: Nehalem
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: disk0
+          - disk:
+              bus: virtio
+            name: cloudinitdisk
+          - disk: {}
+            name: default-disk
+            serial: D23YZ9W6WA5DJ999
+        machine:
+          type: ""
+        resources:
+          requests:
+            memory: 2048Mi
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - name: disk0
+        containerDisk:
+          image: kubevirt/fedora-cloud-registry-disk-demo:latest
+      - cloudInitNoCloud:
+          userData: |-
+            #cloud-config
+            password: fedora
+            chpasswd: { expire: False }
+            bootcmd:
+              - "mkdir /mnt/servacc"
+              - "mount /dev/$(lsblk --nodeps -no name,serial | grep D23YZ9W6WA5DJ999 | cut -f1 -d' ') /mnt/servacc"
+        name: cloudinitdisk
+      - serviceAccount:
+          serviceAccountName: default
+        name: default-disk
+status: {}

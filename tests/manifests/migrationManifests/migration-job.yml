@@ -1,0 +1,17 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  creationTimestamp: null
+  name: migration-job
+objects:
+- apiVersion: kubevirt.io/v1alpha3
+  kind: VirtualMachineInstanceMigration
+  metadata:
+    creationTimestamp: null
+    name: job1
+  spec:
+    vmiName: ${VM_NAME}
+  status: {}
+parameters:
+- name: VM_NAME

@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -70,6 +71,17 @@ func writeJson(jsonFile string, json string) (string, error) {
 func RunOcDescribeCommand(resourceType, resourceName string) string {
 	fmt.Printf("Getting 'oc describe' with: %s ", resourceName)
 	return execute(Result{cmd: "oc", verb: "describe", resourceType: resourceType, resourceName: resourceName})
+}
+
+func GetResourceSpecificParameters(resourceType, resourceName, query string) string {
+	return execute(Result{cmd: "oc", verb: "get", resourceType: resourceType, resourceName: resourceName, query: query})
+}
+
+func WaitUntilResourceDeleted(resourceType, resourceName string) {
+	Eventually(func() bool {
+		res, _ := GetObjects(NamespaceTestDefault, resourceType)
+		return !strings.Contains(strings.Join(res, ""), resourceName)
+	}, LongTimeout).Should(BeTrue(), fmt.Sprintf("Timed out waiting for %s ", resourceType))
 }
 
 // generatePrivateKey creates a RSA Private Key of specified byte size
