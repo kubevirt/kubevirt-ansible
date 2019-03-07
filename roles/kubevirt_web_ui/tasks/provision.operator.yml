@@ -37,6 +37,15 @@
 - name: Add roles
   shell: "{{ cluster_command }} apply -f {{ files_dir }}/role.yaml"
 
+- name: Add roles to access kube-public
+  block:
+  - name: Render roles for kube-public
+    template:
+      src: "{{ files_dir }}/role_kube-public.yaml"
+      dest: "{{ mktemp.stdout }}/role_kube-public.yaml"
+  - name: Apply roles for kube-public
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/role_kube-public.yaml"
+
 - name: Add roles to access openshift-console
   block:
   - name: Render roles bindings for openshift-console
@@ -65,6 +74,15 @@
   - name: Apply role bindings for openshift-console
     shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/role_binding_extra_for_console.yaml"
   when: ns_console != ""
+
+- name: Add role bindings for kube-public
+  block:
+  - name: Render role bindings for kube-public
+    template:
+      src: "{{ files_dir }}/role_binding_kube-public.yaml"
+      dest: "{{ mktemp.stdout }}/role_binding_kube-public.yaml"
+  - name: Apply role bindings for kube-public
+    shell: "{{ cluster_command }} apply -f {{ mktemp.stdout }}/role_binding_kube-public.yaml"
 
 - name: Add Custom Resource Definition for operator
   shell: "{{ cluster_command }} apply -f {{ files_dir }}/crds/kubevirt_v1alpha1_kwebui_crd.yaml"
