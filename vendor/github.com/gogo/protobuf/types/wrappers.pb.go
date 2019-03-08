@@ -1937,7 +1937,7 @@ func (m *DoubleValue) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1971,6 +1971,9 @@ func (m *DoubleValue) Unmarshal(dAtA []byte) error {
 			if skippy < 0 {
 				return ErrInvalidLengthWrappers
 			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthWrappers
+			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1999,7 +2002,7 @@ func (m *FloatValue) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2033,6 +2036,9 @@ func (m *FloatValue) Unmarshal(dAtA []byte) error {
 			if skippy < 0 {
 				return ErrInvalidLengthWrappers
 			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthWrappers
+			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2061,7 +2067,7 @@ func (m *Int64Value) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2089,7 +2095,7 @@ func (m *Int64Value) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Value |= (int64(b) & 0x7F) << shift
+				m.Value |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2101,6 +2107,9 @@ func (m *Int64Value) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthWrappers
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthWrappers
 			}
 			if (iNdEx + skippy) > l {
@@ -2131,7 +2140,7 @@ func (m *UInt64Value) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2159,7 +2168,7 @@ func (m *UInt64Value) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Value |= (uint64(b) & 0x7F) << shift
+				m.Value |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2171,6 +2180,9 @@ func (m *UInt64Value) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthWrappers
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthWrappers
 			}
 			if (iNdEx + skippy) > l {
@@ -2201,7 +2213,7 @@ func (m *Int32Value) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2229,7 +2241,7 @@ func (m *Int32Value) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Value |= (int32(b) & 0x7F) << shift
+				m.Value |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2241,6 +2253,9 @@ func (m *Int32Value) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthWrappers
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthWrappers
 			}
 			if (iNdEx + skippy) > l {
@@ -2271,7 +2286,7 @@ func (m *UInt32Value) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2299,7 +2314,7 @@ func (m *UInt32Value) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Value |= (uint32(b) & 0x7F) << shift
+				m.Value |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2311,6 +2326,9 @@ func (m *UInt32Value) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthWrappers
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthWrappers
 			}
 			if (iNdEx + skippy) > l {
@@ -2341,7 +2359,7 @@ func (m *BoolValue) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2369,7 +2387,7 @@ func (m *BoolValue) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2382,6 +2400,9 @@ func (m *BoolValue) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthWrappers
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthWrappers
 			}
 			if (iNdEx + skippy) > l {
@@ -2412,7 +2433,7 @@ func (m *StringValue) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2440,7 +2461,7 @@ func (m *StringValue) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2450,6 +2471,9 @@ func (m *StringValue) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthWrappers
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthWrappers
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2462,6 +2486,9 @@ func (m *StringValue) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthWrappers
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthWrappers
 			}
 			if (iNdEx + skippy) > l {
@@ -2492,7 +2519,7 @@ func (m *BytesValue) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2520,7 +2547,7 @@ func (m *BytesValue) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2529,6 +2556,9 @@ func (m *BytesValue) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthWrappers
 			}
 			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthWrappers
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2544,6 +2574,9 @@ func (m *BytesValue) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthWrappers
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthWrappers
 			}
 			if (iNdEx + skippy) > l {
@@ -2613,8 +2646,11 @@ func skipWrappers(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthWrappers
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthWrappers
 			}
 			return iNdEx, nil
@@ -2645,6 +2681,9 @@ func skipWrappers(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthWrappers
+				}
 			}
 			return iNdEx, nil
 		case 4:

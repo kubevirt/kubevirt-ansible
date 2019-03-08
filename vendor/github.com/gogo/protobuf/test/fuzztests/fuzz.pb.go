@@ -1347,7 +1347,7 @@ func (m *Nil) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1368,6 +1368,9 @@ func (m *Nil) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthFuzz
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthFuzz
 			}
 			if (iNdEx + skippy) > l {
@@ -1398,7 +1401,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1433,7 +1436,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1442,6 +1445,9 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -1484,7 +1490,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1493,6 +1499,9 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -1526,7 +1535,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					v |= (int32(b) & 0x7F) << shift
+					v |= int32(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1543,7 +1552,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1552,12 +1561,15 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
 				var elementCount int
 				var count int
-				for _, integer := range dAtA {
+				for _, integer := range dAtA[iNdEx:postIndex] {
 					if integer < 128 {
 						count++
 					}
@@ -1577,7 +1589,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						v |= (int32(b) & 0x7F) << shift
+						v |= int32(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -1599,7 +1611,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					v |= (int64(b) & 0x7F) << shift
+					v |= int64(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1616,7 +1628,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1625,12 +1637,15 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
 				var elementCount int
 				var count int
-				for _, integer := range dAtA {
+				for _, integer := range dAtA[iNdEx:postIndex] {
 					if integer < 128 {
 						count++
 					}
@@ -1650,7 +1665,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						v |= (int64(b) & 0x7F) << shift
+						v |= int64(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -1672,7 +1687,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					v |= (uint32(b) & 0x7F) << shift
+					v |= uint32(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1689,7 +1704,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1698,12 +1713,15 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
 				var elementCount int
 				var count int
-				for _, integer := range dAtA {
+				for _, integer := range dAtA[iNdEx:postIndex] {
 					if integer < 128 {
 						count++
 					}
@@ -1723,7 +1741,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						v |= (uint32(b) & 0x7F) << shift
+						v |= uint32(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -1745,7 +1763,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					v |= (uint64(b) & 0x7F) << shift
+					v |= uint64(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1762,7 +1780,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1771,12 +1789,15 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
 				var elementCount int
 				var count int
-				for _, integer := range dAtA {
+				for _, integer := range dAtA[iNdEx:postIndex] {
 					if integer < 128 {
 						count++
 					}
@@ -1796,7 +1817,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						v |= (uint64(b) & 0x7F) << shift
+						v |= uint64(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -1818,7 +1839,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					v |= (int32(b) & 0x7F) << shift
+					v |= int32(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1836,7 +1857,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1845,12 +1866,15 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
 				var elementCount int
 				var count int
-				for _, integer := range dAtA {
+				for _, integer := range dAtA[iNdEx:postIndex] {
 					if integer < 128 {
 						count++
 					}
@@ -1870,7 +1894,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						v |= (int32(b) & 0x7F) << shift
+						v |= int32(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -1893,7 +1917,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					v |= (uint64(b) & 0x7F) << shift
+					v |= uint64(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1911,7 +1935,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1920,12 +1944,15 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
 				var elementCount int
 				var count int
-				for _, integer := range dAtA {
+				for _, integer := range dAtA[iNdEx:postIndex] {
 					if integer < 128 {
 						count++
 					}
@@ -1945,7 +1972,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						v |= (uint64(b) & 0x7F) << shift
+						v |= uint64(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -1976,7 +2003,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1985,6 +2012,9 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -2025,7 +2055,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -2034,6 +2064,9 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -2074,7 +2107,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -2083,6 +2116,9 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -2123,7 +2159,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -2132,6 +2168,9 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -2164,7 +2203,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					v |= (int(b) & 0x7F) << shift
+					v |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -2181,7 +2220,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -2190,6 +2229,9 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthFuzz
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthFuzz
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -2209,7 +2251,7 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						v |= (int(b) & 0x7F) << shift
+						v |= int(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -2226,6 +2268,9 @@ func (m *NinRepPackedNative) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthFuzz
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthFuzz
 			}
 			if (iNdEx + skippy) > l {
@@ -2256,7 +2301,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2308,7 +2353,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int32(b) & 0x7F) << shift
+				v |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2328,7 +2373,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2348,7 +2393,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (uint32(b) & 0x7F) << shift
+				v |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2368,7 +2413,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (uint64(b) & 0x7F) << shift
+				v |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2388,7 +2433,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int32(b) & 0x7F) << shift
+				v |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2409,7 +2454,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (uint64(b) & 0x7F) << shift
+				v |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2475,7 +2520,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2496,7 +2541,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2506,6 +2551,9 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthFuzz
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthFuzz
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2526,7 +2574,7 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2535,6 +2583,9 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthFuzz
 			}
 			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthFuzz
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2550,6 +2601,9 @@ func (m *NinOptNative) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthFuzz
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthFuzz
 			}
 			if (iNdEx + skippy) > l {
@@ -2580,7 +2634,7 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -2632,7 +2686,7 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2641,6 +2695,9 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthFuzz
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFuzz
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2665,7 +2722,7 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2674,6 +2731,9 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthFuzz
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFuzz
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2698,7 +2758,7 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (uint64(b) & 0x7F) << shift
+				v |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2718,7 +2778,7 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int32(b) & 0x7F) << shift
+				v |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2739,7 +2799,7 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2748,6 +2808,9 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthFuzz
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthFuzz
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2772,7 +2835,7 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2793,7 +2856,7 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2803,6 +2866,9 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthFuzz
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthFuzz
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2823,7 +2889,7 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -2832,6 +2898,9 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthFuzz
 			}
 			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthFuzz
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -2847,6 +2916,9 @@ func (m *NinOptStruct) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthFuzz
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthFuzz
 			}
 			if (iNdEx + skippy) > l {
@@ -2916,8 +2988,11 @@ func skipFuzz(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthFuzz
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthFuzz
 			}
 			return iNdEx, nil
@@ -2948,6 +3023,9 @@ func skipFuzz(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthFuzz
+				}
 			}
 			return iNdEx, nil
 		case 4:

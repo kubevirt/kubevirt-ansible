@@ -48,6 +48,14 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&OpenShiftAPIServerList{},
 		&OpenShiftControllerManager{},
 		&OpenShiftControllerManagerList{},
+		&ServiceCA{},
+		&ServiceCAList{},
+		&ServiceCatalogAPIServer{},
+		&ServiceCatalogAPIServerList{},
+		&ServiceCatalogControllerManager{},
+		&ServiceCatalogControllerManagerList{},
+		&IngressController{},
+		&IngressControllerList{},
 	)
 
 	return nil

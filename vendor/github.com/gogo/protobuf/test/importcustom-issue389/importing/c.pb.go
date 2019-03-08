@@ -285,7 +285,7 @@ func (m *C) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -313,7 +313,7 @@ func (m *C) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -322,6 +322,9 @@ func (m *C) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthC
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthC
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -339,6 +342,9 @@ func (m *C) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthC
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthC
 			}
 			if (iNdEx + skippy) > l {
@@ -408,8 +414,11 @@ func skipC(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthC
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthC
 			}
 			return iNdEx, nil
@@ -440,6 +449,9 @@ func skipC(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthC
+				}
 			}
 			return iNdEx, nil
 		case 4:

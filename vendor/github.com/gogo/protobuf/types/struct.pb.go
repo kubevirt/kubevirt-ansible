@@ -1441,7 +1441,7 @@ func (m *Struct) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1469,7 +1469,7 @@ func (m *Struct) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1478,6 +1478,9 @@ func (m *Struct) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthStruct
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthStruct
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1498,7 +1501,7 @@ func (m *Struct) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					wire |= (uint64(b) & 0x7F) << shift
+					wire |= uint64(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1515,7 +1518,7 @@ func (m *Struct) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						stringLenmapkey |= (uint64(b) & 0x7F) << shift
+						stringLenmapkey |= uint64(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -1525,6 +1528,9 @@ func (m *Struct) Unmarshal(dAtA []byte) error {
 						return ErrInvalidLengthStruct
 					}
 					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLengthStruct
+					}
 					if postStringIndexmapkey > l {
 						return io.ErrUnexpectedEOF
 					}
@@ -1541,7 +1547,7 @@ func (m *Struct) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						mapmsglen |= (int(b) & 0x7F) << shift
+						mapmsglen |= int(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -1550,7 +1556,7 @@ func (m *Struct) Unmarshal(dAtA []byte) error {
 						return ErrInvalidLengthStruct
 					}
 					postmsgIndex := iNdEx + mapmsglen
-					if mapmsglen < 0 {
+					if postmsgIndex < 0 {
 						return ErrInvalidLengthStruct
 					}
 					if postmsgIndex > l {
@@ -1587,6 +1593,9 @@ func (m *Struct) Unmarshal(dAtA []byte) error {
 			if skippy < 0 {
 				return ErrInvalidLengthStruct
 			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthStruct
+			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1615,7 +1624,7 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1643,7 +1652,7 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (NullValue(b) & 0x7F) << shift
+				v |= NullValue(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1674,7 +1683,7 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1684,6 +1693,9 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthStruct
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthStruct
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1703,7 +1715,7 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1724,7 +1736,7 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1733,6 +1745,9 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthStruct
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthStruct
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1756,7 +1771,7 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1765,6 +1780,9 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthStruct
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthStruct
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1781,6 +1799,9 @@ func (m *Value) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthStruct
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthStruct
 			}
 			if (iNdEx + skippy) > l {
@@ -1811,7 +1832,7 @@ func (m *ListValue) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1839,7 +1860,7 @@ func (m *ListValue) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1848,6 +1869,9 @@ func (m *ListValue) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthStruct
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthStruct
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1863,6 +1887,9 @@ func (m *ListValue) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthStruct
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthStruct
 			}
 			if (iNdEx + skippy) > l {
@@ -1932,8 +1959,11 @@ func skipStruct(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthStruct
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthStruct
 			}
 			return iNdEx, nil
@@ -1964,6 +1994,9 @@ func skipStruct(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthStruct
+				}
 			}
 			return iNdEx, nil
 		case 4:

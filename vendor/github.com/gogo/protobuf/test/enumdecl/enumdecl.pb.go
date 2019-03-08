@@ -331,7 +331,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -359,7 +359,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.EnumeratedField |= (MyEnum(b) & 0x7F) << shift
+				m.EnumeratedField |= MyEnum(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -371,6 +371,9 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthEnumdecl
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthEnumdecl
 			}
 			if (iNdEx + skippy) > l {
@@ -440,8 +443,11 @@ func skipEnumdecl(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthEnumdecl
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthEnumdecl
 			}
 			return iNdEx, nil
@@ -472,6 +478,9 @@ func skipEnumdecl(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthEnumdecl
+				}
 			}
 			return iNdEx, nil
 		case 4:

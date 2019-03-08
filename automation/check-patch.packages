@@ -3,3 +3,4 @@ ansible-2.7.7-1.el7
 origin-clients
 docker
 python-pip
+python2-virtualenv

@@ -3124,7 +3124,7 @@ func (m *A) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3152,7 +3152,7 @@ func (m *A) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3161,6 +3161,9 @@ func (m *A) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3183,7 +3186,7 @@ func (m *A) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3196,6 +3199,9 @@ func (m *A) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnrecognized
 			}
 			if (iNdEx + skippy) > l {
@@ -3225,7 +3231,7 @@ func (m *B) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3253,7 +3259,7 @@ func (m *B) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3262,6 +3268,9 @@ func (m *B) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3286,7 +3295,7 @@ func (m *B) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3295,6 +3304,9 @@ func (m *B) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3319,7 +3331,7 @@ func (m *B) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3328,6 +3340,9 @@ func (m *B) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3345,6 +3360,9 @@ func (m *B) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnrecognized
 			}
 			if (iNdEx + skippy) > l {
@@ -3375,7 +3393,7 @@ func (m *D) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3403,7 +3421,7 @@ func (m *D) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3416,6 +3434,9 @@ func (m *D) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnrecognized
 			}
 			if (iNdEx + skippy) > l {
@@ -3446,7 +3467,7 @@ func (m *C) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3486,7 +3507,7 @@ func (m *C) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3496,6 +3517,9 @@ func (m *C) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3528,7 +3552,7 @@ func (m *C) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3537,6 +3561,9 @@ func (m *C) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3557,7 +3584,7 @@ func (m *C) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3584,7 +3611,7 @@ func (m *C) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -3593,6 +3620,9 @@ func (m *C) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthUnrecognized
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthUnrecognized
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -3623,6 +3653,9 @@ func (m *C) Unmarshal(dAtA []byte) error {
 			if skippy < 0 {
 				return ErrInvalidLengthUnrecognized
 			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3651,7 +3684,7 @@ func (m *U) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3686,7 +3719,7 @@ func (m *U) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -3695,6 +3728,9 @@ func (m *U) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthUnrecognized
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthUnrecognized
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -3730,7 +3766,7 @@ func (m *U) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (uint32(b) & 0x7F) << shift
+				v |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3743,6 +3779,9 @@ func (m *U) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnrecognized
 			}
 			if (iNdEx + skippy) > l {
@@ -3772,7 +3811,7 @@ func (m *OldA) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3800,7 +3839,7 @@ func (m *OldA) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3809,6 +3848,9 @@ func (m *OldA) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3831,7 +3873,7 @@ func (m *OldA) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3844,6 +3886,9 @@ func (m *OldA) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnrecognized
 			}
 			if (iNdEx + skippy) > l {
@@ -3873,7 +3918,7 @@ func (m *OldB) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -3901,7 +3946,7 @@ func (m *OldB) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3910,6 +3955,9 @@ func (m *OldB) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3934,7 +3982,7 @@ func (m *OldB) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -3943,6 +3991,9 @@ func (m *OldB) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -3960,6 +4011,9 @@ func (m *OldB) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnrecognized
 			}
 			if (iNdEx + skippy) > l {
@@ -3990,7 +4044,7 @@ func (m *OldC) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -4018,7 +4072,7 @@ func (m *OldC) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4050,7 +4104,7 @@ func (m *OldC) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4060,6 +4114,9 @@ func (m *OldC) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4080,7 +4137,7 @@ func (m *OldC) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4107,7 +4164,7 @@ func (m *OldC) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -4116,6 +4173,9 @@ func (m *OldC) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthUnrecognized
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthUnrecognized
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -4146,6 +4206,9 @@ func (m *OldC) Unmarshal(dAtA []byte) error {
 			if skippy < 0 {
 				return ErrInvalidLengthUnrecognized
 			}
+			if (iNdEx + skippy) < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if (iNdEx + skippy) > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4174,7 +4237,7 @@ func (m *OldU) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -4202,7 +4265,7 @@ func (m *OldU) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -4212,6 +4275,9 @@ func (m *OldU) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognized
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -4239,7 +4305,7 @@ func (m *OldU) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -4248,6 +4314,9 @@ func (m *OldU) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthUnrecognized
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthUnrecognized
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -4276,6 +4345,9 @@ func (m *OldU) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnrecognized
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnrecognized
 			}
 			if (iNdEx + skippy) > l {
@@ -4345,8 +4417,11 @@ func skipUnrecognized(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthUnrecognized
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthUnrecognized
 			}
 			return iNdEx, nil
@@ -4377,6 +4452,9 @@ func skipUnrecognized(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthUnrecognized
+				}
 			}
 			return iNdEx, nil
 		case 4:

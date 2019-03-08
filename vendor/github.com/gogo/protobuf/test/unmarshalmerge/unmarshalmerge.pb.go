@@ -978,7 +978,7 @@ func (m *Big) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1006,7 +1006,7 @@ func (m *Big) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1015,6 +1015,9 @@ func (m *Big) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnmarshalmerge
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnmarshalmerge
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1039,7 +1042,7 @@ func (m *Big) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1052,6 +1055,9 @@ func (m *Big) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnmarshalmerge
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnmarshalmerge
 			}
 			if (iNdEx + skippy) > l {
@@ -1082,7 +1088,7 @@ func (m *BigUnsafe) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1110,7 +1116,7 @@ func (m *BigUnsafe) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1119,6 +1125,9 @@ func (m *BigUnsafe) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnmarshalmerge
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnmarshalmerge
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1143,7 +1152,7 @@ func (m *BigUnsafe) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1156,6 +1165,9 @@ func (m *BigUnsafe) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnmarshalmerge
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnmarshalmerge
 			}
 			if (iNdEx + skippy) > l {
@@ -1186,7 +1198,7 @@ func (m *Sub) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1214,7 +1226,7 @@ func (m *Sub) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1227,6 +1239,9 @@ func (m *Sub) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnmarshalmerge
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnmarshalmerge
 			}
 			if (iNdEx + skippy) > l {
@@ -1258,7 +1273,7 @@ func (m *IntMerge) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1286,7 +1301,7 @@ func (m *IntMerge) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Int64 |= (int64(b) & 0x7F) << shift
+				m.Int64 |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1306,7 +1321,7 @@ func (m *IntMerge) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Int32 |= (int32(b) & 0x7F) << shift
+				m.Int32 |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1325,7 +1340,7 @@ func (m *IntMerge) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int32(b) & 0x7F) << shift
+				v |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1347,7 +1362,7 @@ func (m *IntMerge) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (uint64(b) & 0x7F) << shift
+				v |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1368,7 +1383,7 @@ func (m *IntMerge) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Uint64 |= (uint64(b) & 0x7F) << shift
+				m.Uint64 |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1387,7 +1402,7 @@ func (m *IntMerge) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Uint32 |= (uint32(b) & 0x7F) << shift
+				m.Uint32 |= uint32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1448,7 +1463,7 @@ func (m *IntMerge) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1461,6 +1476,9 @@ func (m *IntMerge) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnmarshalmerge
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnmarshalmerge
 			}
 			if (iNdEx + skippy) > l {
@@ -1542,8 +1560,11 @@ func skipUnmarshalmerge(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthUnmarshalmerge
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthUnmarshalmerge
 			}
 			return iNdEx, nil
@@ -1574,6 +1595,9 @@ func skipUnmarshalmerge(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthUnmarshalmerge
+				}
 			}
 			return iNdEx, nil
 		case 4:

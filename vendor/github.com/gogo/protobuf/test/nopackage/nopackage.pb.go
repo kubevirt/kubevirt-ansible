@@ -184,7 +184,7 @@ func (m *M) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -212,7 +212,7 @@ func (m *M) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -221,6 +221,9 @@ func (m *M) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthNopackage
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthNopackage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -241,7 +244,7 @@ func (m *M) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					wire |= (uint64(b) & 0x7F) << shift
+					wire |= uint64(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -258,7 +261,7 @@ func (m *M) Unmarshal(dAtA []byte) error {
 						}
 						b := dAtA[iNdEx]
 						iNdEx++
-						stringLenmapkey |= (uint64(b) & 0x7F) << shift
+						stringLenmapkey |= uint64(b&0x7F) << shift
 						if b < 0x80 {
 							break
 						}
@@ -268,6 +271,9 @@ func (m *M) Unmarshal(dAtA []byte) error {
 						return ErrInvalidLengthNopackage
 					}
 					postStringIndexmapkey := iNdEx + intStringLenmapkey
+					if postStringIndexmapkey < 0 {
+						return ErrInvalidLengthNopackage
+					}
 					if postStringIndexmapkey > l {
 						return io.ErrUnexpectedEOF
 					}
@@ -305,6 +311,9 @@ func (m *M) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthNopackage
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthNopackage
 			}
 			if (iNdEx + skippy) > l {
@@ -374,8 +383,11 @@ func skipNopackage(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthNopackage
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthNopackage
 			}
 			return iNdEx, nil
@@ -406,6 +418,9 @@ func skipNopackage(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthNopackage
+				}
 			}
 			return iNdEx, nil
 		case 4:
