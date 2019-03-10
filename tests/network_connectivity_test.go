@@ -92,7 +92,7 @@ var _ = Describe("[rfe_id:694][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 				Expect(err).ToNot(HaveOccurred())
 				return pod.Status.Phase
 			}
-			Eventually(getStatus, 30, 1).Should(Equal(corev1.PodRunning))
+			Eventually(getStatus, 120, 1).Should(Equal(corev1.PodRunning))
 			nodeName := pod.Spec.NodeName
 			podContainer := pod.Spec.Containers[0].Name
 			out, err := ktests.ExecuteCommandOnPod(
