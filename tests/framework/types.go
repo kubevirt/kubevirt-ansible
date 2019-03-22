@@ -39,7 +39,7 @@ type VirtualMachine struct {
 
 func (vm VirtualMachine) Create() (string, string, error) {
 	args := []string{"create", "-f", vm.Manifest}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtOcPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, "oc", args...)
 }
 
 func (vm VirtualMachine) Start() (string, string, error) {

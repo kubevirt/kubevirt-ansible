@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	ktests "kubevirt.io/kubevirt/tests"
+	"math"
 )
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
@@ -148,3 +149,26 @@ func RemoveDataVolume(dvName string, namespace string) {
 	err = virtCli.CdiClient().CdiV1alpha1().DataVolumes(namespace).Delete(dvName, nil)
 	Expect(err).ToNot(HaveOccurred())
 }
+
+func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, memNeeded int64) (int, int, int) {
+	nodeList := ktests.GetAllSchedulableNodes(virtClient)
+	availableVMs, cpu_limit_total, mem_limit_total := 0, 0, 0
+
+	for _, node := range nodeList.Items {
+		cpu := node.Status.Allocatable["cpu"]
+		mem := node.Status.Allocatable["memory"]
+		available_cpu, CpuOK := (&cpu).AsInt64()
+		available_mem, MemOK := (&mem).AsInt64()
+		if CpuOK && MemOK {
+			cpu_limit := int(available_cpu / cpuNeeded)
+			mem_limit := int(available_mem / memNeeded)
+			cpu_limit_total += cpu_limit
+			mem_limit_total += mem_limit
+			availableVMs += int(math.Min(float64(cpu_limit), float64(mem_limit)))
+			//			availableVMs += min(cpu_limit, mem_limit)
+		}
+	}
+
+	return availableVMs, cpu_limit_total, mem_limit_total
+}
+
