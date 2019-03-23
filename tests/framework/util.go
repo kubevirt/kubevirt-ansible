@@ -171,4 +171,3 @@ func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, m
 
 	return availableVMs, cpu_limit_total, mem_limit_total
 }
-
