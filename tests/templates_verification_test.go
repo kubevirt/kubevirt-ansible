@@ -29,8 +29,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"kubevirt.io/kubevirt/tests"
 	"os/exec"
+
+	"kubevirt.io/kubevirt/tests"
 )
 
 func search_for_pattern(yaml_segment string, pattern string) bool {
@@ -73,10 +74,10 @@ var _ = Describe("[rfe_id:1235][crit:medium][vendor:cnv-qe@redhat.com][level:com
 				}
 
 				By("Checking that template contains required lables")
-				Expect(search_for_pattern(yaml_segment, "\\s+os.template.cnv.io/[a-z0-9\\.]+:\\s\"true\"$")).To(BeTrue(), "Template should have os label")
-				Expect(search_for_pattern(yaml_segment, "\\s+workload.template.cnv.io/[a-z]+:\\s\"true\"$")).To(BeTrue(), "Template should have workload label")
-				Expect(search_for_pattern(yaml_segment, "\\s+flavor.template.cnv.io/[a-z]+:\\s\"true\"$")).To(BeTrue(), "Template should have flavor label")
-				Expect(search_for_pattern(yaml_segment, "\\s+template.cnv.io/type:\\s\"base\"$")).To(BeTrue(), "Template should have type base")
+				Expect(search_for_pattern(yaml_segment, "\\s+os.template.kubevirt.io/[a-z0-9\\.]+:\\s\"true\"$")).To(BeTrue(), "Template should have os label")
+				Expect(search_for_pattern(yaml_segment, "\\s+workload.template.kubevirt.io/[a-z]+:\\s\"true\"$")).To(BeTrue(), "Template should have workload label")
+				Expect(search_for_pattern(yaml_segment, "\\s+flavor.template.kubevirt.io/[a-z]+:\\s\"true\"$")).To(BeTrue(), "Template should have flavor label")
+				Expect(search_for_pattern(yaml_segment, "\\s+template.kubevirt.io/type:\\s\"base\"$")).To(BeTrue(), "Template should have type base")
 
 			}
 		})
