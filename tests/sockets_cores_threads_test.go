@@ -187,17 +187,12 @@ var _ = Describe("Check CPU topology inside VM", func() {
 
 			By("clean old pods")
 			listOptions := metav1.ListOptions{}
-			podList, err := virtClient.CoreV1().Pods(ktests.NamespaceTestDefault).List(listOptions)
 			var requiredPods []*corev1.Pod
 			requiredPods = append(requiredPods, vmiPod)
 			clean_pods(virtClient, requiredPods)
 
-			By("Checking that pod was created and has the right name")
-			listOptions = metav1.ListOptions{}
-			podList, err = virtClient.CoreV1().Pods(ktests.NamespaceTestDefault).List(listOptions)
-			Expect(err).ToNot(HaveOccurred())
 			By("Checking resources in the pod")
-			podName := podList.Items[0].Name
+			podName := vmiPod.Name
 			outPodYAML, _, err := ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "get", "pod", podName, "-o", "yaml")
 			Expect(err).ToNot(HaveOccurred())
 			cpuExist, _, _ := parseYAMLConfig(outPodYAML)
