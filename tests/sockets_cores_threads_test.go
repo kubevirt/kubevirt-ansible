@@ -186,7 +186,6 @@ var _ = Describe("Check CPU topology inside VM", func() {
 			vmiPod := ktests.GetRunningPodByVirtualMachineInstance(vmi, ktests.NamespaceTestDefault)
 
 			By("clean old pods")
-			listOptions := metav1.ListOptions{}
 			var requiredPods []*corev1.Pod
 			requiredPods = append(requiredPods, vmiPod)
 			clean_pods(virtClient, requiredPods)
