@@ -10,3 +10,6 @@ import:
 - package: kubevirt.io/qe-tools
   version: v0.1.2
   repo: https://github.com/kubevirt/qe-tools.git
+- package: go-git
+  repo: https://github.com/src-d/go-git.git
+
