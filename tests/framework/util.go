@@ -165,7 +165,6 @@ func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, m
 			cpu_limit_total += cpu_limit
 			mem_limit_total += mem_limit
 			availableVMs += int(math.Min(float64(cpu_limit), float64(mem_limit)))
-			//			availableVMs += min(cpu_limit, mem_limit)
 		}
 	}
 
