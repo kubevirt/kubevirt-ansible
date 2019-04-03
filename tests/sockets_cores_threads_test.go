@@ -165,7 +165,7 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 
 	Context("test case 1.1 Check the validity of the XML file if user didn’t set the CPU topology at all", func() {
 		It("[test_id:1485] testcase 1.1 Check the validity of the XML file if user didn’t set the CPU topology at all", func() {
-		//It("Pre-checks"",func() { 
+			//It("Pre-checks"",func() {
 			vmi11.Manifest = address_common + "vmi-case1.1.yml"
 			vmi11.Namespace = ktests.NamespaceTestDefault
 
@@ -338,7 +338,7 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 			for sockets := 0; sockets < 3; sockets++ {
 				for cores := 0; cores < 3; cores++ {
 					for threads := 0; threads < 3; threads++ {
-					 
+
 						By("1.3 check resources in the cluster")
 						cpuNeeded := 1
 						if sockets > 0 {
@@ -435,7 +435,7 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 								XMLThreads = 1
 							}
 
-							It("[test_id:1488] Test case 1.3", func() {							
+							It("[test_id:1488] Test case 1.3", func() {
 								By("1.3 Checking XML topology")
 								Expect(int(domStat.CPU.Topology.Sockets) == XMLSockets).To(BeTrue(), "XML should have right number of sockets")
 								Expect(int(domStat.CPU.Topology.Cores) == XMLCores).To(BeTrue(), "XML should have right number of cores")
@@ -450,7 +450,7 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 
 							})
 
-							By("2.1 Expecting the VirtualMachineInstance console")							
+							By("2.1 Expecting the VirtualMachineInstance console")
 							expecter, err := ktests.LoggedInCirrosExpecter(vmi)
 							It("[test_id:1489] Test case 2.1", func() {
 								Expect(err).ToNot(HaveOccurred(), "Console should be started")
@@ -464,14 +464,14 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 									&expect.BExp{R: strconv.Itoa(XMLSockets)},
 								}, 60*time.Second)
 								Expect(err).ToNot(HaveOccurred(), "Should report number of sockets")
-	
+
 								By("2.2 Checking the number of cores in guest OS")
 								_, err = expecter.ExpectBatch([]expect.Batcher{
 									&expect.BSnd{S: "lscpu | grep Core | awk '{print $4}'\n"},
 									&expect.BExp{R: strconv.Itoa(XMLCores)},
 								}, 60*time.Second)
 								Expect(err).ToNot(HaveOccurred(), "Should report number of cores")
-	
+
 								By("2.2 Checking the number of threads in guest OS")
 								_, err = expecter.ExpectBatch([]expect.Batcher{
 									&expect.BSnd{S: "lscpu | grep Thread | awk '{print $4}'\n"},
@@ -479,7 +479,7 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 								}, 60*time.Second)
 								Expect(err).ToNot(HaveOccurred(), "Should report number of threads")
 							})
-	
+
 							By("Deleting VM")
 							_, _, _ = ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "delete", "vm", vm_name)
 							Expect(err).ToNot(HaveOccurred())

@@ -3,9 +3,9 @@ package framework
 import (
 	"errors"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
-	"os"
 
 	ktests "kubevirt.io/kubevirt/tests"
 )
