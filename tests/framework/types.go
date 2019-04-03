@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"strings"
 	"time"
+	"os"
 
 	ktests "kubevirt.io/kubevirt/tests"
 )
@@ -23,7 +24,10 @@ const (
 
 	ShortTimeout = time.Duration(2) * time.Minute
 	LongTimeout  = time.Duration(4) * time.Minute
-	ocName = "oc"
+)
+
+var (
+	ocName = os.Getenv("OC_IN_FRAMEWORK")
 )
 
 // VirtualMachine can be a vm, vmi, vmirs, vmiPreset.
