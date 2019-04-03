@@ -153,7 +153,7 @@ func clean_pods(virtClient kubecli.KubevirtClient, requiredPods []*corev1.Pod) {
 	}
 }
 
-var _ = Describe("Check CPU topology inside VM", func() {
+var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:component]Check CPU topology inside VM", func() {
 	flag.Parse()
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
@@ -164,8 +164,8 @@ var _ = Describe("Check CPU topology inside VM", func() {
 	})
 
 	Context("test case 1.1 Check the validity of the XML file if user didn’t set the CPU topology at all", func() {
-		It("testcase 1.1 Check the validity of the XML file if user didn’t set the CPU topology at all", func() {
-
+		It("[test_id:1485] testcase 1.1 Check the validity of the XML file if user didn’t set the CPU topology at all", func() {
+		//It("Pre-checks"",func() { 
 			vmi11.Manifest = address_common + "vmi-case1.1.yml"
 			vmi11.Namespace = ktests.NamespaceTestDefault
 
@@ -217,7 +217,7 @@ var _ = Describe("Check CPU topology inside VM", func() {
 	})
 
 	Context("test case 1.2 Check the validity of the XML file if user didn’t set the CPU topology (only standard cpus - previous releases like) ", func() {
-		It("testcase 1.2 Check the validity of the XML file if user didn’t set the CPU topology (only standard cpus - previous releases like)  ", func() {
+		It("[test_id:1487]testcase 1.2 Check the validity of the XML file if user didn’t set the CPU topology (only standard cpus - previous releases like)  ", func() {
 
 			By("declare variables")
 			vmi121.Manifest = address_common + "/vmi-case1.2.1.yml"
@@ -332,14 +332,13 @@ var _ = Describe("Check CPU topology inside VM", func() {
 
 	Context("test cases 1.3,2.1,2.2 Check the validity of the XML file if user didn’t set the CPU topology at all", func() {
 		It("testcases 1.3,2.1,2.2 Check the validity of the XML file if user didn’t set the CPU topology at all", func() {
-
 			var wg sync.WaitGroup
 			vm_index := 0
 
 			for sockets := 0; sockets < 3; sockets++ {
 				for cores := 0; cores < 3; cores++ {
 					for threads := 0; threads < 3; threads++ {
-
+					 
 						By("1.3 check resources in the cluster")
 						cpuNeeded := 1
 						if sockets > 0 {
@@ -436,45 +435,51 @@ var _ = Describe("Check CPU topology inside VM", func() {
 								XMLThreads = 1
 							}
 
-							By("1.3 Checking XML topology")
-							Expect(int(domStat.CPU.Topology.Sockets) == XMLSockets).To(BeTrue(), "XML should have right number of sockets")
-							Expect(int(domStat.CPU.Topology.Cores) == XMLCores).To(BeTrue(), "XML should have right number of cores")
-							Expect(int(domStat.CPU.Topology.Threads) == XMLThreads).To(BeTrue(), "XML should have right number of threads")
+							It("[test_id:1488] Test case 1.3", func() {							
+								By("1.3 Checking XML topology")
+								Expect(int(domStat.CPU.Topology.Sockets) == XMLSockets).To(BeTrue(), "XML should have right number of sockets")
+								Expect(int(domStat.CPU.Topology.Cores) == XMLCores).To(BeTrue(), "XML should have right number of cores")
+								Expect(int(domStat.CPU.Topology.Threads) == XMLThreads).To(BeTrue(), "XML should have right number of threads")
 
-							By("1.3 Checking the amount of vCPU")
-							vCPUAmount := XMLSockets * XMLCores * XMLThreads
-							Expect(int(domStat.VCPU.CPUs) == vCPUAmount).To(BeTrue(), "XML should have right number of vCPUs")
+								By("1.3 Checking the amount of vCPU")
+								vCPUAmount := XMLSockets * XMLCores * XMLThreads
+								Expect(int(domStat.VCPU.CPUs) == vCPUAmount).To(BeTrue(), "XML should have right number of vCPUs")
 
-							// TC 2.1 and 2.2 should do the same as 1.3 but with several additional checks at the end.
-							// Creating and destroying all these VMs second time may be unnecessary time consuming
-							// TODO: 2.1 & 2.2 - move it to independent test case?
+								// TC 2.1 and 2.2 should do the same as 1.3 but with several additional checks at the end.
+								// Creating and destroying all these VMs second time may be unnecessary time consuming
 
-							By("2.1 Expecting the VirtualMachineInstance console")
+							})
+
+							By("2.1 Expecting the VirtualMachineInstance console")							
 							expecter, err := ktests.LoggedInCirrosExpecter(vmi)
-							Expect(err).ToNot(HaveOccurred(), "Console should be started")
+							It("[test_id:1489] Test case 2.1", func() {
+								Expect(err).ToNot(HaveOccurred(), "Console should be started")
+							})
 							defer expecter.Close()
 
-							By("2.2 Checking the number of sockets in guest OS")
-							_, err = expecter.ExpectBatch([]expect.Batcher{
-								&expect.BSnd{S: "lscpu | grep Socket | awk '{print $2}'\n"},
-								&expect.BExp{R: strconv.Itoa(XMLSockets)},
-							}, 60*time.Second)
-							Expect(err).ToNot(HaveOccurred(), "Should report number of sockets")
-
-							By("2.2 Checking the number of cores in guest OS")
-							_, err = expecter.ExpectBatch([]expect.Batcher{
-								&expect.BSnd{S: "lscpu | grep Core | awk '{print $4}'\n"},
-								&expect.BExp{R: strconv.Itoa(XMLCores)},
-							}, 60*time.Second)
-							Expect(err).ToNot(HaveOccurred(), "Should report number of cores")
-
-							By("2.2 Checking the number of threads in guest OS")
-							_, err = expecter.ExpectBatch([]expect.Batcher{
-								&expect.BSnd{S: "lscpu | grep Thread | awk '{print $4}'\n"},
-								&expect.BExp{R: strconv.Itoa(XMLThreads)},
-							}, 60*time.Second)
-							Expect(err).ToNot(HaveOccurred(), "Should report number of threads")
-
+							It("[test_id:1490] Test case 2.1", func() {
+								By("2.2 Checking the number of sockets in guest OS")
+								_, err = expecter.ExpectBatch([]expect.Batcher{
+									&expect.BSnd{S: "lscpu | grep Socket | awk '{print $2}'\n"},
+									&expect.BExp{R: strconv.Itoa(XMLSockets)},
+								}, 60*time.Second)
+								Expect(err).ToNot(HaveOccurred(), "Should report number of sockets")
+	
+								By("2.2 Checking the number of cores in guest OS")
+								_, err = expecter.ExpectBatch([]expect.Batcher{
+									&expect.BSnd{S: "lscpu | grep Core | awk '{print $4}'\n"},
+									&expect.BExp{R: strconv.Itoa(XMLCores)},
+								}, 60*time.Second)
+								Expect(err).ToNot(HaveOccurred(), "Should report number of cores")
+	
+								By("2.2 Checking the number of threads in guest OS")
+								_, err = expecter.ExpectBatch([]expect.Batcher{
+									&expect.BSnd{S: "lscpu | grep Thread | awk '{print $4}'\n"},
+									&expect.BExp{R: strconv.Itoa(XMLThreads)},
+								}, 60*time.Second)
+								Expect(err).ToNot(HaveOccurred(), "Should report number of threads")
+							})
+	
 							By("Deleting VM")
 							_, _, _ = ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "delete", "vm", vm_name)
 							Expect(err).ToNot(HaveOccurred())
