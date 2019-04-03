@@ -38,7 +38,9 @@ import (
 	"kubevirt.io/kubevirt/tests"
 )
 
-var _ = Describe("IOThreads", func() {
+//var _ = Describe("IOThreads", func() {
+var _ = Describe("[rfe_id:2065][crit:medium]vendor:cnv-qe@redhat.com][level:component]Check CPU topology inside VM", func() {
+
 	flag.Parse()
 
 	virtClient, err := kubecli.GetKubevirtClient()
@@ -129,8 +131,7 @@ var _ = Describe("IOThreads", func() {
 
 	Context("IOThreads Policies", func() {
 
-		// CNV-1046
-		It("Virtual Disk Settings - IOThreads", func() {
+		It("[test_id:864] Virtual Disk Settings - IOThreads", func() {
 
 			// How many symbols in the names of pod and VMI shoul match
 			symbols_to_compare := 30
