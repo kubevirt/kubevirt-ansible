@@ -130,25 +130,6 @@ func getArguments(vm_name string, sockets int, cores int, threads int) []string 
 	return arguments
 }
 
-func error_helper(err error) bool {
-	if err == nil {
-		return false
-	} else {
-		return true
-	}
-}	
-	
-
-//Workaround cause gomega doesn't support It() outside Context. 
-func panic_if_false(boolvar bool,panicText string) {
-	if boolvar == false {
-	        fmt.Println("Panicking cause: " + panicText)
-		panic("panic!")
-
-	}
-		
-}
-
 func clean_pods(virtClient kubecli.KubevirtClient, requiredPods []*corev1.Pod) {
 	listOptions := metav1.ListOptions{}
 	podList, err := virtClient.CoreV1().Pods(ktests.NamespaceTestDefault).List(listOptions)
@@ -510,4 +491,3 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 	})
 
 })
-
