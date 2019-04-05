@@ -12,6 +12,9 @@ objects:
   spec:
     terminationGracePeriodSeconds: 0
     domain:
+      cpu:
+        cores: 1
+        model: Nehalem
       resources:
         requests:
           memory: 64M
@@ -20,6 +23,7 @@ objects:
         - name: mypvcdisk
           disk:
             bus: virtio
+        rng: {}
     volumes:
       - name: mypvcdisk
         persistentVolumeClaim:

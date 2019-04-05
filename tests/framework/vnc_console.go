@@ -3,6 +3,7 @@ package framework
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"time"
 
@@ -81,11 +82,53 @@ func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) 
 	return expecter, err
 }
 
+func LoggedInCirrosExpecter(vmiName string, vmiNamespace string, timeout int64) (expect.Expecter, error) {
+	virtClient, err := kubecli.GetKubevirtClient()
+	ktests.PanicOnError(err)
+	vmi, err := virtClient.VirtualMachineInstance(vmiNamespace).Get(vmiName, &metav1.GetOptions{})
+	ktests.PanicOnError(err)
+	expecter, _, err := ktests.NewConsoleExpecter(virtClient, vmi, 30*time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	// Do not login, if we already logged in
+	err = expecter.Send("\n")
+	if err != nil {
+		expecter.Close()
+		return nil, err
+	}
+	_, _, err = expecter.Expect(regexp.MustCompile(`\$`), 10*time.Second)
+	if err == nil {
+		return expecter, nil
+	}
+
+	b := append([]expect.Batcher{
+		&expect.BSnd{S: "\n"},
+		&expect.BSnd{S: "\n"},
+		&expect.BExp{R: "login:"},
+		&expect.BSnd{S: "cirros\n"},
+		&expect.BExp{R: "Password:"},
+		&expect.BSnd{S: "gocubsgo\n"},
+		&expect.BExp{R: "\\$"}})
+	res, err := expecter.ExpectBatch(b, time.Duration(timeout)*time.Second)
+	if err != nil {
+		log.DefaultLogger().Object(vmi).Infof("Login: %v", res)
+		By(fmt.Sprintf("Login: %v", res))
+		expecter.Close()
+		return nil, err
+	}
+	return expecter, err
+}
+
 func VNCConnection(namespace, vmname string) (string, error) {
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
 	pipeInReader, _ := io.Pipe()
 	pipeOutReader, pipeOutWriter := io.Pipe()
+	defer pipeInReader.Close()
+	defer pipeOutReader.Close()
+
 	k8ResChan := make(chan error)
 	readStop := make(chan string)
 

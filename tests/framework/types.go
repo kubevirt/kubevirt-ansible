@@ -16,6 +16,8 @@ const (
 	UsernameAdminUser     = "test_admin"
 	PasswordAdminUser     = "123456"
 
+	StorageClassLocal = "hdd"
+
 	OcPath      = "oc"
 	VirtctlPath = "virtctl"
 

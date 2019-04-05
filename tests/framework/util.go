@@ -7,6 +7,9 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
+	"kubevirt.io/kubevirt/pkg/api/v1"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -159,4 +162,112 @@ func RemoveDataVolume(dvName string, namespace string) {
 	Expect(err).ToNot(HaveOccurred())
 	err = virtCli.CdiClient().CdiV1alpha1().DataVolumes(namespace).Delete(dvName, nil)
 	Expect(err).ToNot(HaveOccurred())
+}
+
+func AddСPU(vmi *v1.VirtualMachineInstance, cores uint32, cpuModel string) *v1.VirtualMachineInstance {
+	vmi.Spec.Domain.CPU = &v1.CPU{
+		Cores: cores,
+		Model: cpuModel,
+	}
+
+	// workaround of bug (fedora 29 does not boot well with Nehalem CPU model)
+	if cpuModel == "Nehalem" {
+		vmi.Spec.Domain.Devices.Rng = &v1.Rng{}
+	}
+
+	return vmi
+}
+
+func CreatePVC(PVCName, size, storageClass string, accessMode k8sv1.PersistentVolumeAccessMode) {
+	virtCli, err := kubecli.GetKubevirtClient()
+	Expect(err).ToNot(HaveOccurred())
+
+	_, err = virtCli.CoreV1().PersistentVolumeClaims(NamespaceTestDefault).Create(newPVC(PVCName, size, storageClass, accessMode))
+	if !errors.IsAlreadyExists(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
+}
+
+func newPVC(PVCName, size, storageClass string, accessMode k8sv1.PersistentVolumeAccessMode) *k8sv1.PersistentVolumeClaim {
+	quantity, err := resource.ParseQuantity(size)
+	Expect(err).ToNot(HaveOccurred())
+
+	return &k8sv1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: PVCName},
+		Spec: k8sv1.PersistentVolumeClaimSpec{
+			AccessModes: []k8sv1.PersistentVolumeAccessMode{accessMode},
+			Resources: k8sv1.ResourceRequirements{
+				Requests: k8sv1.ResourceList{
+					"storage": quantity,
+				},
+			},
+			StorageClassName: &storageClass,
+		},
+	}
+}
+
+func CreateNFSPvAndPvc(PVName, size, path, server string, accessMode k8sv1.PersistentVolumeAccessMode) {
+	virtCli, err := kubecli.GetKubevirtClient()
+	Expect(err).ToNot(HaveOccurred())
+
+	_, err = virtCli.CoreV1().PersistentVolumes().Create(newNFSpv(PVName, size, path, server, accessMode))
+	if !errors.IsAlreadyExists(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
+
+	_, err = virtCli.CoreV1().PersistentVolumeClaims(NamespaceTestDefault).Create(newNFSpvc(PVName, size, accessMode))
+	if !errors.IsAlreadyExists(err) {
+		Expect(err).ToNot(HaveOccurred())
+	}
+}
+
+func newNFSpv(PVName, size, path, server string, accessMode k8sv1.PersistentVolumeAccessMode) *k8sv1.PersistentVolume {
+	quantity, err := resource.ParseQuantity(size)
+	Expect(err).ToNot(HaveOccurred())
+
+	storageClass := StorageClassLocal
+
+	return &k8sv1.PersistentVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: PVName,
+		},
+		Spec: k8sv1.PersistentVolumeSpec{
+			AccessModes: []k8sv1.PersistentVolumeAccessMode{accessMode},
+			Capacity: k8sv1.ResourceList{
+				"storage": quantity,
+			},
+			ClaimRef: &k8sv1.ObjectReference{
+				Name:      PVName,
+				Namespace: NamespaceTestDefault,
+			},
+			StorageClassName:              storageClass,
+			PersistentVolumeReclaimPolicy: k8sv1.PersistentVolumeReclaimRecycle,
+			PersistentVolumeSource: k8sv1.PersistentVolumeSource{
+				NFS: &k8sv1.NFSVolumeSource{
+					Server: server,
+					Path:   path,
+				},
+			},
+		},
+	}
+}
+
+func newNFSpvc(name string, size string, accessMode k8sv1.PersistentVolumeAccessMode) *k8sv1.PersistentVolumeClaim {
+	quantity, err := resource.ParseQuantity(size)
+	Expect(err).ToNot(HaveOccurred())
+
+	storageClass := StorageClassLocal
+
+	return &k8sv1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: k8sv1.PersistentVolumeClaimSpec{
+			StorageClassName: &storageClass,
+			AccessModes:      []k8sv1.PersistentVolumeAccessMode{accessMode},
+			Resources: k8sv1.ResourceRequirements{
+				Requests: k8sv1.ResourceList{
+					"storage": quantity,
+				},
+			},
+		},
+	}
 }
