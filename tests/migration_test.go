@@ -39,6 +39,7 @@ var _ = Describe("Migration", func() {
 
 		PvcCdiFilePath = "tests/manifests/golden-pvc.yml"
 		VmCdiFilePath  = "tests/manifests/test-vm.yml"
+
 		dstPVCFilePath = "/tmp/test-pvc.json"
 		dstVMFilePath  = "/tmp/test-vm.json"
 
@@ -129,7 +130,6 @@ var _ = Describe("Migration", func() {
 			&expect.BExp{R: "\\$ "},
 		}, 60*time.Second)
 		Expect(err).ToNot(HaveOccurred())
-		//expecter.Send("\x1d")
 		expecter.Close()
 
 		By("Check if the VMI's VNC server gives the valid response after migration")
@@ -178,7 +178,7 @@ var _ = Describe("Migration", func() {
 		})
 
 		It("VM with NFS shared PVC + CloudInit + ServiceAccount", func() {
-			PVName := "nfs-pvc"
+			PVCName := "nfs-pvc"
 			path := "/PVS/dshchedr/fedora"
 			server := "10.9.96.20"
 			size := "5Gi"
@@ -186,8 +186,8 @@ var _ = Describe("Migration", func() {
 			serviceAccountName := "secret-" + rand.String(5)
 			tests.CreateServiceAccount(serviceAccountName)
 
-			tests.CreateNFSPvAndPvc(PVName, size, path, server, k8sv1.ReadWriteMany)
-			vmi := ktests.NewRandomVMIWithPVC(PVName)
+			tests.CreateNFSPvAndPvc(PVCName, size, path, server, k8sv1.ReadWriteMany)
+			vmi := ktests.NewRandomVMIWithPVC(PVCName)
 			vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("2G")
 			tests.AddСPU(vmi, 1, cpuModel)
 			ktests.AddUserData(vmi, "cloud-init", "#cloud-config\npassword: fedora\nchpasswd: { expire: False }\nbootcmd:\n- \"mount /dev/sda /mnt\"")
@@ -212,13 +212,36 @@ var _ = Describe("Migration", func() {
 			expecter.Close()
 		})
 
+		It("VM with DataVolume shared PVC", func() {
+			//// It has a bug now: it tries to make BlockMigration instead of LiveMigration
+			//// https://bugzilla.redhat.com/show_bug.cgi?id=1684565
+			PVCName := "vm-datavolume"
+
+			dataVolume := ktests.NewRandomDataVolumeWithHttpImport(cirrosHttpLink, tests.NamespaceTestDefault)
+			dataVolume.Name = PVCName
+			storageClassName := "glusterfs-storage"
+			dataVolume.Spec.PVC.StorageClassName = &storageClassName
+
+			vmi := ktests.NewRandomVMIWithDataVolume(dataVolume.Name)
+			tests.AddСPU(vmi, 1, cpuModel)
+
+			vm := ktests.NewRandomVirtualMachine(vmi, false)
+			vm.Spec.DataVolumeTemplates = append(vm.Spec.DataVolumeTemplates, *dataVolume)
+			vm, err = virtClient.VirtualMachine(tests.NamespaceTestDefault).Create(vm)
+			Expect(err).ToNot(HaveOccurred())
+
+			tests.WaitUntilResourceDeleted("pod", "importer-vm-datavolume")
+			vm = ktests.StartVirtualMachine(vm)
+
+			runMigrationAndExpectCompletion(vmi.Name, migrationMethodLive, osCirros)
+		})
+
 	})
 
 	// TO DO
 
 	//// scenarios with bugs
 	// "VM with containerDisk + CloudInit + ServiceAccount + ConfigMap + Secret"
-	// "VM with DataVolume shared PVC"
 	// "Negative: VM with non-shared PVC"
 
 	//// covered by tier1
