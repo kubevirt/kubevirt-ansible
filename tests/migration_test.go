@@ -17,25 +17,24 @@ import (
 	"time"
 )
 
-var _ = Describe("Migration", func() {
+var _ = Describe("[rfe_id:1782][crit:medium][vendor:cnv-qe@redhat.com][level:component]Migration", func() {
 
 	flag.Parse()
 
 	const (
-		featureMigration = "LiveMigration"
-		featureQuery     = "-o=jsonpath='{.data.feature-gates}'"
-
 		cpuModel = "Nehalem"
 
+		osCirros = "cirros"
+		osFedora = "fedora"
+
+		featureMigration     = "LiveMigration"
 		migrationMethodLive  = "LiveMigration"
 		migrationMethodBlock = "BlockMigration"
-
-		sharedPVC    = "ReadWriteMany"
-		nonsharedPVC = "ReadWriteOnce"
 
 		phaseQuery           = "-o=jsonpath='{.status.phase}'"
 		nodeQuery            = "-o=jsonpath='{.status.nodeName}'"
 		migrationMethodQuery = "-o=jsonpath='{.status.migrationMethod}'"
+		featureQuery         = "-o=jsonpath='{.data.feature-gates}'"
 
 		PvcCdiFilePath = "tests/manifests/golden-pvc.yml"
 		VmCdiFilePath  = "tests/manifests/test-vm.yml"
@@ -46,11 +45,7 @@ var _ = Describe("Migration", func() {
 		migrationJobTemplate = "tests/manifests/migration-job.yml"
 		temporaryJson        = "/tmp/tmp-job.yml"
 
-		cirrosHttpLink  = "https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img"
-		cirrosImageLink = "kubevirt/cirros-container-disk-demo:latest"
-
-		osCirros = "cirros"
-		osFedora = "fedora"
+		cirrosHttpLink = "https://download.cirros-cloud.net/0.4.0/cirros-0.4.0-x86_64-disk.img"
 	)
 
 	virtClient, err := kubecli.GetKubevirtClient()
@@ -88,7 +83,6 @@ var _ = Describe("Migration", func() {
 		rndFile := "testFile-" + rand.String(5)
 		expecter.Send("touch " + rndFile + "\n")
 		expecter.Expect(regexp.MustCompile(`\$`), 5*time.Second)
-		//expecter.Send("\x1d")
 		expecter.Close()
 
 		By("Check if the VMI's VNC server gives the valid response before migration")
@@ -140,7 +134,7 @@ var _ = Describe("Migration", func() {
 	}
 
 	Describe("Verify configmap for LiveMigration feature", func() {
-		It("Verifies the configmap for LiveMigration feature", func() {
+		It("[test_id:1373]Verifies the configmap for LiveMigration feature", func() {
 			res, _, err := ktests.RunCommandWithNS("kubevirt", "oc", "get", "cm", "kubevirt-config", featureQuery)
 			Expect(err).ToNot(HaveOccurred(), "Command should run without errors")
 			Expect(strings.Contains(res, featureMigration)).To(BeTrue(), "Response should contain LiveMigration feature")
@@ -149,10 +143,10 @@ var _ = Describe("Migration", func() {
 
 	Describe("Verify migration of VM with different types of disks", func() {
 
-		It("Verifies VM with shared PVC CDI", func() {
+		It("[test_id:1784]Verifies VM with shared PVC CDI", func() {
 			vmName := "vm-pvc-cdi"
 
-			tests.ProcessTemplateWithParameters(PvcCdiFilePath, dstPVCFilePath, "PVC_NAME="+vmName, "EP_URL="+cirrosHttpLink, "ACCESS_MODE="+sharedPVC)
+			tests.ProcessTemplateWithParameters(PvcCdiFilePath, dstPVCFilePath, "PVC_NAME="+vmName, "EP_URL="+cirrosHttpLink, "ACCESS_MODE=ReadWriteMany")
 			tests.CreateResourceWithFilePathTestNamespace(dstPVCFilePath)
 			tests.WaitUntilResourceReadyByNameTestNamespace("pvc", vmName, "-o=jsonpath='{.metadata.annotations}'", "pv.kubernetes.io/bind-completed:yes")
 			tests.WaitUntilResourceDeleted("pod", "importer-"+vmName)
@@ -163,7 +157,7 @@ var _ = Describe("Migration", func() {
 			runMigrationAndExpectCompletion(vmName, migrationMethodLive, osCirros)
 		})
 
-		It("Verifies VM with containerDisk + shared PVC", func() {
+		It("[test_id:1854]Verifies VM with containerDisk + shared PVC", func() {
 			PVCName := "container-pvc"
 			storageClassName := "glusterfs-storage"
 
@@ -177,7 +171,7 @@ var _ = Describe("Migration", func() {
 			runMigrationAndExpectCompletion(vmi.Name, migrationMethodBlock, osCirros)
 		})
 
-		It("VM with NFS shared PVC + CloudInit + ServiceAccount", func() {
+		It("[test_id:1785]VM with NFS shared PVC + CloudInit + ServiceAccount", func() {
 			PVCName := "nfs-pvc"
 			path := "/PVS/dshchedr/fedora"
 			server := "10.9.96.20"
@@ -212,8 +206,8 @@ var _ = Describe("Migration", func() {
 			expecter.Close()
 		})
 
-		It("VM with DataVolume shared PVC", func() {
-			//// It has a bug now: it tries to make BlockMigration instead of LiveMigration
+		It("[test_id:1479]VM with DataVolume shared PVC", func() {
+			//// Bug: it tries to make BlockMigration instead of LiveMigration
 			//// https://bugzilla.redhat.com/show_bug.cgi?id=1684565
 			PVCName := "vm-datavolume"
 
@@ -236,16 +230,59 @@ var _ = Describe("Migration", func() {
 			runMigrationAndExpectCompletion(vmi.Name, migrationMethodLive, osCirros)
 		})
 
+		It("[test_id:1853]VM with containerDisk + CloudInit + ServiceAccount + ConfigMap + Secret", func() {
+			//// Bug: re-sorted SATA
+			//// https://bugzilla.redhat.com/show_bug.cgi?id=1688488
+			configMapName := "configmap-" + rand.String(5)
+			secretName := "secret-" + rand.String(5)
+			serviceAccountName := "servacc-" + rand.String(5)
+
+			config_data := map[string]string{
+				"config1": "value1",
+				"config2": "value2",
+			}
+
+			secret_data := map[string]string{
+				"user":     "admin",
+				"password": "redhat",
+			}
+
+			ktests.CreateConfigMap(configMapName, config_data)
+			ktests.CreateSecret(secretName, secret_data)
+			tests.CreateServiceAccount(serviceAccountName)
+
+			vmi := ktests.NewRandomVMIWithEphemeralDisk(ktests.ContainerDiskFor(ktests.ContainerDiskFedora))
+			tests.AddСPU(vmi, 2, cpuModel)
+			vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("2G")
+			ktests.AddUserData(vmi, "cloud-init", "#cloud-config\npassword: fedora\nchpasswd: { expire: False }\n")
+			ktests.AddConfigMapDisk(vmi, configMapName)
+			ktests.AddSecretDisk(vmi, secretName)
+			ktests.AddServiceAccountDisk(vmi, serviceAccountName)
+
+			vmi, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(vmi)
+			Expect(err).To(BeNil())
+
+			runMigrationAndExpectCompletion(vmi.Name, migrationMethodBlock, osFedora)
+		})
+
+		It("[test_id:1862][posneg:negative]Negative: VM with non-shared PVC", func() {
+			PVCName := "nonshared-pvc"
+			storageClassName := "glusterfs-storage"
+
+			vmi := ktests.NewRandomVMIWithEphemeralDisk(ktests.ContainerDiskFor(ktests.ContainerDiskCirros))
+			tests.CreatePVC(PVCName, "1Gi", storageClassName, k8sv1.ReadWriteOnce)
+			ktests.AddPVCDisk(vmi, PVCName, "virtio", PVCName)
+			vmi, err := virtClient.VirtualMachineInstance(tests.NamespaceTestDefault).Create(vmi)
+			Expect(err).To(BeNil())
+
+			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmi.Name, phaseQuery, "Running")
+
+			By("Run VM Migration and get an error")
+			tests.ProcessTemplateWithParameters(migrationJobTemplate, temporaryJson, "VM_NAME="+vmi.Name)
+			_, _, err = ktests.RunCommand("oc", "create", "-f", temporaryJson)
+			Expect(err).To(HaveOccurred(), "Should get an error, as VM with non shared PVC can't be migrated")
+		})
+
 	})
-
-	// TO DO
-
-	//// scenarios with bugs
-	// "VM with containerDisk + CloudInit + ServiceAccount + ConfigMap + Secret"
-	// "Negative: VM with non-shared PVC"
-
-	//// covered by tier1
-	// "VM with containerDisk"
-	// "VM with iSCSI PVC"
 
 })
