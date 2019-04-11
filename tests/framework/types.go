@@ -27,7 +27,7 @@ const (
 )
 
 var (
-	ocName = os.Getenv("OC_IN_FRAMEWORK")
+	ocName      = os.Getenv("OC_IN_FRAMEWORK")
 	virtctlName = os.Getenv("VIRTCTL_IN_FRAMEWORK")
 )
 
@@ -50,7 +50,7 @@ func (vm VirtualMachine) Create() (string, string, error) {
 
 func (vm VirtualMachine) Start() (string, string, error) {
 	args := []string{"start", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace,virtctlName, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, virtctlName, args...)
 }
 
 func (vm VirtualMachine) Stop() (string, string, error) {
