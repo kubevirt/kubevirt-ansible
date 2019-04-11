@@ -3,13 +3,13 @@ apiVersion: v1
 kind: Template
 metadata:
   annotations:
-    description: OCP KubeVirt Fedora 27 VM template
-    iconClass: icon-fedora
+    description: KubeVirt test template
+    iconClass: icon-cirros
     tags: kubevirt,ocp,template,linux,virtualmachine
   labels:
-    kubevirt.io/os: fedora27
+    kubevirt.io/os: cirros
     miq.github.io/kubevirt-is-vm-template: "true"
-  name: vm-template-fedora
+  name: vm-template-cirros
 objects:
 - apiVersion: kubevirt.io/v1alpha3
   kind: VirtualMachine
@@ -17,7 +17,7 @@ objects:
     creationTimestamp: null
     labels:
       kubevirt-vm: vm-${NAME}
-      kubevirt.io/os: fedora27
+      kubevirt.io/os: cirros
     name: ${NAME}
   spec:
     running: false
@@ -26,11 +26,12 @@ objects:
         creationTimestamp: null
         labels:
           kubevirt-vm: vm-${NAME}
-          kubevirt.io/os: fedora27
+          kubevirt.io/os: cirros
       spec:
         domain:
           cpu:
             cores: ${{CPU_CORES}}
+            sockets: ${{CPU_SOCKETS}}
           devices:
             disks:
             - disk:
@@ -47,7 +48,7 @@ objects:
         terminationGracePeriodSeconds: 0
         volumes:
         - containerDisk:
-            image: kubevirt/cirros-registry-disk-demo
+            image: kubevirt/cirros-container-disk-demo
           name: registryvolume
         - cloudInitNoCloud:
             userData: |-
@@ -65,3 +66,8 @@ parameters:
 - description: Amount of cores
   name: CPU_CORES
   value: "2"
+- description: Amount of sockets
+  name: CPU_SOCKETS
+  value: "2"
+
+

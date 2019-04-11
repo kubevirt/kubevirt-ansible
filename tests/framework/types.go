@@ -28,6 +28,7 @@ const (
 
 var (
 	ocName = os.Getenv("OC_IN_FRAMEWORK")
+	virtctlName = os.Getenv("VIRTCTL_IN_FRAMEWORK")
 )
 
 // VirtualMachine can be a vm, vmi, vmirs, vmiPreset.
@@ -49,12 +50,12 @@ func (vm VirtualMachine) Create() (string, string, error) {
 
 func (vm VirtualMachine) Start() (string, string, error) {
 	args := []string{"start", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, ocName, args...)
+	return ktests.RunCommandWithNS(vm.Namespace,virtctlName, args...)
 }
 
 func (vm VirtualMachine) Stop() (string, string, error) {
 	args := []string{"stop", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, ocName, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, virtctlName, args...)
 }
 
 func (vm VirtualMachine) Delete() (string, string, error) {
