@@ -336,6 +336,108 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 			var wg sync.WaitGroup
 			vm_index := 0
 
+			By("Declare goroutine function")
+			runVM := func(socketsN int, coresN int, threadsN int, wg *sync.WaitGroup, virtRawVMFilePath string, vm_name string) {
+				By("1.3 Starting gouroutine to create, start and test VM")
+				wg.Add(1)
+				defer wg.Done()
+				By("1.3 Create VM from template and launch it")
+				tframework.CreateResourceWithFilePathTestNamespace(virtRawVMFilePath)
+				_, _, err := ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "virtctl", "start", vm_name)
+				Expect(err).ToNot(HaveOccurred())
+				_, _, err = ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "project", ktests.NamespaceTestDefault)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("1.3 Getting VMI object")
+				getVMOptions := metav1.GetOptions{}
+				vmi, err := virtClient.VirtualMachineInstance(ktests.NamespaceTestDefault).Get(vm_name, &getVMOptions)
+				Expect(err).ToNot(HaveOccurred())
+				ktests.WaitForSuccessfulVMIStart(vmi)
+
+				By("1.3 Checking that pod was created and has the right name")
+				vmiPod_vmNumName := ktests.GetRunningPodByVirtualMachineInstance(vmi, ktests.NamespaceTestDefault)
+				podName := vmiPod_vmNumName.Name
+				Expect(podName).To(HavePrefix("virt-launcher-"+vm_name), "Pod's name should contain name of the VM associated with it")
+
+				By("1.3 Checking resources in the pod")
+				outPodYAML, _, err := ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "get", "pod", podName, "-o", "yaml")
+				Expect(err).ToNot(HaveOccurred())
+				cpuExist, _, _ := parseYAMLConfig(outPodYAML)
+				Expect(cpuExist).To(BeFalse(), "YAML should have CPUs")
+
+				By("1.3 Get VMI XML")
+				vmiXml, err := ktests.GetRunningVirtualMachineInstanceDomainXML(virtClient, vmi)
+				Expect(err).ToNot(HaveOccurred())
+
+				By("1.3 VMI Unmarshal")
+				domStat := &api.DomainSpec{}
+				err = xml.Unmarshal([]byte(vmiXml), domStat)
+				Expect(err).ToNot(HaveOccurred())
+
+				XMLSockets := socketsN
+				XMLCores := coresN
+				XMLThreads := threadsN
+				// If CPU cores, sockets or threads set to 0, XML should have 1 for this parameter
+				if socketsN == 0 {
+					XMLSockets = 1
+				}
+
+				if coresN == 0 {
+					XMLCores = 1
+				}
+
+				if threadsN == 0 {
+					XMLThreads = 1
+				}
+
+				By("1.3 Checking XML topology")
+				Expect(int(domStat.CPU.Topology.Sockets) == XMLSockets).To(BeTrue(), "XML should have right number of sockets")
+				Expect(int(domStat.CPU.Topology.Cores) == XMLCores).To(BeTrue(), "XML should have right number of cores")
+				Expect(int(domStat.CPU.Topology.Threads) == XMLThreads).To(BeTrue(), "XML should have right number of threads")
+
+				By("1.3 Checking the amount of vCPU")
+				vCPUAmount := XMLSockets * XMLCores * XMLThreads
+				Expect(int(domStat.VCPU.CPUs) == vCPUAmount).To(BeTrue(), "XML should have right number of vCPUs")
+
+							// TC 2.1 and 2.2 should do the same as 1.3 but with several additional checks at the end.
+							// Creating and destroying all these VMs second time may be unnecessary time consuming
+							// TODO: 2.1 & 2.2 - move it to independent test case?
+
+				By("2.1 Expecting the VirtualMachineInstance console")
+				expecter, err := ktests.LoggedInCirrosExpecter(vmi)
+				Expect(err).ToNot(HaveOccurred(), "Console should be started")
+				defer expecter.Close()
+
+				By("2.2 Checking the number of sockets in guest OS")
+				_, err = expecter.ExpectBatch([]expect.Batcher{
+					&expect.BSnd{S: "lscpu | grep Socket | awk '{print $2}'\n"},
+					&expect.BExp{R: strconv.Itoa(XMLSockets)},
+				}, 60*time.Second)
+				Expect(err).ToNot(HaveOccurred(), "Should report number of sockets")
+				
+				By("2.2 Checking the number of cores in guest OS")
+				_, err = expecter.ExpectBatch([]expect.Batcher{
+					&expect.BSnd{S: "lscpu | grep Core | awk '{print $4}'\n"},
+					&expect.BExp{R: strconv.Itoa(XMLCores)},
+				}, 60*time.Second)
+				Expect(err).ToNot(HaveOccurred(), "Should report number of cores")
+
+				By("2.2 Checking the number of threads in guest OS")
+				_, err = expecter.ExpectBatch([]expect.Batcher{
+					&expect.BSnd{S: "lscpu | grep Thread | awk '{print $4}'\n"},
+					&expect.BExp{R: strconv.Itoa(XMLThreads)},
+				}, 60*time.Second)
+				Expect(err).ToNot(HaveOccurred(), "Should report number of threads")
+
+				By("Deleting VM")
+				_, _, _ = ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "delete", "vm", vm_name)
+				Expect(err).ToNot(HaveOccurred())
+				By("Deleting VM manifest")
+				err = os.Remove(virtRawVMFilePath)
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			By("main cycle")
 			for sockets := 0; sockets < 3; sockets++ {
 				for cores := 0; cores < 3; cores++ {
 					for threads := 0; threads < 3; threads++ {
@@ -381,108 +483,12 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 						virtRawVMFilePath := address_common + "/sockets_cores_threads_raw_manifest_" + vm_name + ".yaml"
 						tframework.ProcessTemplateWithParameters(filename, virtRawVMFilePath, arguments...)
 
-						By("1.3 Starting gouroutine to create, start and test VM")
-						wg.Add(1)
 						//prevent server overloading - CI workaround (i/o error)
-						time.Sleep(10 * time.Second)
+						time.Sleep(5 * time.Second)
+						By("launch goroutine")
+						go runVM(sockets, cores, threads, &wg, virtRawVMFilePath, vm_name)
+						
 
-						go func(sockets int, cores int, threads int, wg *sync.WaitGroup) {
-							defer wg.Done()
-							By("1.3 Create VM from template and launch it")
-
-							tframework.CreateResourceWithFilePathTestNamespace(virtRawVMFilePath)
-							_, _, err := ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "virtctl", "start", vm_name)
-							Expect(err).ToNot(HaveOccurred())
-							_, _, err = ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "project", ktests.NamespaceTestDefault)
-							Expect(err).ToNot(HaveOccurred())
-
-							By("1.3 Getting VMI object")
-							getVMOptions := metav1.GetOptions{}
-							vmi, err := virtClient.VirtualMachineInstance(ktests.NamespaceTestDefault).Get(vm_name, &getVMOptions)
-							Expect(err).ToNot(HaveOccurred())
-							ktests.WaitForSuccessfulVMIStart(vmi)
-
-							By("1.3 Checking that pod was created and has the right name")
-							vmiPod_vmNumName := ktests.GetRunningPodByVirtualMachineInstance(vmi, ktests.NamespaceTestDefault)
-							podName := vmiPod_vmNumName.Name
-							Expect(podName).To(HavePrefix("virt-launcher-"+vm_name), "Pod's name should contain name of the VM associated with it")
-
-							By("1.3 Checking resources in the pod")
-							outPodYAML, _, err := ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "get", "pod", podName, "-o", "yaml")
-							Expect(err).ToNot(HaveOccurred())
-							cpuExist, _, _ := parseYAMLConfig(outPodYAML)
-							Expect(cpuExist).To(BeFalse(), "YAML should have CPUs")
-
-							By("1.3 Get VMI XML")
-							vmiXml, err := ktests.GetRunningVirtualMachineInstanceDomainXML(virtClient, vmi)
-							Expect(err).ToNot(HaveOccurred())
-
-							By("1.3 VMI Unmarshal")
-							domStat := &api.DomainSpec{}
-							err = xml.Unmarshal([]byte(vmiXml), domStat)
-							Expect(err).ToNot(HaveOccurred())
-
-							XMLSockets := sockets
-							XMLCores := cores
-							XMLThreads := threads
-							// If CPU cores, sockets or threads set to 0, XML should have 1 for this parameter
-							if sockets == 0 {
-								XMLSockets = 1
-							}
-							if cores == 0 {
-								XMLCores = 1
-							}
-							if threads == 0 {
-								XMLThreads = 1
-							}
-
-							By("1.3 Checking XML topology")
-							Expect(int(domStat.CPU.Topology.Sockets) == XMLSockets).To(BeTrue(), "XML should have right number of sockets")
-							Expect(int(domStat.CPU.Topology.Cores) == XMLCores).To(BeTrue(), "XML should have right number of cores")
-							Expect(int(domStat.CPU.Topology.Threads) == XMLThreads).To(BeTrue(), "XML should have right number of threads")
-
-							By("1.3 Checking the amount of vCPU")
-							vCPUAmount := XMLSockets * XMLCores * XMLThreads
-							Expect(int(domStat.VCPU.CPUs) == vCPUAmount).To(BeTrue(), "XML should have right number of vCPUs")
-
-							// TC 2.1 and 2.2 should do the same as 1.3 but with several additional checks at the end.
-							// Creating and destroying all these VMs second time may be unnecessary time consuming
-							// TODO: 2.1 & 2.2 - move it to independent test case?
-
-							By("2.1 Expecting the VirtualMachineInstance console")
-							expecter, err := ktests.LoggedInCirrosExpecter(vmi)
-							Expect(err).ToNot(HaveOccurred(), "Console should be started")
-							defer expecter.Close()
-
-							By("2.2 Checking the number of sockets in guest OS")
-							_, err = expecter.ExpectBatch([]expect.Batcher{
-								&expect.BSnd{S: "lscpu | grep Socket | awk '{print $2}'\n"},
-								&expect.BExp{R: strconv.Itoa(XMLSockets)},
-							}, 60*time.Second)
-							Expect(err).ToNot(HaveOccurred(), "Should report number of sockets")
-
-							/*By("2.2 Checking the number of cores in guest OS")
-							_, err = expecter.ExpectBatch([]expect.Batcher{
-								&expect.BSnd{S: "lscpu | grep Core | awk '{print $4}'\n"},
-								&expect.BExp{R: strconv.Itoa(XMLCores)},
-							}, 60*time.Second)
-							Expect(err).ToNot(HaveOccurred(), "Should report number of cores")
-
-							By("2.2 Checking the number of threads in guest OS")
-							_, err = expecter.ExpectBatch([]expect.Batcher{
-								&expect.BSnd{S: "lscpu | grep Thread | awk '{print $4}'\n"},
-								&expect.BExp{R: strconv.Itoa(XMLThreads)},
-							}, 60*time.Second)
-							Expect(err).ToNot(HaveOccurred(), "Should report number of threads")*/
-
-							By("Deleting VM")
-							_, _, _ = ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "delete", "vm", vm_name)
-							Expect(err).ToNot(HaveOccurred())
-							By("Deleting VM manifest")
-							err = os.Remove(virtRawVMFilePath)
-							Expect(err).ToNot(HaveOccurred())
-
-						}(sockets, cores, threads, &wg)
 					}
 				}
 			}
