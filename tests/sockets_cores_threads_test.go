@@ -86,14 +86,15 @@ func isEnoughResources(virtClient kubecli.KubevirtClient, cpuNeeded int, memNeed
 func getYAMLFilename(sockets, cores, threads int, address_common string) string {
 	// 0 means parameter set to 0, 1 means parameter set to non-zero
 	var file_name [2][2][2]string
-	file_name[0][0][0] = "vm-template-cirros-no-sockets-cores-and-threads.yaml"
-	file_name[1][0][0] = "vm-template-cirros-only-sockets.yaml"
-	file_name[0][1][0] = "vm-template-cirros-only-cores.yaml"
-	file_name[0][0][1] = "vm-template-cirros-only-threads.yaml"
-	file_name[0][1][1] = "vm-template-cirros-only-cores-and-threads.yaml"
-	file_name[1][0][1] = "vm-template-cirros-only-sockets-and-threads.yaml"
-	file_name[1][1][0] = "vm-template-cirros-only-sockets-and-cores.yaml"
-	file_name[1][1][1] = "vm-template-cirros-sockets-cores-and-threads.yaml"
+
+	file_name[0][0][0] = "vm-template-fedora-no-sockets-cores-and-threads.yaml"
+	file_name[1][0][0] = "vm-template-fedora-only-sockets.yaml"
+	file_name[0][1][0] = "vm-template-fedora-only-cores.yaml"
+	file_name[0][0][1] = "vm-template-fedora-only-threads.yaml"
+	file_name[0][1][1] = "vm-template-fedora-only-cores-and-threads.yaml"
+	file_name[1][0][1] = "vm-template-fedora-only-sockets-and-threads.yaml"
+	file_name[1][1][0] = "vm-template-fedora-only-sockets-and-cores.yaml"
+	file_name[1][1][1] = "vm-template-fedora-sockets-cores-and-threads.yaml"
 
 	// Because go doesn't have ternary operators
 	s := 0
@@ -399,9 +400,9 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 				vCPUAmount := XMLSockets * XMLCores * XMLThreads
 				Expect(int(domStat.VCPU.CPUs) == vCPUAmount).To(BeTrue(), "XML should have right number of vCPUs")
 
-							// TC 2.1 and 2.2 should do the same as 1.3 but with several additional checks at the end.
-							// Creating and destroying all these VMs second time may be unnecessary time consuming
-							// TODO: 2.1 & 2.2 - move it to independent test case?
+				// TC 2.1 and 2.2 should do the same as 1.3 but with several additional checks at the end.
+				// Creating and destroying all these VMs second time may be unnecessary time consuming
+				// TODO: 2.1 & 2.2 - move it to independent test case?
 
 				By("2.1 Expecting the VirtualMachineInstance console")
 				expecter, err := ktests.LoggedInCirrosExpecter(vmi)
@@ -414,7 +415,7 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 					&expect.BExp{R: strconv.Itoa(XMLSockets)},
 				}, 60*time.Second)
 				Expect(err).ToNot(HaveOccurred(), "Should report number of sockets")
-				
+
 				By("2.2 Checking the number of cores in guest OS")
 				_, err = expecter.ExpectBatch([]expect.Batcher{
 					&expect.BSnd{S: "lscpu | grep Core | awk '{print $4}'\n"},
@@ -487,7 +488,6 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 						time.Sleep(5 * time.Second)
 						By("launch goroutine")
 						go runVM(sockets, cores, threads, &wg, virtRawVMFilePath, vm_name)
-						
 
 					}
 				}
