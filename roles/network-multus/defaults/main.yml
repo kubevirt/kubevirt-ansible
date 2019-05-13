@@ -1,7 +1,7 @@
 registry_url: "docker.io"
 registry_namespace: "kubevirt"
 network_namespace: "kube-system"
-docker_tag: "v0.13.3"
+docker_tag: "v0.17.0"
 
 multus_provisioner_name: "kube-multus-amd64"
 multus_provisioner_repo: "docker.io/nfvpe/multus"
