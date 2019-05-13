@@ -41,6 +41,7 @@ const (
 	VmiFlavorSmall       = "vmi-flavor-small"
 	VmiSata              = "vmi-sata"
 	VmiFedora            = "vmi-fedora"
+	VmiAlpineEFI         = "vmi-alpine-efi"
 	VmiNoCloud           = "vmi-nocloud"
 	VmiPVC               = "vmi-pvc"
 	VmiBlockPVC          = "vmi-block-pvc"
@@ -71,8 +72,6 @@ const VmiPresetSmall = "vmi-preset-small"
 
 const VmiMigration = "migration-job"
 
-const KubeVirt = "kubevirt-cr"
-
 const (
 	busVirtio = "virtio"
 	busSata   = "sata"
@@ -85,8 +84,6 @@ const (
 )
 
 const windowsFirmware = "5d307ca9-b3ef-428c-8861-06e72d69f223"
-
-const apiVersion = "kubevirt.io/v1alpha3"
 
 var DockerPrefix = "registry:5000/kubevirt"
 var DockerTag = "devel"
@@ -311,6 +308,20 @@ func GetVMIEphemeralFedora() *v1.VirtualMachineInstance {
 	return vmi
 }
 
+func GetVMIAlpineEFI() *v1.VirtualMachineInstance {
+	vmi := getBaseVMI(VmiAlpineEFI)
+
+	addContainerDisk(&vmi.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageAlpine, DockerTag), busVirtio)
+	vmi.Spec.Domain.Firmware = &v1.Firmware{
+		Bootloader: &v1.Bootloader{
+			EFI: &v1.EFI{},
+		},
+	}
+
+	vmi.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1Gi")
+	return vmi
+}
+
 func GetVMISlirp() *v1.VirtualMachineInstance {
 	vm := getBaseVMI(VmiSlirp)
 	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
@@ -344,7 +355,7 @@ func GetVMIMasquerade() *v1.VirtualMachineInstance {
 func GetVMISRIOV() *v1.VirtualMachineInstance {
 	vm := getBaseVMI(VmiSRIOV)
 	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
-	vm.Spec.Networks = []v1.Network{*v1.DefaultPodNetwork(), {Name: "sriov-net", NetworkSource: v1.NetworkSource{Multus: &v1.CniNetwork{NetworkName: "sriov-net"}}}}
+	vm.Spec.Networks = []v1.Network{*v1.DefaultPodNetwork(), {Name: "sriov-net", NetworkSource: v1.NetworkSource{Multus: &v1.MultusNetwork{NetworkName: "sriov-net"}}}}
 	addContainerDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
 	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" |passwd fedora --stdin\ndhclient eth1\n")
 
@@ -357,7 +368,7 @@ func GetVMISRIOV() *v1.VirtualMachineInstance {
 func GetVMIMultusPtp() *v1.VirtualMachineInstance {
 	vm := getBaseVMI(VmiMultusPtp)
 	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
-	vm.Spec.Networks = []v1.Network{{Name: "ptp", NetworkSource: v1.NetworkSource{Multus: &v1.CniNetwork{NetworkName: "ptp-conf"}}}}
+	vm.Spec.Networks = []v1.Network{{Name: "ptp", NetworkSource: v1.NetworkSource{Multus: &v1.MultusNetwork{NetworkName: "ptp-conf"}}}}
 	addContainerDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
 	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" |passwd fedora --stdin\n")
 
@@ -369,7 +380,7 @@ func GetVMIMultusPtp() *v1.VirtualMachineInstance {
 func GetVMIMultusMultipleNet() *v1.VirtualMachineInstance {
 	vm := getBaseVMI(VmiMultusMultipleNet)
 	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
-	vm.Spec.Networks = []v1.Network{*v1.DefaultPodNetwork(), {Name: "ptp", NetworkSource: v1.NetworkSource{Multus: &v1.CniNetwork{NetworkName: "ptp-conf"}}}}
+	vm.Spec.Networks = []v1.Network{*v1.DefaultPodNetwork(), {Name: "ptp", NetworkSource: v1.NetworkSource{Multus: &v1.MultusNetwork{NetworkName: "ptp-conf"}}}}
 	addContainerDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
 	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" |passwd fedora --stdin\ndhclient eth1\n")
 
@@ -383,7 +394,7 @@ func GetVMIGeniePtp() *v1.VirtualMachineInstance {
 	vm := getBaseVMI(VmiGeniePtp)
 	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
 	vm.Spec.Networks = []v1.Network{
-		{Name: "ptp", NetworkSource: v1.NetworkSource{Genie: &v1.CniNetwork{NetworkName: "ptp"}}},
+		{Name: "ptp", NetworkSource: v1.NetworkSource{Genie: &v1.GenieNetwork{NetworkName: "ptp"}}},
 	}
 	addContainerDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
 	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\n")
@@ -399,8 +410,8 @@ func GetVMIGenieMultipleNet() *v1.VirtualMachineInstance {
 	vm := getBaseVMI(VmiGenieMultipleNet)
 	vm.Spec.Domain.Resources.Requests[k8sv1.ResourceMemory] = resource.MustParse("1024M")
 	vm.Spec.Networks = []v1.Network{
-		{Name: "default", NetworkSource: v1.NetworkSource{Genie: &v1.CniNetwork{NetworkName: "flannel"}}},
-		{Name: "ptp", NetworkSource: v1.NetworkSource{Genie: &v1.CniNetwork{NetworkName: "ptp"}}},
+		{Name: "default", NetworkSource: v1.NetworkSource{Genie: &v1.GenieNetwork{NetworkName: "flannel"}}},
+		{Name: "ptp", NetworkSource: v1.NetworkSource{Genie: &v1.GenieNetwork{NetworkName: "ptp"}}},
 	}
 	addContainerDisk(&vm.Spec, fmt.Sprintf("%s/%s:%s", DockerPrefix, imageFedora, DockerTag), busVirtio)
 	addNoCloudDiskWitUserData(&vm.Spec, "#!/bin/bash\necho \"fedora\" | passwd fedora --stdin\ndhclient eth1\n")
@@ -503,6 +514,7 @@ func GetVMIWindows() *v1.VirtualMachineInstance {
 
 func getBaseVM(name string, labels map[string]string) *v1.VirtualMachine {
 	baseVMISpec := getBaseVMISpec()
+	running := false
 
 	return &v1.VirtualMachine{
 		TypeMeta: metav1.TypeMeta{
@@ -514,7 +526,7 @@ func getBaseVM(name string, labels map[string]string) *v1.VirtualMachine {
 			Labels: labels,
 		},
 		Spec: v1.VirtualMachineSpec{
-			Running: false,
+			Running: &running,
 			Template: &v1.VirtualMachineInstanceTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,
@@ -828,7 +840,7 @@ func GetVMIWithHookSidecar() *v1.VirtualMachineInstance {
 	addNoCloudDiskWitUserData(&vmi.Spec, "#cloud-config\npassword: fedora\nchpasswd: { expire: False }")
 
 	vmi.ObjectMeta.Annotations = map[string]string{
-		"hooks.kubevirt.io/hookSidecars":              `[{"image": "registry:5000/kubevirt/example-hook-sidecar:devel"}]`,
+		"hooks.kubevirt.io/hookSidecars":              fmt.Sprintf("[{\"image\": \"%s/example-hook-sidecar:%s\"}]", DockerPrefix, DockerTag),
 		"smbios.vm.kubevirt.io/baseBoardManufacturer": "Radical Edward",
 	}
 	return vmi

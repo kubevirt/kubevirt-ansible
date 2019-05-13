@@ -355,7 +355,7 @@ func (m *Duration) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -383,7 +383,7 @@ func (m *Duration) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Seconds |= (int64(b) & 0x7F) << shift
+				m.Seconds |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -402,7 +402,7 @@ func (m *Duration) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Nanos |= (int32(b) & 0x7F) << shift
+				m.Nanos |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -414,6 +414,9 @@ func (m *Duration) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthDuration
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthDuration
 			}
 			if (iNdEx + skippy) > l {
@@ -483,8 +486,11 @@ func skipDuration(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthDuration
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthDuration
 			}
 			return iNdEx, nil
@@ -515,6 +521,9 @@ func skipDuration(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthDuration
+				}
 			}
 			return iNdEx, nil
 		case 4:

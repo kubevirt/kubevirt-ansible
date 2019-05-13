@@ -25,15 +25,20 @@ import (
 )
 
 type Stores struct {
-	ServiceAccountCache     cache.Store
-	ClusterRoleCache        cache.Store
-	ClusterRoleBindingCache cache.Store
-	RoleCache               cache.Store
-	RoleBindingCache        cache.Store
-	CrdCache                cache.Store
-	ServiceCache            cache.Store
-	DeploymentCache         cache.Store
-	DaemonSetCache          cache.Store
+	ServiceAccountCache           cache.Store
+	ClusterRoleCache              cache.Store
+	ClusterRoleBindingCache       cache.Store
+	RoleCache                     cache.Store
+	RoleBindingCache              cache.Store
+	CrdCache                      cache.Store
+	ServiceCache                  cache.Store
+	DeploymentCache               cache.Store
+	DaemonSetCache                cache.Store
+	ValidationWebhookCache        cache.Store
+	SCCCache                      cache.Store
+	InstallStrategyConfigMapCache cache.Store
+	InstallStrategyJobCache       cache.Store
+	InfrastructurePodCache        cache.Store
 }
 
 func (s *Stores) AllEmpty() bool {
@@ -45,7 +50,10 @@ func (s *Stores) AllEmpty() bool {
 		IsStoreEmpty(s.CrdCache) &&
 		IsStoreEmpty(s.ServiceCache) &&
 		IsStoreEmpty(s.DeploymentCache) &&
-		IsStoreEmpty(s.DaemonSetCache)
+		IsStoreEmpty(s.DaemonSetCache) &&
+		IsStoreEmpty(s.ValidationWebhookCache)
+	// Don't add InstallStrategyConfigMapCache to this list. The install
+	// strategies persist even after deletion and updates.
 }
 
 func IsStoreEmpty(store cache.Store) bool {
@@ -53,27 +61,35 @@ func IsStoreEmpty(store cache.Store) bool {
 }
 
 type Expectations struct {
-	ServiceAccount     *controller.UIDTrackingControllerExpectations
-	ClusterRole        *controller.UIDTrackingControllerExpectations
-	ClusterRoleBinding *controller.UIDTrackingControllerExpectations
-	Role               *controller.UIDTrackingControllerExpectations
-	RoleBinding        *controller.UIDTrackingControllerExpectations
-	Crd                *controller.UIDTrackingControllerExpectations
-	Service            *controller.UIDTrackingControllerExpectations
-	Deployment         *controller.UIDTrackingControllerExpectations
-	DaemonSet          *controller.UIDTrackingControllerExpectations
+	ServiceAccount           *controller.UIDTrackingControllerExpectations
+	ClusterRole              *controller.UIDTrackingControllerExpectations
+	ClusterRoleBinding       *controller.UIDTrackingControllerExpectations
+	Role                     *controller.UIDTrackingControllerExpectations
+	RoleBinding              *controller.UIDTrackingControllerExpectations
+	Crd                      *controller.UIDTrackingControllerExpectations
+	Service                  *controller.UIDTrackingControllerExpectations
+	Deployment               *controller.UIDTrackingControllerExpectations
+	DaemonSet                *controller.UIDTrackingControllerExpectations
+	ValidationWebhook        *controller.UIDTrackingControllerExpectations
+	InstallStrategyConfigMap *controller.UIDTrackingControllerExpectations
+	InstallStrategyJob       *controller.UIDTrackingControllerExpectations
 }
 
 type Informers struct {
-	ServiceAccount     cache.SharedIndexInformer
-	ClusterRole        cache.SharedIndexInformer
-	ClusterRoleBinding cache.SharedIndexInformer
-	Role               cache.SharedIndexInformer
-	RoleBinding        cache.SharedIndexInformer
-	Crd                cache.SharedIndexInformer
-	Service            cache.SharedIndexInformer
-	Deployment         cache.SharedIndexInformer
-	DaemonSet          cache.SharedIndexInformer
+	ServiceAccount           cache.SharedIndexInformer
+	ClusterRole              cache.SharedIndexInformer
+	ClusterRoleBinding       cache.SharedIndexInformer
+	Role                     cache.SharedIndexInformer
+	RoleBinding              cache.SharedIndexInformer
+	Crd                      cache.SharedIndexInformer
+	Service                  cache.SharedIndexInformer
+	Deployment               cache.SharedIndexInformer
+	DaemonSet                cache.SharedIndexInformer
+	ValidationWebhook        cache.SharedIndexInformer
+	SCC                      cache.SharedIndexInformer
+	InstallStrategyConfigMap cache.SharedIndexInformer
+	InstallStrategyJob       cache.SharedIndexInformer
+	InfrastructurePod        cache.SharedIndexInformer
 }
 
 func (e *Expectations) DeleteExpectations(key string) {
@@ -86,6 +102,9 @@ func (e *Expectations) DeleteExpectations(key string) {
 	e.Service.DeleteExpectations(key)
 	e.Deployment.DeleteExpectations(key)
 	e.DaemonSet.DeleteExpectations(key)
+	e.ValidationWebhook.DeleteExpectations(key)
+	e.InstallStrategyConfigMap.DeleteExpectations(key)
+	e.InstallStrategyJob.DeleteExpectations(key)
 }
 
 func (e *Expectations) ResetExpectations(key string) {
@@ -98,6 +117,9 @@ func (e *Expectations) ResetExpectations(key string) {
 	e.Service.SetExpectations(key, 0, 0)
 	e.Deployment.SetExpectations(key, 0, 0)
 	e.DaemonSet.SetExpectations(key, 0, 0)
+	e.ValidationWebhook.SetExpectations(key, 0, 0)
+	e.InstallStrategyConfigMap.SetExpectations(key, 0, 0)
+	e.InstallStrategyJob.SetExpectations(key, 0, 0)
 }
 
 func (e *Expectations) SatisfiedExpectations(key string) bool {
@@ -109,5 +131,8 @@ func (e *Expectations) SatisfiedExpectations(key string) bool {
 		e.Crd.SatisfiedExpectations(key) &&
 		e.Service.SatisfiedExpectations(key) &&
 		e.Deployment.SatisfiedExpectations(key) &&
-		e.DaemonSet.SatisfiedExpectations(key)
+		e.DaemonSet.SatisfiedExpectations(key) &&
+		e.ValidationWebhook.SatisfiedExpectations(key) &&
+		e.InstallStrategyConfigMap.SatisfiedExpectations(key) &&
+		e.InstallStrategyJob.SatisfiedExpectations(key)
 }

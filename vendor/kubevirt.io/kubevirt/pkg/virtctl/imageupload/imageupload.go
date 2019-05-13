@@ -25,6 +25,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -51,7 +53,10 @@ const (
 
 	uploadPodWaitInterval = 2 * time.Second
 
-	uploadProxyURI = "/v1alpha1/upload"
+	//UploadProxyURI is a URI of the upoad proxy
+	UploadProxyURI = "/v1alpha1/upload"
+
+	configName = "config"
 )
 
 var (
@@ -101,7 +106,6 @@ func NewImageUploadCommand(clientConfig clientcmd.ClientConfig) *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&insecure, "insecure", insecure, "Allow insecure server connections when using HTTPS.")
 	cmd.Flags().StringVar(&uploadProxyURL, "uploadproxy-url", "", "The URL of the cdi-upload proxy service.")
-	cmd.MarkFlagRequired("uploadproxy-url")
 	cmd.Flags().StringVar(&pvcName, "pvc-name", "", "The destination PVC.")
 	cmd.MarkFlagRequired("pvc-name")
 	cmd.Flags().StringVar(&pvcSize, "pvc-size", "", "The size of the PVC to create (ex. 10Gi, 500Mi).")
@@ -172,11 +176,20 @@ func (c *command) run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	if uploadProxyURL == "" {
+		uploadProxyURL, err = getUploadProxyURL(virtClient.CdiClient())
+		if err != nil {
+			return err
+		}
+		if uploadProxyURL == "" {
+			return fmt.Errorf("Upload Proxy URL not found")
+		}
+	}
 	u, err := url.Parse(uploadProxyURL)
 	if err != nil {
 		return err
 	} else if u.Scheme == "" {
-		uploadProxyURL = fmt.Sprintf("http://%s", uploadProxyURL)
+		uploadProxyURL = fmt.Sprintf("https://%s", uploadProxyURL)
 	}
 	fmt.Printf("Uploading data to %s\n", uploadProxyURL)
 
@@ -202,8 +215,27 @@ func getHTTPClient(insecure bool) *http.Client {
 	return client
 }
 
+//ConstructUploadProxyPath - receives uploadproxy adress and concatenates to it URI
+func ConstructUploadProxyPath(uploadProxyURL string) (string, error) {
+	u, err := url.Parse(uploadProxyURL)
+
+	if err != nil {
+		return "", err
+	}
+
+	if !strings.Contains(uploadProxyURL, UploadProxyURI) {
+		u.Path = path.Join(u.Path, UploadProxyURI)
+	}
+
+	return u.String(), nil
+}
+
 func uploadData(uploadProxyURL, token string, file *os.File, insecure bool) error {
-	url := uploadProxyURL + uploadProxyURI
+
+	url, err := ConstructUploadProxyPath(uploadProxyURL)
+	if err != nil {
+		return err
+	}
 
 	fi, err := file.Stat()
 	if err != nil {
@@ -218,6 +250,7 @@ func uploadData(uploadProxyURL, token string, file *os.File, insecure bool) erro
 
 	req.Header.Add("Authorization", "Bearer "+token)
 	req.Header.Add("Content-Type", "application/octet-stream")
+	req.ContentLength = fi.Size()
 
 	fmt.Println()
 	bar.Start()
@@ -276,7 +309,22 @@ func waitUploadPodRunning(client kubernetes.Interface, namespace, name string, i
 
 		podPhase, _ := pvc.Annotations[PodPhaseAnnotation]
 
-		done := (podPhase == string(v1.PodRunning)) && (len(endpoints.Subsets) > 0)
+		done := false
+		availableEndpoint := false
+		for _, subset := range endpoints.Subsets {
+			if len(subset.Addresses) > 0 {
+				// we're looking to make sure the service endpoint has
+				// the upload pod marked as being available, which means
+				// that it is ready to accept connections
+				availableEndpoint = true
+				break
+			}
+		}
+		running := (podPhase == string(v1.PodRunning))
+
+		if running && availableEndpoint {
+			done = true
+		}
 
 		if !done && !loggedStatus {
 			fmt.Printf("Waiting for PVC %s upload pod to be running...\n", name)
@@ -372,4 +420,18 @@ func getAndValidateUploadPVC(client kubernetes.Interface, namespace, name string
 	}
 
 	return pvc, nil
+}
+
+func getUploadProxyURL(client cdiClientset.Interface) (string, error) {
+	cdiConfig, err := client.CdiV1alpha1().CDIConfigs().Get(configName, metav1.GetOptions{})
+	if err != nil {
+		return "", err
+	}
+	if cdiConfig.Spec.UploadProxyURLOverride != nil {
+		return *cdiConfig.Spec.UploadProxyURLOverride, nil
+	}
+	if cdiConfig.Status.UploadProxyURL != nil {
+		return *cdiConfig.Status.UploadProxyURL, nil
+	}
+	return "", nil
 }

@@ -53,7 +53,7 @@ func CreateControllerRBAC(clientset kubecli.KubevirtClient, kv *virtv1.KubeVirt,
 			objectsAdded++
 		}
 	} else {
-		log.Log.Infof("serviceaccount %v already exists", sa.GetName())
+		log.Log.V(4).Infof("serviceaccount %v already exists", sa.GetName())
 	}
 
 	rbac := clientset.RbacV1()
@@ -69,7 +69,7 @@ func CreateControllerRBAC(clientset kubecli.KubevirtClient, kv *virtv1.KubeVirt,
 			objectsAdded++
 		}
 	} else {
-		log.Log.Infof("clusterrole %v already exists", cr.GetName())
+		log.Log.V(4).Infof("clusterrole %v already exists", cr.GetName())
 	}
 
 	crb := newControllerClusterRoleBinding(kv.Namespace)
@@ -83,7 +83,7 @@ func CreateControllerRBAC(clientset kubecli.KubevirtClient, kv *virtv1.KubeVirt,
 			objectsAdded++
 		}
 	} else {
-		log.Log.Infof("clusterrolebinding %v already exists", crb.GetName())
+		log.Log.V(4).Infof("clusterrolebinding %v already exists", crb.GetName())
 	}
 
 	return objectsAdded, nil
@@ -107,8 +107,7 @@ func newControllerServiceAccount(namespace string) *corev1.ServiceAccount {
 			Namespace: namespace,
 			Name:      "kubevirt-controller",
 			Labels: map[string]string{
-				virtv1.AppLabel:       "",
-				virtv1.ManagedByLabel: virtv1.ManagedByLabelOperatorValue,
+				virtv1.AppLabel: "",
 			},
 		},
 	}
@@ -123,11 +122,21 @@ func newControllerClusterRole() *rbacv1.ClusterRole {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kubevirt-controller",
 			Labels: map[string]string{
-				virtv1.AppLabel:       "",
-				virtv1.ManagedByLabel: virtv1.ManagedByLabelOperatorValue,
+				virtv1.AppLabel: "",
 			},
 		},
 		Rules: []rbacv1.PolicyRule{
+			{
+				APIGroups: []string{
+					"policy",
+				},
+				Resources: []string{
+					"poddisruptionbudgets",
+				},
+				Verbs: []string{
+					"get", "list", "watch", "delete", "create",
+				},
+			},
 			{
 				APIGroups: []string{
 					"",
@@ -229,8 +238,7 @@ func newControllerClusterRoleBinding(namespace string) *rbacv1.ClusterRoleBindin
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kubevirt-controller",
 			Labels: map[string]string{
-				virtv1.AppLabel:       "",
-				virtv1.ManagedByLabel: virtv1.ManagedByLabelOperatorValue,
+				virtv1.AppLabel: "",
 			},
 		},
 		RoleRef: rbacv1.RoleRef{

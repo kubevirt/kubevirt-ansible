@@ -13,6 +13,7 @@ spec:
     targetPort: 8443
   selector:
     kubevirt.io: virt-api
+  type: ClusterIP
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -37,6 +38,18 @@ spec:
         prometheus.kubevirt.io: ""
       name: virt-api
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: kubevirt.io
+                  operator: In
+                  values:
+                  - virt-api
+              topologyKey: kubernetes.io/hostname
+            weight: 1
       containers:
       - command:
         - virt-api

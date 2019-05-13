@@ -23,6 +23,7 @@ func (VirtualMachineInstanceSpec) SwaggerDoc() map[string]string {
 		"nodeSelector":                  "NodeSelector is a selector which must be true for the vmi to fit on a node.\nSelector which must match a node's labels for the vmi to be scheduled on that node.\nMore info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/\n+optional",
 		"affinity":                      "If affinity is specifies, obey all the affinity rules",
 		"tolerations":                   "If toleration is specified, obey all the toleration rules.",
+		"evictionStrategy":              "EvictionStrategy can be set to \"LiveMigrate\" if the VirtualMachineInstance should be\nmigrated instead of shut-off in case of a node drain.",
 		"terminationGracePeriodSeconds": "Grace period observed after signalling a VirtualMachineInstance to stop after which the VirtualMachineInstance is force terminated.",
 		"volumes":                       "List of volumes that can be mounted by disks belonging to the vmi.",
 		"livenessProbe":                 "Periodic probe of VirtualMachineInstance liveness.\nVirtualmachineInstances will be stopped if the probe fails.\nCannot be updated.\nMore info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes\n+optional",
@@ -30,6 +31,8 @@ func (VirtualMachineInstanceSpec) SwaggerDoc() map[string]string {
 		"hostname":                      "Specifies the hostname of the vmi\nIf not specified, the hostname will be set to the name of the vmi, if dhcp or cloud-init is configured properly.\n+optional",
 		"subdomain":                     "If specified, the fully qualified vmi hostname will be \"<hostname>.<subdomain>.<pod namespace>.svc.<cluster domain>\".\nIf not specified, the vmi will not have a domainname at all. The DNS entry will resolve to the vmi,\nno matter if the vmi itself can pick up a hostname.\n+optional",
 		"networks":                      "List of networks that can be attached to a vm's virtual interface.",
+		"dnsPolicy":                     "Set DNS policy for the pod.\nDefaults to \"ClusterFirst\".\nValid values are 'ClusterFirstWithHostNet', 'ClusterFirst', 'Default' or 'None'.\nDNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy.\nTo have DNS options set along with hostNetwork, you have to specify DNS policy\nexplicitly to 'ClusterFirstWithHostNet'.\n+optional",
+		"dnsConfig":                     "Specifies the DNS parameters of a pod.\nParameters specified here will be merged to the generated DNS\nconfiguration based on DNSPolicy.\n+optional",
 	}
 }
 
@@ -50,6 +53,10 @@ func (VirtualMachineInstanceCondition) SwaggerDoc() map[string]string {
 	return map[string]string{}
 }
 
+func (VirtualMachineInstanceMigrationCondition) SwaggerDoc() map[string]string {
+	return map[string]string{}
+}
+
 func (VirtualMachineInstanceNetworkInterface) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"ipAddress":     "IP address of a Virtual Machine interface",
@@ -62,15 +69,19 @@ func (VirtualMachineInstanceNetworkInterface) SwaggerDoc() map[string]string {
 
 func (VirtualMachineInstanceMigrationState) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"startTimestamp":           "The time the migration action began",
-		"endTimestamp":             "The time the migration action ended",
-		"targetNodeDomainDetected": "The Target Node has seen the Domain Start Event",
-		"targetNodeAddress":        "The address of the target node to use for the migration",
-		"targetNode":               "The target node that the VMI is moving to",
-		"sourceNode":               "The source node that the VMI originated on",
-		"completed":                "Indicates the migration completed",
-		"failed":                   "Indicates that the migration failed",
-		"migrationUid":             "The VirtualMachineInstanceMigration object associated with this migration",
+		"startTimestamp":                 "The time the migration action began",
+		"endTimestamp":                   "The time the migration action ended",
+		"targetNodeDomainDetected":       "The Target Node has seen the Domain Start Event",
+		"targetNodeAddress":              "The address of the target node to use for the migration",
+		"targetDirectMigrationNodePorts": "The list of ports opened for live migration on the destination node",
+		"targetNode":                     "The target node that the VMI is moving to",
+		"targetPod":                      "The target pod that the VMI is moving to",
+		"sourceNode":                     "The source node that the VMI originated on",
+		"completed":                      "Indicates the migration completed",
+		"failed":                         "Indicates that the migration failed",
+		"abortRequested":                 "Indicates that the migration has been requested to abort",
+		"abortStatus":                    "Indicates the final status of the live migration abortion",
+		"migrationUid":                   "The VirtualMachineInstanceMigration object associated with this migration",
 	}
 }
 
@@ -182,7 +193,8 @@ func (VirtualMachineList) SwaggerDoc() map[string]string {
 func (VirtualMachineSpec) SwaggerDoc() map[string]string {
 	return map[string]string{
 		"":                    "VirtualMachineSpec describes how the proper VirtualMachine\nshould look like",
-		"running":             "Running controls whether the associatied VirtualMachineInstance is created or not",
+		"running":             "Running controls whether the associatied VirtualMachineInstance is created or not\nMutually exclusive with RunStrategy",
+		"runStrategy":         "Running state indicates the requested running state of the VirtualMachineInstance\nmutually exclusive with Running",
 		"template":            "Template is the direct specification of VirtualMachineInstance",
 		"dataVolumeTemplates": "dataVolumeTemplates is a list of dataVolumes that the VirtualMachineInstance template can reference.\nDataVolumes in this list are dynamically created for the VirtualMachine and are tied to the VirtualMachine's life-cycle.",
 	}
@@ -190,10 +202,18 @@ func (VirtualMachineSpec) SwaggerDoc() map[string]string {
 
 func (VirtualMachineStatus) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"":           "VirtualMachineStatus represents the status returned by the\ncontroller to describe how the VirtualMachine is doing",
-		"created":    "Created indicates if the virtual machine is created in the cluster",
-		"ready":      "Ready indicates if the virtual machine is running and ready",
-		"conditions": "Hold the state information of the VirtualMachine and its VirtualMachineInstance",
+		"":                    "VirtualMachineStatus represents the status returned by the\ncontroller to describe how the VirtualMachine is doing",
+		"created":             "Created indicates if the virtual machine is created in the cluster",
+		"ready":               "Ready indicates if the virtual machine is running and ready",
+		"conditions":          "Hold the state information of the VirtualMachine and its VirtualMachineInstance",
+		"stateChangeRequests": "StateChangeRequests indicates a list of actions that should be taken on a VMI\ne.g. stop a specific VMI then start a new one.",
+	}
+}
+
+func (VirtualMachineStateChangeRequest) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"action": "Indicates the type of action that is requested. e.g. Start or Stop",
+		"uid":    "Indicates the UUID of an existing Virtual Machine Instance that this change request applies to -- if applicable",
 	}
 }
 
@@ -236,6 +256,8 @@ func (KubeVirtList) SwaggerDoc() map[string]string {
 
 func (KubeVirtSpec) SwaggerDoc() map[string]string {
 	return map[string]string{
+		"imageTag":        "The image tag to use for the continer images installed.\nDefaults to the same tag as the operator's container image.",
+		"imageRegistry":   "The image registry to pull the container images from\nDefaults to the same registry the operator's container image is pulled from.",
 		"imagePullPolicy": "The ImagePullPolicy to use.",
 	}
 }

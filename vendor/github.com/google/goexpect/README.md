@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/google/goexpect.svg?style=svg)](https://circleci.com/gh/google/goexpect)
+
 This package is an implementation of [Expect](https://en.wikipedia.org/wiki/Expect) in [Go](golang.org).
 
 
@@ -45,6 +47,11 @@ everytime the check is run. Can be used for troubleshooting and debugging of Spa
 ### ChangeCheck
 
 The ChangeCheck option makes it possible to replace the Spawner Check function with a brand new one.
+
+### SendTimeout
+
+The SendTimeout set timeout on the `Send` command, without timeout the `Send` command will wait forewer for the expecter process.
+
 
 ## Basic Examples
 

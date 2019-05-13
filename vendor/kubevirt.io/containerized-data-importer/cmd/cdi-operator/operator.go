@@ -22,6 +22,7 @@ import (
 	"os"
 	"runtime"
 
+	routev1 "github.com/openshift/api/route/v1"
 	secv1 "github.com/openshift/api/security/v1"
 
 	extv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
@@ -66,7 +67,7 @@ func main() {
 	managerOpts := manager.Options{
 		LeaderElection:          true,
 		LeaderElectionNamespace: namespace,
-		LeaderElectionID:        "cdi-controler-leader-election",
+		LeaderElectionID:        "cdi-operator-leader-election-helper",
 	}
 
 	// Create a new Manager to provide shared dependencies and start components
@@ -89,6 +90,11 @@ func main() {
 	}
 
 	if err := secv1.Install(mgr.GetScheme()); err != nil {
+		log.Error(err, "")
+		os.Exit(1)
+	}
+
+	if err := routev1.Install(mgr.GetScheme()); err != nil {
 		log.Error(err, "")
 		os.Exit(1)
 	}

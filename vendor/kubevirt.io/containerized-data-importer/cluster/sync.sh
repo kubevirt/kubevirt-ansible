@@ -17,7 +17,7 @@ registry_port=$($gocli ports registry | tr -d '\r')
 registry=localhost:$registry_port
 
 DOCKER_REPO=${registry} make docker push
-DOCKER_REPO="registry:5000" make manifests
+DOCKER_REPO="registry:5000" PULL_POLICY=$(getTestPullPolicy) make manifests
 
 # Make sure that all nodes use the newest images
 container=""
@@ -42,3 +42,4 @@ done
 # Start functional test HTTP server.
 ./cluster/kubectl.sh apply -f ./manifests/generated/file-host.yaml
 ./cluster/kubectl.sh apply -f ./manifests/generated/registry-host.yaml
+./cluster/kubectl.sh apply -f ./manifests/generated/block-device.yaml

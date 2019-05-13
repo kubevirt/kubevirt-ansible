@@ -36,6 +36,13 @@ import (
 	"kubevirt.io/kubevirt/pkg/precond"
 )
 
+// For versioning of the virt-handler and -launcher communication,
+// you need to increase the Version const when making changes,
+// and make necessary changes in the cmd and notify rpc implementation!
+const (
+	DomainVersion = "v1"
+)
+
 type LifeCycle string
 type StateChangeReason string
 
@@ -164,7 +171,13 @@ type VCPU struct {
 type CPU struct {
 	Mode     string       `xml:"mode,attr,omitempty"`
 	Model    string       `xml:"model,omitempty"`
+	Features []CPUFeature `xml:"feature"`
 	Topology *CPUTopology `xml:"topology"`
+}
+
+type CPUFeature struct {
+	Name   string `xml:"name,attr"`
+	Policy string `xml:"policy,attr,omitempty"`
 }
 
 type CPUTopology struct {
@@ -177,18 +190,24 @@ type Features struct {
 	ACPI   *FeatureEnabled `xml:"acpi,omitempty"`
 	APIC   *FeatureEnabled `xml:"apic,omitempty"`
 	Hyperv *FeatureHyperv  `xml:"hyperv,omitempty"`
+	SMM    *FeatureEnabled `xml:"smm,omitempty"`
 }
 
 type FeatureHyperv struct {
-	Relaxed    *FeatureState     `xml:"relaxed,omitempty"`
-	VAPIC      *FeatureState     `xml:"vapic,omitempty"`
-	Spinlocks  *FeatureSpinlocks `xml:"spinlocks,omitempty"`
-	VPIndex    *FeatureState     `xml:"vpindex,omitempty"`
-	Runtime    *FeatureState     `xml:"runtime,omitempty"`
-	SyNIC      *FeatureState     `xml:"synic,omitempty"`
-	SyNICTimer *FeatureState     `xml:"stimer,omitempty"`
-	Reset      *FeatureState     `xml:"reset,omitempty"`
-	VendorID   *FeatureVendorID  `xml:"vendor_id,omitempty"`
+	Relaxed         *FeatureState     `xml:"relaxed,omitempty"`
+	VAPIC           *FeatureState     `xml:"vapic,omitempty"`
+	Spinlocks       *FeatureSpinlocks `xml:"spinlocks,omitempty"`
+	VPIndex         *FeatureState     `xml:"vpindex,omitempty"`
+	Runtime         *FeatureState     `xml:"runtime,omitempty"`
+	SyNIC           *FeatureState     `xml:"synic,omitempty"`
+	SyNICTimer      *FeatureState     `xml:"stimer,omitempty"`
+	Reset           *FeatureState     `xml:"reset,omitempty"`
+	VendorID        *FeatureVendorID  `xml:"vendor_id,omitempty"`
+	Frequencies     *FeatureState     `xml:"frequencies,omitempty"`
+	Reenlightenment *FeatureState     `xml:"reenlightenment,omitempty"`
+	TLBFlush        *FeatureState     `xml:"tlbflush,omitempty"`
+	IPI             *FeatureState     `xml:"ipi,omitempty"`
+	EVMCS           *FeatureState     `xml:"evmcs,omitempty"`
 }
 
 type FeatureSpinlocks struct {
@@ -227,6 +246,7 @@ type MigrationMetadata struct {
 	Completed      bool         `xml:"completed,omitempty"`
 	Failed         bool         `xml:"failed,omitempty"`
 	FailureReason  string       `xml:"failureReason,omitempty"`
+	AbortStatus    string       `xml:"abortStatus,omitempty"`
 }
 
 type GracePeriodMetadata struct {
@@ -283,10 +303,18 @@ type Devices struct {
 	Graphics    []Graphics   `xml:"graphics"`
 	Ballooning  *Ballooning  `xml:"memballoon,omitempty"`
 	Disks       []Disk       `xml:"disk"`
+	Inputs      []Input      `xml:"input"`
 	Serials     []Serial     `xml:"serial"`
 	Consoles    []Console    `xml:"console"`
 	Watchdog    *Watchdog    `xml:"watchdog,omitempty"`
 	Rng         *Rng         `xml:"rng,omitempty"`
+}
+
+// Input represents input device, e.g. tablet
+type Input struct {
+	Type  string `xml:"type,attr"`
+	Bus   string `xml:"bus,attr"`
+	Alias *Alias `xml:"alias,omitempty"`
 }
 
 // BEGIN HostDevice -----------------------------
@@ -531,6 +559,8 @@ type OS struct {
 	BootOrder  []Boot    `xml:"boot"`
 	BootMenu   *BootMenu `xml:"bootmenu,omitempty"`
 	BIOS       *BIOS     `xml:"bios,omitempty"`
+	BootLoader *Loader   `xml:"loader,omitempty"`
+	NVRam      *NVRam    `xml:"nvram,omitempty"`
 	Kernel     string    `xml:"kernel,omitempty"`
 	Initrd     string    `xml:"initrd,omitempty"`
 	KernelArgs string    `xml:"cmdline,omitempty"`
@@ -547,8 +577,8 @@ type SMBios struct {
 }
 
 type NVRam struct {
-	NVRam    string `xml:",chardata,omitempty"`
 	Template string `xml:"template,attr,omitempty"`
+	NVRam    string `xml:",chardata"`
 }
 
 type Boot struct {
@@ -561,11 +591,15 @@ type BootMenu struct {
 }
 
 // TODO <loader readonly='yes' secure='no' type='rom'>/usr/lib/xen/boot/hvmloader</loader>
-type BIOS struct {
+type Loader struct {
+	ReadOnly string `xml:"readonly,attr,omitempty"`
+	Secure   string `xml:"secure,attr,omitempty"`
+	Type     string `xml:"type,attr,omitempty"`
+	Path     string `xml:",chardata"`
 }
 
 // TODO <bios useserial='yes' rebootTimeout='0'/>
-type Loader struct {
+type BIOS struct {
 }
 
 type SysInfo struct {
@@ -657,11 +691,14 @@ type GraphicsListen struct {
 }
 
 type Address struct {
-	Type     string `xml:"type,attr"`
-	Domain   string `xml:"domain,attr"`
-	Bus      string `xml:"bus,attr"`
-	Slot     string `xml:"slot,attr"`
-	Function string `xml:"function,attr"`
+	Type       string `xml:"type,attr"`
+	Domain     string `xml:"domain,attr,omitempty"`
+	Bus        string `xml:"bus,attr"`
+	Slot       string `xml:"slot,attr,omitempty"`
+	Function   string `xml:"function,attr,omitempty"`
+	Controller string `xml:"controller,attr,omitempty"`
+	Target     string `xml:"target,attr,omitempty"`
+	Unit       string `xml:"unit,attr,omitempty"`
 }
 
 //END Video -------------------

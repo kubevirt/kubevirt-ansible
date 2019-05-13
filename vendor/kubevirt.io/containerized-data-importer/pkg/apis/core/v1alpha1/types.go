@@ -94,6 +94,8 @@ type DataVolumeSourceRegistry struct {
 	URL string `json:"url,omitempty"`
 	//SecretRef provides the secret reference needed to access the Registry source
 	SecretRef string `json:"secretRef,omitempty"`
+	//CertConfigMap provides a reference to the Registry certs
+	CertConfigMap string `json:"certConfigMap,omitempty"`
 }
 
 // DataVolumeSourceHTTP provides the parameters to create a Data Volume from an HTTP source
@@ -102,12 +104,15 @@ type DataVolumeSourceHTTP struct {
 	URL string `json:"url,omitempty"`
 	//SecretRef provides the secret reference needed to access the HTTP source
 	SecretRef string `json:"secretRef,omitempty"`
+	//CertConfigMap provides a reference to the Registry certs
+	CertConfigMap string `json:"certConfigMap,omitempty"`
 }
 
 // DataVolumeStatus provides the parameters to store the phase of the Data Volume
 type DataVolumeStatus struct {
 	//Phase is the current phase of the data volume
-	Phase DataVolumePhase `json:"phase,omitempty"`
+	Phase    DataVolumePhase    `json:"phase,omitempty"`
+	Progress DataVolumeProgress `json:"progress,omitempty"`
 }
 
 //DataVolumeList provides the needed parameters to do request a list of Data Volumes from the system
@@ -122,6 +127,9 @@ type DataVolumeList struct {
 
 // DataVolumePhase is the current phase of the DataVolume
 type DataVolumePhase string
+
+// DataVolumeProgress is the current progress of the DataVolume transfer operation. Value between 0 and 100 inclusive
+type DataVolumeProgress string
 
 const (
 	// PhaseUnset represents a data volume with no current phase
@@ -157,6 +165,10 @@ const (
 	// Unknown represents a DataVolumePhase of Unknown
 	Unknown DataVolumePhase = "Unknown"
 )
+
+// this has to be here otherwise informer-gen doesn't recognize it
+// see https://github.com/kubernetes/code-generator/issues/59
+// +genclient:nonNamespaced
 
 // CDI is the CDI Operator CRD
 // +genclient
@@ -229,4 +241,41 @@ type CDIList struct {
 
 	// Items provides a list of CDIs
 	Items []CDI `json:"items"`
+}
+
+// this has to be here otherwise informer-gen doesn't recognize it
+// see https://github.com/kubernetes/code-generator/issues/59
+// +genclient:nonNamespaced
+
+// CDIConfig provides a user configuration for CDI
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type CDIConfig struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   CDIConfigSpec   `json:"spec"`
+	Status CDIConfigStatus `json:"status,omitempty"`
+}
+
+//CDIConfigSpec defines specification for user configuration
+type CDIConfigSpec struct {
+	UploadProxyURLOverride   *string `json:"uploadProxyURLOverride,omitempty"`
+	ScratchSpaceStorageClass *string `json:"scratchSpaceStorageClass,omitempty"`
+}
+
+//CDIConfigStatus provides
+type CDIConfigStatus struct {
+	UploadProxyURL           *string `json:"uploadProxyURL,omitempty"`
+	ScratchSpaceStorageClass string  `json:"scratchSpaceStorageClass,omitempty"`
+}
+
+//CDIConfigList provides the needed parameters to do request a list of CDIConfigs from the system
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+type CDIConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	// Items provides a list of CDIConfigs
+	Items []CDIConfig `json:"items"`
 }

@@ -1,4 +1,7 @@
 package: kubevirt.io/kubevirt-ansible
+ignore:
+- k8s.io/api/autoscaling/v2beta2
+- k8s.io/api/coordination/v1beta1
 import:
 - package: github.com/onsi/ginkgo
   version: 11459a886d9cd66b319dac7ef1e917ee221372c9

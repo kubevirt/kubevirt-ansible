@@ -20,6 +20,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -43,16 +44,20 @@ import (
 	"kubevirt.io/kubevirt/pkg/util/hardware"
 	"kubevirt.io/kubevirt/pkg/util/net/dns"
 	"kubevirt.io/kubevirt/pkg/util/types"
-	"kubevirt.io/kubevirt/pkg/virt-config"
+	virtconfig "kubevirt.io/kubevirt/pkg/virt-config"
 )
 
 const configMapName = "kubevirt-config"
 const UseEmulationKey = "debug.useEmulation"
 const ImagePullPolicyKey = "dev.imagePullPolicy"
 const LessPVCSpaceTolerationKey = "pvc-tolerate-less-space-up-to-percent"
+const NodeSelectorsKey = "node-selectors"
 const KvmDevice = "devices.kubevirt.io/kvm"
 const TunDevice = "devices.kubevirt.io/tun"
 const VhostNetDevice = "devices.kubevirt.io/vhost-net"
+
+const MultusNetworksAnnotation = "k8s.v1.cni.cncf.io/networks"
+const GenieNetworksAnnotation = "cni"
 
 const CAP_NET_ADMIN = "NET_ADMIN"
 const CAP_SYS_NICE = "SYS_NICE"
@@ -61,11 +66,17 @@ const CAP_SYS_NICE = "SYS_NICE"
 // Libvirt needs roughly 10 seconds to start.
 const LibvirtStartupDelay = 10
 
-//This is a perfix for node feature discovery, used in a NodeSelector on the pod
-//to match a VirtualMachineInstance CPU model(Family) to nodes that support this model.
+//These perfixes for node feature discovery, are used in a NodeSelector on the pod
+//to match a VirtualMachineInstance CPU model(Family) and/or features to nodes that support them.
 const NFD_CPU_MODEL_PREFIX = "feature.node.kubernetes.io/cpu-model-"
+const NFD_CPU_FEATURE_PREFIX = "feature.node.kubernetes.io/cpu-feature-"
+const NFD_KVM_INFO_PREFIX = "feature.node.kubernetes.io/kvm-info-cap-hyperv-"
 
 const MULTUS_RESOURCE_NAME_ANNOTATION = "k8s.v1.cni.cncf.io/resourceName"
+const MULTUS_DEFAULT_NETWORK_CNI_ANNOTATION = "v1.multus-cni.io/default-network"
+
+// Istio list of virtual interfaces whose inbound traffic (from VM) will be treated as outbound traffic in envoy
+const ISTIO_KUBEVIRT_ANNOTATION = "traffic.sidecar.istio.io/kubevirtInterfaces"
 
 type TemplateService interface {
 	RenderLaunchManifest(*v1.VirtualMachineInstance) (*k8sv1.Pod, error)
@@ -141,6 +152,23 @@ func GetlessPVCSpaceToleration(store cache.Store) (toleration int, err error) {
 	return
 }
 
+func getNodeSelectors(store cache.Store) (nodeSelectors map[string]string, err error) {
+	var value string
+	nodeSelectors = make(map[string]string)
+
+	if value, err = getConfigMapEntry(store, NodeSelectorsKey); err != nil || value == "" {
+		return
+	}
+	for _, s := range strings.Split(strings.TrimSpace(value), "\n") {
+		v := strings.Split(s, "=")
+		if len(v) != 2 {
+			return nil, fmt.Errorf("Invalid node selector: %s", s)
+		}
+		nodeSelectors[v[0]] = v[1]
+	}
+	return
+}
+
 func isSRIOVVmi(vmi *v1.VirtualMachineInstance) bool {
 	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
 		if iface.SRIOV != nil {
@@ -159,6 +187,89 @@ func IsCPUNodeDiscoveryEnabled(store cache.Store) bool {
 	return false
 }
 
+func isFeatureStateEnabled(fs *v1.FeatureState) bool {
+	return fs != nil && fs.Enabled != nil && *fs.Enabled
+}
+
+type hvFeatureLabel struct {
+	Feature *v1.FeatureState
+	Label   string
+}
+
+// makeHVFeatureLabelTable creates the mapping table between the VMI hyperv state and the label names.
+// The table needs pointers to v1.FeatureHyperv struct, so it has to be generated and can't be a
+// static var
+func makeHVFeatureLabelTable(vmi *v1.VirtualMachineInstance) []hvFeatureLabel {
+	// The following HyperV features don't require support from the host kernel, according to inspection
+	// of the QEMU sources (4.0 - adb3321bfd)
+	// VAPIC, Relaxed, Spinlocks, VendorID
+	// VPIndex, SyNIC: depend on both MSR and capability
+	// IPI, TLBFlush: depend on KVM Capabilities
+	// Runtime, Reset, SyNICTimer, Frequencies, Reenlightenment: depend on KVM MSRs availability
+	// EVMCS: depends on KVM capability, but the only way to know that is enable it, QEMU doesn't do
+	// any check before that, so we leave it out
+	//
+	// see also https://schd.ws/hosted_files/devconfcz2019/cf/vkuznets_enlightening_kvm_devconf2019.pdf
+	// to learn about dependencies between enlightenments
+
+	hyperv := vmi.Spec.Domain.Features.Hyperv // shortcut
+	return []hvFeatureLabel{
+		hvFeatureLabel{
+			Feature: hyperv.VPIndex,
+			Label:   "vpindex",
+		},
+		hvFeatureLabel{
+			Feature: hyperv.Runtime,
+			Label:   "runtime",
+		},
+		hvFeatureLabel{
+			Feature: hyperv.Reset,
+			Label:   "reset",
+		},
+		hvFeatureLabel{
+			// TODO: SyNIC depends on vp-index on QEMU level. We should enforce this constraint.
+			Feature: hyperv.SyNIC,
+			Label:   "synic",
+		},
+		hvFeatureLabel{
+			// TODO: SyNICTimer depends on SyNIC and Relaxed. We should enforce this constraint.
+			Feature: hyperv.SyNICTimer,
+			Label:   "synictimer",
+		},
+		hvFeatureLabel{
+			Feature: hyperv.Frequencies,
+			Label:   "frequencies",
+		},
+		hvFeatureLabel{
+			Feature: hyperv.Reenlightenment,
+			Label:   "reenlightenment",
+		},
+		hvFeatureLabel{
+			Feature: hyperv.TLBFlush,
+			Label:   "tlbflush",
+		},
+		hvFeatureLabel{
+			Feature: hyperv.IPI,
+			Label:   "ipi",
+		},
+	}
+}
+
+func getHypervNodeSelectors(vmi *v1.VirtualMachineInstance) map[string]string {
+	nodeSelectors := make(map[string]string)
+	if vmi.Spec.Domain.Features == nil || vmi.Spec.Domain.Features.Hyperv == nil {
+		return nodeSelectors
+	}
+
+	hvFeatureLabels := makeHVFeatureLabelTable(vmi)
+	for _, hv := range hvFeatureLabels {
+		if isFeatureStateEnabled(hv.Feature) {
+			nodeSelectors[NFD_KVM_INFO_PREFIX+hv.Label] = "true"
+		}
+	}
+	return nodeSelectors
+}
+
 func CPUModelLabelFromCPUModel(vmi *v1.VirtualMachineInstance) (label string, err error) {
 	if vmi.Spec.Domain.CPU == nil || vmi.Spec.Domain.CPU.Model == "" {
 		err = fmt.Errorf("Cannot create CPU Model label, vmi spec is mising CPU model")
@@ -166,6 +277,67 @@ func CPUModelLabelFromCPUModel(vmi *v1.VirtualMachineInstance) (label string, er
 	}
 	label = NFD_CPU_MODEL_PREFIX + vmi.Spec.Domain.CPU.Model
 	return
+}
+
+func CPUFeatureLabelsFromCPUFeatures(vmi *v1.VirtualMachineInstance) []string {
+	var labels []string
+	if vmi.Spec.Domain.CPU != nil && vmi.Spec.Domain.CPU.Features != nil {
+		for _, feature := range vmi.Spec.Domain.CPU.Features {
+			if feature.Policy == "" || feature.Policy == "require" {
+				labels = append(labels, NFD_CPU_FEATURE_PREFIX+feature.Name)
+			}
+		}
+	}
+	return labels
+}
+
+func SetNodeAffinityForForbiddenFeaturePolicy(vmi *v1.VirtualMachineInstance, pod *k8sv1.Pod) {
+
+	if vmi.Spec.Domain.CPU == nil || vmi.Spec.Domain.CPU.Features == nil {
+		return
+	}
+
+	for _, feature := range vmi.Spec.Domain.CPU.Features {
+		if feature.Policy == "forbid" {
+
+			requirement := k8sv1.NodeSelectorRequirement{
+				Key:      NFD_CPU_FEATURE_PREFIX + feature.Name,
+				Operator: k8sv1.NodeSelectorOpDoesNotExist,
+			}
+			term := k8sv1.NodeSelectorTerm{
+				MatchExpressions: []k8sv1.NodeSelectorRequirement{requirement}}
+
+			nodeAffinity := &k8sv1.NodeAffinity{
+				RequiredDuringSchedulingIgnoredDuringExecution: &k8sv1.NodeSelector{
+					NodeSelectorTerms: []k8sv1.NodeSelectorTerm{term},
+				},
+			}
+
+			if pod.Spec.Affinity != nil && pod.Spec.Affinity.NodeAffinity != nil {
+				if pod.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution != nil {
+					terms := pod.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms
+					// Since NodeSelectorTerms are ORed , the anti affinity requirement will be added to each term.
+					for i, selectorTerm := range terms {
+						pod.Spec.Affinity.NodeAffinity.
+							RequiredDuringSchedulingIgnoredDuringExecution.
+							NodeSelectorTerms[i].MatchExpressions = append(selectorTerm.MatchExpressions, requirement)
+					}
+				} else {
+					pod.Spec.Affinity.NodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution = &k8sv1.NodeSelector{
+						NodeSelectorTerms: []k8sv1.NodeSelectorTerm{term},
+					}
+				}
+
+			} else if pod.Spec.Affinity != nil {
+				pod.Spec.Affinity.NodeAffinity = nodeAffinity
+			} else {
+				pod.Spec.Affinity = &k8sv1.Affinity{
+					NodeAffinity: nodeAffinity,
+				}
+
+			}
+		}
+	}
 }
 
 // Request a resource by name. This function bumps the number of resources,
@@ -699,9 +871,26 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 				nodeSelector[cpuModelLabel] = "true"
 			}
 		}
+		for _, cpuFeatureLable := range CPUFeatureLabelsFromCPUFeatures(vmi) {
+			nodeSelector[cpuFeatureLable] = "true"
+		}
+	}
+
+	if virtconfig.HypervStrictCheckEnabled() {
+		hvNodeSelectors := getHypervNodeSelectors(vmi)
+		for k, v := range hvNodeSelectors {
+			nodeSelector[k] = v
+		}
 	}
 
 	nodeSelector[v1.NodeSchedulable] = "true"
+	nodeSelectors, err := getNodeSelectors(t.configMapStore)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range nodeSelectors {
+		nodeSelector[k] = v
+	}
 
 	podLabels := map[string]string{}
 
@@ -720,10 +909,12 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			resources.Limits[k8sv1.ResourceCPU] = resource.MustParse("200m")
 			resources.Limits[k8sv1.ResourceMemory] = resource.MustParse("64M")
 		}
-		containers = append(containers, k8sv1.Container{
+		sidecar := k8sv1.Container{
 			Name:            fmt.Sprintf("hook-sidecar-%d", i),
 			Image:           requestedHookSidecar.Image,
 			ImagePullPolicy: requestedHookSidecar.ImagePullPolicy,
+			Command:         requestedHookSidecar.Command,
+			Args:            requestedHookSidecar.Args,
 			Resources:       resources,
 			VolumeMounts: []k8sv1.VolumeMount{
 				k8sv1.VolumeMount{
@@ -731,7 +922,8 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 					MountPath: hooks.HookSocketsSharedDirectory,
 				},
 			},
-		})
+		}
+		containers = append(containers, sidecar)
 	}
 
 	// XXX: reduce test time. Adding one more container delays the start.
@@ -766,9 +958,22 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 		v1.DomainAnnotation: domain,
 	}
 
-	cniNetworks, cniAnnotation := getCniInterfaceList(vmi)
-	if len(cniNetworks) > 0 {
-		annotationsList[cniAnnotation] = cniNetworks
+	cniAnnotations, err := getCniAnnotations(vmi)
+	if err != nil {
+		return nil, err
+	}
+	for k, v := range cniAnnotations {
+		annotationsList[k] = v
+	}
+
+	for _, network := range vmi.Spec.Networks {
+		if network.Multus != nil && network.Multus.Default {
+			annotationsList[MULTUS_DEFAULT_NETWORK_CNI_ANNOTATION] = network.Multus.NetworkName
+		}
+	}
+
+	if HaveMasqueradeInterface(vmi.Spec.Domain.Devices.Interfaces) {
+		annotationsList[ISTIO_KUBEVIRT_ANNOTATION] = "k6t-eth0"
 	}
 
 	// TODO use constants for podLabels
@@ -796,31 +1001,20 @@ func (t *templateService) RenderLaunchManifest(vmi *v1.VirtualMachineInstance) (
 			NodeSelector:                  nodeSelector,
 			Volumes:                       volumes,
 			ImagePullSecrets:              imagePullSecrets,
+			DNSConfig:                     vmi.Spec.DNSConfig,
+			DNSPolicy:                     vmi.Spec.DNSPolicy,
 		},
 	}
 
 	if vmi.Spec.Affinity != nil {
-		pod.Spec.Affinity = &k8sv1.Affinity{}
-
-		if vmi.Spec.Affinity.NodeAffinity != nil {
-			pod.Spec.Affinity.NodeAffinity = vmi.Spec.Affinity.NodeAffinity
-		}
-
-		if vmi.Spec.Affinity.PodAffinity != nil {
-			pod.Spec.Affinity.PodAffinity = vmi.Spec.Affinity.PodAffinity
-		}
-
-		if vmi.Spec.Affinity.PodAntiAffinity != nil {
-			pod.Spec.Affinity.PodAntiAffinity = vmi.Spec.Affinity.PodAntiAffinity
-		}
+		pod.Spec.Affinity = vmi.Spec.Affinity.DeepCopy()
 	}
 
-	if vmi.Spec.Tolerations != nil {
-		pod.Spec.Tolerations = []k8sv1.Toleration{}
-		for _, v := range vmi.Spec.Tolerations {
-			pod.Spec.Tolerations = append(pod.Spec.Tolerations, v)
-		}
+	if IsCPUNodeDiscoveryEnabled(t.configMapStore) {
+		SetNodeAffinityForForbiddenFeaturePolicy(vmi, &pod)
 	}
+
+	pod.Spec.Tolerations = vmi.Spec.Tolerations
 
 	if len(serviceAccountName) > 0 {
 		pod.Spec.ServiceAccountName = serviceAccountName
@@ -895,7 +1089,7 @@ func getMemoryOverhead(domain v1.DomainSpec) *resource.Quantity {
 
 	// Add fixed overhead for shared libraries and such
 	// TODO account for the overhead of kubevirt components running in the pod
-	overhead.Add(resource.MustParse("64M"))
+	overhead.Add(resource.MustParse("128M"))
 
 	// Add CPU table overhead (8 MiB per vCPU and 8 MiB per IO thread)
 	// overhead per vcpu in MiB
@@ -938,6 +1132,16 @@ func getPortsFromVMI(vmi *v1.VirtualMachineInstance) []k8sv1.ContainerPort {
 	return ports
 }
 
+func HaveMasqueradeInterface(interfaces []v1.Interface) bool {
+	for _, iface := range interfaces {
+		if iface.Masquerade != nil {
+			return true
+		}
+	}
+
+	return false
+}
+
 func getResourceNameForNetwork(network *networkv1.NetworkAttachmentDefinition) string {
 	resourceName, ok := network.Annotations[MULTUS_RESOURCE_NAME_ANNOTATION]
 	if ok {
@@ -972,26 +1176,58 @@ func getNetworkToResourceMap(virtClient kubecli.KubevirtClient, vmi *v1.VirtualM
 	return
 }
 
-func getCniInterfaceList(vmi *v1.VirtualMachineInstance) (ifaceListString string, cniAnnotation string) {
-	ifaceList := make([]string, 0)
-
-	for _, network := range vmi.Spec.Networks {
-		// set the type for the first network
-		// all other networks must have same type
-		if network.Multus != nil {
-			ifaceList = append(ifaceList, network.Multus.NetworkName)
-			if cniAnnotation == "" {
-				cniAnnotation = "k8s.v1.cni.cncf.io/networks"
-			}
-		} else if network.Genie != nil {
-			ifaceList = append(ifaceList, network.Genie.NetworkName)
-			if cniAnnotation == "" {
-				cniAnnotation = "cni"
-			}
+func getIfaceByName(vmi *v1.VirtualMachineInstance, name string) *v1.Interface {
+	for _, iface := range vmi.Spec.Domain.Devices.Interfaces {
+		if iface.Name == name {
+			return &iface
 		}
 	}
+	return nil
+}
 
-	ifaceListString = strings.Join(ifaceList, ",")
+func getCniAnnotations(vmi *v1.VirtualMachineInstance) (cniAnnotations map[string]string, err error) {
+	ifaceList := make([]string, 0)
+	ifaceListMap := make([]map[string]string, 0)
+	cniAnnotations = make(map[string]string, 0)
+
+	next_idx := 0
+	for _, network := range vmi.Spec.Networks {
+		// Set the type for the first network. All other networks must have same type.
+		if network.Multus != nil {
+			if network.Multus.Default {
+				continue
+			}
+			namespace, networkName := getNamespaceAndNetworkName(vmi, network.Multus.NetworkName)
+			ifaceMap := map[string]string{
+				"name":      networkName,
+				"namespace": namespace,
+				"interface": fmt.Sprintf("net%d", next_idx+1),
+			}
+			iface := getIfaceByName(vmi, network.Name)
+			if iface != nil && iface.MacAddress != "" {
+				// De-facto Standard doesn't define exact string format for
+				// MAC addresses pasted down to CNI.  Here we just pass through
+				// whatever the value our API layer accepted as legit.
+				// Note: while standard allows for 20-byte InfiniBand addresses,
+				// we forbid them in API.
+				ifaceMap["mac"] = iface.MacAddress
+			}
+			next_idx = next_idx + 1
+			ifaceListMap = append(ifaceListMap, ifaceMap)
+		} else if network.Genie != nil {
+			// We have to handle Genie separately because it doesn't support JSON format.
+			ifaceList = append(ifaceList, network.Genie.NetworkName)
+		}
+	}
+	if len(ifaceListMap) > 0 {
+		ifaceJsonString, err := json.Marshal(ifaceListMap)
+		if err != nil {
+			return map[string]string{}, fmt.Errorf("Failed to create JSON list from CNI interface map %s", ifaceListMap)
+		}
+		cniAnnotations[MultusNetworksAnnotation] = fmt.Sprintf("%s", ifaceJsonString)
+	} else if len(ifaceList) > 0 {
+		cniAnnotations[GenieNetworksAnnotation] = strings.Join(ifaceList, ",")
+	}
 	return
 }
 

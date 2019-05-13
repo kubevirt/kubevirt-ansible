@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/emicklei/go-restful"
-	"github.com/emicklei/go-restful-openapi"
+	restfulspec "github.com/emicklei/go-restful-openapi"
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
@@ -93,6 +93,15 @@ func LoadOpenAPISpec(webServices []*restful.WebService) *spec.Swagger {
 			prop := s.Properties["port"]
 			prop.Type = spec.StringOrArray{"string", "number"}
 			s.Properties["port"] = prop
+		}
+		if k == "v1.PersistentVolumeClaimSpec" {
+			for i, r := range s.Required {
+				if r == "dataSource" {
+					s.Required = append(s.Required[:i], s.Required[i+1:]...)
+					openapispec.Definitions[k] = s
+					break
+				}
+			}
 		}
 	}
 

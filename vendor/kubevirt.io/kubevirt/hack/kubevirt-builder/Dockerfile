@@ -1,6 +1,6 @@
-FROM kubevirt/builder@sha256:14a68536f034788ea8e3082cf55194dc9d7e2edf5b1f97624619963719c493f4
+FROM kubevirt/builder@sha256:08b4db91e5f6272004892c6174129172c1bef5c6906bde9f8414cb945a588e12
 
-ENV GIMME_GO_VERSION=1.11.2
+ENV GIMME_GO_VERSION=1.11.5
 ENV GOPATH="/go" GOBIN="/usr/bin"
 
 RUN \
@@ -13,7 +13,7 @@ RUN \
     go get -u github.com/rmohr/go-swagger-utils/swagger-doc && \
     go get -u github.com/onsi/ginkgo/ginkgo
 
-RUN pip install j2cli
+RUN pip install j2cli && pip3 install operator-courier==1.3.0
 
 COPY rsyncd.conf /etc/rsyncd.conf
 

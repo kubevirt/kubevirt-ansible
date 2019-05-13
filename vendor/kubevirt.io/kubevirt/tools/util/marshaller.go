@@ -23,7 +23,7 @@ import (
 	"io"
 	"strings"
 
-	"kubevirt.io/kubevirt/pkg/api/v1"
+	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 
 	"github.com/ghodss/yaml"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -45,6 +45,33 @@ func MarshallObject(obj interface{}, writer io.Writer) error {
 	unstructured.RemoveNestedField(r.Object, "spec", "template", "metadata", "creationTimestamp")
 	unstructured.RemoveNestedField(r.Object, "status")
 
+	// remove dataSource from PVCs if empty
+	templates, exists, err := unstructured.NestedSlice(r.Object, "spec", "dataVolumeTemplates")
+	if exists {
+		for _, tmpl := range templates {
+			template := tmpl.(map[string]interface{})
+			_, exists, err = unstructured.NestedString(template, "spec", "pvc", "dataSource")
+			if !exists {
+				unstructured.RemoveNestedField(template, "spec", "pvc", "dataSource")
+			}
+		}
+		unstructured.SetNestedSlice(r.Object, templates, "spec", "dataVolumeTemplates")
+	}
+	objects, exists, err := unstructured.NestedSlice(r.Object, "objects")
+	if exists {
+		for _, obj := range objects {
+			object := obj.(map[string]interface{})
+			kind, exists, _ := unstructured.NestedString(object, "kind")
+			if exists && kind == "PersistentVolumeClaim" {
+				_, exists, err = unstructured.NestedString(object, "spec", "dataSource")
+				if !exists {
+					unstructured.RemoveNestedField(object, "spec", "dataSource")
+				}
+			}
+		}
+		unstructured.SetNestedSlice(r.Object, objects, "objects")
+	}
+
 	// remove "managed by operator" label...
 	labels, exists, err := unstructured.NestedMap(r.Object, "metadata", "labels")
 	if exists {
@@ -62,10 +89,15 @@ func MarshallObject(obj interface{}, writer io.Writer) error {
 		return err
 	}
 
-	// fix templates by removing quotes...
+	// fix templates by removing unneeded single quotes...
 	s := string(yamlBytes)
 	s = strings.Replace(s, "'{{", "{{", -1)
 	s = strings.Replace(s, "}}'", "}}", -1)
+
+	// fix double quoted strings by removing unneeded single quotes...
+	s = strings.Replace(s, " '\"", " \"", -1)
+	s = strings.Replace(s, "\"'\n", "\"\n", -1)
+
 	yamlBytes = []byte(s)
 
 	_, err = writer.Write([]byte("---\n"))

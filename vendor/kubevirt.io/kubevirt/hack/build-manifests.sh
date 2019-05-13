@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # This file is part of the KubeVirt project
 #
@@ -22,7 +22,13 @@ set -e
 source hack/common.sh
 source hack/config.sh
 
+skipj2=false
+if [ "$1" == "--skipj2" ]; then
+    skipj2=true
+fi
+
 manifest_docker_prefix=${manifest_docker_prefix-${docker_prefix}}
+kubevirt_logo_path="assets/kubevirt_logo.png"
 
 rm -rf ${MANIFESTS_OUT_DIR}
 rm -rf ${MANIFEST_TEMPLATES_OUT_DIR}
@@ -41,15 +47,23 @@ for arg in $args; do
         --input-file=${infile} >${outfile}
 done
 
+bundle_out_dir=${MANIFESTS_OUT_DIR}/release/olm/bundle
+
 # then process variables
 args=$(cd ${KUBEVIRT_DIR}/manifests && find . -type f -name "*.yaml.in.tmp")
 for arg in $args; do
-    final_out_dir=$(dirname ${MANIFESTS_OUT_DIR}/${arg})
-    final_templates_out_dir=$(dirname ${MANIFEST_TEMPLATES_OUT_DIR}/${arg})
-    mkdir -p ${final_out_dir}
-    mkdir -p ${final_templates_out_dir}
-    manifest=$(basename -s .in.tmp ${arg})
+
     infile=${KUBEVIRT_DIR}/manifests/${arg}
+
+    final_out_dir=$(dirname ${MANIFESTS_OUT_DIR}/${arg})
+    mkdir -p ${final_out_dir}
+
+    final_templates_out_dir=$(dirname ${MANIFEST_TEMPLATES_OUT_DIR}/${arg})
+    mkdir -p ${final_templates_out_dir}
+
+    manifest=$(basename -s .in.tmp ${arg})
+    manifest="${manifest/VERSION/${csv_version}}"
+
     outfile=${final_out_dir}/${manifest}
     template_outfile=${final_templates_out_dir}/${manifest}.j2
 
@@ -61,7 +75,17 @@ for arg in $args; do
         --container-tag=${docker_tag} \
         --image-pull-policy=${image_pull_policy} \
         --verbosity=${verbosity} \
-        --input-file=${infile} >${outfile}
+        --csv-version=${csv_version} \
+        --kubevirt-logo-path=${kubevirt_logo_path} \
+        --package-name=${package_name} \
+        --input-file=${infile} \
+        --bundle-out-dir=${bundle_out_dir} \
+        --quay-repository=${QUAY_REPOSITORY} >${outfile}
+
+    if [ "$skipj2" = true ]; then
+        echo "skipping j2 template for $infile"
+        continue
+    fi
 
     ${KUBEVIRT_DIR}/tools/manifest-templator/manifest-templator \
         --process-vars \
@@ -71,7 +95,11 @@ for arg in $args; do
         --container-tag="{{ docker_tag }}" \
         --image-pull-policy="{{ image_pull_policy }}" \
         --verbosity=${verbosity} \
-        --input-file=${infile} >${template_outfile}
+        --csv-version=${csv_version} \
+        --kubevirt-logo-path=${kubevirt_logo_path} \
+        --package-name=${package_name} \
+        --input-file=${infile} \
+        --quay-repository=${QUAY_REPOSITORY} >${template_outfile}
 done
 
 # Remove tmp files
@@ -80,6 +108,10 @@ done
 # Remove empty lines at the end of files which are added by go templating
 find ${MANIFESTS_OUT_DIR}/ -type f -exec sed -i {} -e '${/^$/d;}' \;
 find ${MANIFEST_TEMPLATES_OUT_DIR}/ -type f -exec sed -i {} -e '${/^$/d;}' \;
+
+if [ "$skipj2" = true ]; then
+    exit 0
+fi
 
 # make sure that template manifests align with release manifests
 export namespace=${namespace}
@@ -102,7 +134,7 @@ for file in $(find ${MANIFEST_TEMPLATES_OUT_DIR}/ -type f); do
 done
 
 # If diff fails then we have an issue
-diff -ru ${MANIFESTS_OUT_DIR} ${TMP_DIR}/${MANIFEST_TEMPLATES_OUT_DIR} || (
+diff -ru -x "bundle" ${MANIFESTS_OUT_DIR} ${TMP_DIR}/${MANIFEST_TEMPLATES_OUT_DIR} || (
     echo "Error: Generated manifests don't match"
     false
 )

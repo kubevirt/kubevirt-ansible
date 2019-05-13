@@ -16,75 +16,118 @@ import (
 	"flag"
 	"io/ioutil"
 	"os"
+	"strconv"
 
-	"github.com/golang/glog"
+	"github.com/pkg/errors"
 
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/klog"
 	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 	"kubevirt.io/containerized-data-importer/pkg/common"
 	"kubevirt.io/containerized-data-importer/pkg/controller"
 	"kubevirt.io/containerized-data-importer/pkg/image"
 	"kubevirt.io/containerized-data-importer/pkg/importer"
 	"kubevirt.io/containerized-data-importer/pkg/util"
+	prometheusutil "kubevirt.io/containerized-data-importer/pkg/util/prometheus"
 )
 
 func init() {
 	flag.Parse()
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(klogFlags)
+	flag.CommandLine.VisitAll(func(f1 *flag.Flag) {
+		f2 := klogFlags.Lookup(f1.Name)
+		if f2 != nil {
+			value := f1.Value.String()
+			f2.Value.Set(value)
+		}
+	})
 }
 
 func main() {
-	defer glog.Flush()
+	defer klog.Flush()
 
 	certsDirectory, err := ioutil.TempDir("", "certsdir")
 	if err != nil {
 		panic(err)
 	}
 	defer os.RemoveAll(certsDirectory)
-	util.StartPrometheusEndpoint(certsDirectory)
+	prometheusutil.StartPrometheusEndpoint(certsDirectory)
 
-	glog.V(1).Infoln("Starting importer")
+	klog.V(1).Infoln("Starting importer")
 	ep, _ := util.ParseEnvVar(common.ImporterEndpoint, false)
 	acc, _ := util.ParseEnvVar(common.ImporterAccessKeyID, false)
 	sec, _ := util.ParseEnvVar(common.ImporterSecretKey, false)
 	source, _ := util.ParseEnvVar(common.ImporterSource, false)
 	contentType, _ := util.ParseEnvVar(common.ImporterContentType, false)
 	imageSize, _ := util.ParseEnvVar(common.ImporterImageSize, false)
+	certDir, _ := util.ParseEnvVar(common.ImporterCertDirVar, false)
+	insecureTLS, _ := strconv.ParseBool(os.Getenv(common.InsecureTLSVar))
+
+	volumeMode := v1.PersistentVolumeBlock
+	if _, err := os.Stat(common.ImporterWriteBlockPath); os.IsNotExist(err) {
+		volumeMode = v1.PersistentVolumeFilesystem
+	}
 
 	dest := common.ImporterWritePath
-	if contentType == string(cdiv1.DataVolumeArchive) || source == controller.SourceRegistry {
+	if contentType == string(cdiv1.DataVolumeArchive) {
 		dest = common.ImporterVolumePath
 	}
 
-	glog.V(1).Infoln("begin import process")
-	dso := &importer.DataStreamOptions{
-		dest,
-		ep,
-		acc,
-		sec,
-		source,
-		contentType,
-		imageSize,
+	if volumeMode == v1.PersistentVolumeBlock {
+		dest = common.ImporterWriteBlockPath
 	}
 
+	dataDir := common.ImporterDataDir
+	availableDestSpace := util.GetAvailableSpaceByVolumeMode(volumeMode)
 	if source == controller.SourceNone && contentType == string(cdiv1.DataVolumeKubeVirt) {
 		requestImageSizeQuantity := resource.MustParse(imageSize)
-		minSizeQuantity := util.MinQuantity(resource.NewScaledQuantity(util.GetAvailableSpace(common.ImporterVolumePath), 0), &requestImageSizeQuantity)
+		minSizeQuantity := util.MinQuantity(resource.NewScaledQuantity(availableDestSpace, 0), &requestImageSizeQuantity)
 		if minSizeQuantity.Cmp(requestImageSizeQuantity) != 0 {
 			// Available dest space is smaller than the size we want to create
-			glog.Warningf("Available space less than requested size, creating blank image sized to available space: %s.\n", minSizeQuantity.String())
+			klog.Warningf("Available space less than requested size, creating blank image sized to available space: %s.\n", minSizeQuantity.String())
 		}
 		err := image.CreateBlankImage(common.ImporterWritePath, minSizeQuantity)
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
 			os.Exit(1)
 		}
+	} else if source == controller.SourceNone && contentType == string(cdiv1.DataVolumeArchive) {
+		klog.Errorf("%+v", errors.New("Cannot create empty disk with content type archive"))
+		os.Exit(1)
 	} else {
-		glog.V(1).Infoln("begin import process")
-		err = importer.CopyData(dso)
+		klog.V(1).Infoln("begin import process")
+		var dp importer.DataSourceInterface
+		switch source {
+		case controller.SourceHTTP:
+			dp, err = importer.NewHTTPDataSource(ep, acc, sec, certDir, cdiv1.DataVolumeContentType(contentType))
+			if err != nil {
+				klog.Errorf("%+v", err)
+				os.Exit(1)
+			}
+		case controller.SourceRegistry:
+			dp = importer.NewRegistryDataSource(ep, acc, sec, certDir, insecureTLS)
+		case controller.SourceS3:
+			dp, err = importer.NewS3DataSource(ep, acc, sec)
+			if err != nil {
+				klog.Errorf("%+v", err)
+				os.Exit(1)
+			}
+		default:
+			klog.Errorf("Unknown source type %s\n", source)
+			os.Exit(1)
+		}
+		defer dp.Close()
+		processor := importer.NewDataProcessor(dp, dest, dataDir, common.ScratchDataDir, imageSize)
+		err = processor.ProcessData()
 		if err != nil {
-			glog.Errorf("%+v", err)
+			klog.Errorf("%+v", err)
+			if err == importer.ErrRequiresScratchSpace {
+				os.Exit(common.ScratchSpaceNeededExitCode)
+			}
 			os.Exit(1)
 		}
 	}
-	glog.V(1).Infoln("import complete")
+	klog.V(1).Infoln("import complete")
 }

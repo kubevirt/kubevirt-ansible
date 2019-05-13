@@ -20,6 +20,7 @@
 package virthandler
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	goerror "errors"
 	"fmt"
@@ -70,6 +71,8 @@ func NewController(
 	gracefulShutdownInformer cache.SharedIndexInformer,
 	watchdogTimeoutSeconds int,
 	maxDevices int,
+	clusterConfig *virtconfig.ClusterConfig,
+	tlsConfig *tls.Config,
 ) *VirtualMachineController {
 
 	queue := workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter())
@@ -87,8 +90,9 @@ func NewController(
 		gracefulShutdownInformer: gracefulShutdownInformer,
 		heartBeatInterval:        1 * time.Minute,
 		watchdogTimeoutSeconds:   watchdogTimeoutSeconds,
-		migrationProxy:           migrationproxy.NewMigrationProxyManager(virtShareDir),
+		migrationProxy:           migrationproxy.NewMigrationProxyManager(virtShareDir, tlsConfig),
 		podIsolationDetector:     isolation.NewSocketBasedIsolationDetector(virtShareDir),
+		clusterConfig:            clusterConfig,
 	}
 
 	vmiSourceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -140,6 +144,7 @@ type VirtualMachineController struct {
 	kvmController            *device_manager.DeviceController
 	migrationProxy           migrationproxy.ProxyManager
 	podIsolationDetector     isolation.PodIsolationDetector
+	clusterConfig            *virtconfig.ClusterConfig
 }
 
 // Determines if a domain's grace period has expired during shutdown.
@@ -339,6 +344,7 @@ func (d *VirtualMachineController) updateVMIStatus(vmi *v1.VirtualMachineInstanc
 			if vmi.Status.MigrationState.EndTimestamp == nil {
 				vmi.Status.MigrationState.EndTimestamp = migrationMetadata.EndTimestamp
 			}
+			vmi.Status.MigrationState.AbortStatus = v1.MigrationAbortStatus(migrationMetadata.AbortStatus)
 			vmi.Status.MigrationState.Completed = migrationMetadata.Completed
 			vmi.Status.MigrationState.Failed = migrationMetadata.Failed
 		}
@@ -674,10 +680,11 @@ func (d *VirtualMachineController) migrationTargetExecute(key string,
 			vmiCopy.Status.MigrationState.TargetNodeDomainDetected = true
 		}
 
-		// get the migration listener port
-		curPort := d.migrationProxy.GetTargetListenerPort(string(vmi.UID))
-		if curPort == 0 {
-			return fmt.Errorf("target migration listener is not up")
+		destSrcPortsMap := d.migrationProxy.GetTargetListenerPorts(string(vmi.UID))
+		if len(destSrcPortsMap) == 0 {
+			msg := "target migration listener is not up for this vmi"
+			log.Log.Object(vmi).Error(msg)
+			return fmt.Errorf(msg)
 		}
 
 		hostAddress := ""
@@ -686,15 +693,22 @@ func (d *VirtualMachineController) migrationTargetExecute(key string,
 		if vmi.Status.MigrationState != nil {
 			hostAddress = vmi.Status.MigrationState.TargetNodeAddress
 		}
-		curAddress := fmt.Sprintf("%s:%d", d.ipAddress, curPort)
-		if hostAddress != curAddress {
-			d.recorder.Event(vmi, k8sv1.EventTypeNormal, v1.PreparingTarget.String(), fmt.Sprintf("Migration Target is listening at %s", curAddress))
-			vmiCopy.Status.MigrationState.TargetNodeAddress = curAddress
+		if hostAddress != d.ipAddress {
+			portsList := make([]int, 0, len(destSrcPortsMap))
+
+			for value, _ := range destSrcPortsMap {
+				portsList = append(portsList, value)
+			}
+			portsStrList := strings.Trim(strings.Join(strings.Fields(fmt.Sprint(portsList)), ","), "[]")
+			d.recorder.Event(vmi, k8sv1.EventTypeNormal, v1.PreparingTarget.String(), fmt.Sprintf("Migration Target is listening at %s, on ports: %s", d.ipAddress, portsStrList))
+			vmiCopy.Status.MigrationState.TargetNodeAddress = d.ipAddress
+			vmiCopy.Status.MigrationState.TargetDirectMigrationNodePorts = destSrcPortsMap
 		}
 
 		// update the VMI if necessary
 		if !reflect.DeepEqual(vmi.Status, vmiCopy.Status) {
-			vmiCopy.Status.MigrationState.TargetNodeAddress = curAddress
+			vmiCopy.Status.MigrationState.TargetNodeAddress = d.ipAddress
+			vmiCopy.Status.MigrationState.TargetDirectMigrationNodePorts = destSrcPortsMap
 			_, err := d.clientset.VirtualMachineInstance(vmi.ObjectMeta.Namespace).Update(vmiCopy)
 			if err != nil {
 				return err
@@ -1024,7 +1038,7 @@ func (d *VirtualMachineController) getLauncherClient(vmi *v1.VirtualMachineInsta
 		return client, nil
 	}
 
-	client, err := cmdclient.GetClient(sockFile)
+	client, err := cmdclient.NewClient(sockFile)
 	if err != nil {
 		return nil, err
 	}
@@ -1194,14 +1208,18 @@ func (d *VirtualMachineController) checkVolumesForMigration(vmi *v1.VirtualMachi
 	// are shared and the VMI has no local disks
 	// Some combinations of disks makes the VMI no suitable for live migration.
 	// A relevant error will be returned in this case.
-	sharedVol := false
 	for _, volume := range vmi.Spec.Volumes {
 		volSrc := volume.VolumeSource
-		if volSrc.PersistentVolumeClaim != nil {
-			sharedVol = true
-			_, shared, err := pvcutils.IsSharedPVCFromClient(d.clientset, vmi.Namespace, volSrc.PersistentVolumeClaim.ClaimName)
+		if volSrc.PersistentVolumeClaim != nil || volSrc.DataVolume != nil {
+			var volName string
+			if volSrc.PersistentVolumeClaim != nil {
+				volName = volSrc.PersistentVolumeClaim.ClaimName
+			} else {
+				volName = volSrc.DataVolume.Name
+			}
+			_, shared, err := pvcutils.IsSharedPVCFromClient(d.clientset, vmi.Namespace, volName)
 			if errors.IsNotFound(err) {
-				return blockMigrate, fmt.Errorf("persistentvolumeclaim %v not found", volSrc.PersistentVolumeClaim.ClaimName)
+				return blockMigrate, fmt.Errorf("persistentvolumeclaim %v not found", volName)
 			} else if err != nil {
 				return blockMigrate, err
 			}
@@ -1218,18 +1236,9 @@ func (d *VirtualMachineController) checkVolumesForMigration(vmi *v1.VirtualMachi
 			if !shared {
 				return blockMigrate, fmt.Errorf("cannot migrate VMI with non-shared HostDisk")
 			}
-			sharedVol = true
-		} else if volSrc.CloudInitNoCloud != nil ||
-			volSrc.ConfigMap != nil || volSrc.ServiceAccount != nil ||
-			volSrc.Secret != nil {
-			continue
 		} else {
 			blockMigrate = true
 		}
-	}
-	if sharedVol && blockMigrate {
-		err = fmt.Errorf("cannot migrate VMI with mixed shared and non-shared volumes")
-		return
 	}
 	return
 }
@@ -1247,31 +1256,48 @@ func (d *VirtualMachineController) isMigrationSource(vmi *v1.VirtualMachineInsta
 
 }
 
-func (d *VirtualMachineController) handleMigrationProxy(vmi *v1.VirtualMachineInstance) error {
-
+func (d *VirtualMachineController) handlePostSyncMigrationProxy(vmi *v1.VirtualMachineInstance) error {
 	// handle starting/stopping target migration proxy
-	if d.isPreMigrationTarget(vmi) {
-
-		res, err := d.podIsolationDetector.Detect(vmi)
-		if err != nil {
-			return err
-		}
-
-		// Get Socket File.
-		socketFile := fmt.Sprintf("/proc/%d/root/var/run/libvirt/libvirt-sock", res.Pid())
-
-		err = d.migrationProxy.StartTargetListener(string(vmi.UID), socketFile)
-		if err != nil {
-			return err
-		}
-	} else {
-		d.migrationProxy.StopTargetListener(string(vmi.UID))
+	migrationTargetSockets := []string{}
+	res, err := d.podIsolationDetector.Detect(vmi)
+	if err != nil {
+		return err
 	}
 
+	// Get the libvirt connection socket file on the destination pod.
+	socketFile := fmt.Sprintf("/proc/%d/root/var/run/libvirt/libvirt-sock", res.Pid())
+	migrationTargetSockets = append(migrationTargetSockets, socketFile)
+
+	isBlockMigration := (vmi.Status.MigrationMethod == v1.BlockMigration)
+	migrationPortsRange := migrationproxy.GetMigrationPortsList(isBlockMigration)
+	for _, port := range migrationPortsRange {
+		key := migrationproxy.ConstructProxyKey(string(vmi.UID), port)
+		// a proxy between the target direct qemu channel and the connector in the destination pod
+		destSocketFile := migrationproxy.SourceUnixFile(d.virtShareDir, key)
+		migrationTargetSockets = append(migrationTargetSockets, destSocketFile)
+	}
+	err = d.migrationProxy.StartTargetListener(string(vmi.UID), migrationTargetSockets)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (d *VirtualMachineController) handleMigrationProxy(vmi *v1.VirtualMachineInstance) error {
 	// handle starting/stopping source migration proxy.
 	// start the source proxy once we know the target address
+
 	if d.isMigrationSource(vmi) {
-		err := d.migrationProxy.StartSourceListener(string(vmi.UID), vmi.Status.MigrationState.TargetNodeAddress)
+		d.migrationProxy.StopTargetListener(string(vmi.UID))
+		if vmi.Status.MigrationState.TargetDirectMigrationNodePorts == nil {
+			msg := "No migration proxy has been created for this vmi"
+			return fmt.Errorf("%s", msg)
+		}
+		err := d.migrationProxy.StartSourceListener(
+			string(vmi.UID),
+			vmi.Status.MigrationState.TargetNodeAddress,
+			vmi.Status.MigrationState.TargetDirectMigrationNodePorts,
+		)
 		if err != nil {
 			return err
 		}
@@ -1279,7 +1305,6 @@ func (d *VirtualMachineController) handleMigrationProxy(vmi *v1.VirtualMachineIn
 	} else {
 		d.migrationProxy.StopSourceListener(string(vmi.UID))
 	}
-
 	return nil
 }
 
@@ -1321,13 +1346,33 @@ func (d *VirtualMachineController) processVmUpdate(origVMI *v1.VirtualMachineIns
 			return fmt.Errorf("syncing migration target failed: %v", err)
 		}
 		d.recorder.Event(vmi, k8sv1.EventTypeNormal, v1.PreparingTarget.String(), "VirtualMachineInstance Migration Target Prepared.")
-	} else if d.isMigrationSource(vmi) {
-		err = client.MigrateVirtualMachine(vmi)
-		if err != nil {
-			return err
-		}
-		d.recorder.Event(vmi, k8sv1.EventTypeNormal, v1.Migrating.String(), "VirtualMachineInstance is migrating.")
 
+		err := d.handlePostSyncMigrationProxy(vmi)
+		if err != nil {
+			return fmt.Errorf("failed to handle post sync migration proxy: %v", err)
+		}
+	} else if d.isMigrationSource(vmi) {
+		if vmi.Status.MigrationState.AbortRequested {
+			if vmi.Status.MigrationState.AbortStatus != v1.MigrationAbortInProgress {
+				err = client.CancelVirtualMachineMigration(vmi)
+				if err != nil {
+					return err
+				}
+				d.recorder.Event(vmi, k8sv1.EventTypeNormal, v1.Migrating.String(), "VirtualMachineInstance is aborting migration.")
+			}
+		} else {
+			options := &cmdclient.MigrationOptions{
+				Bandwidth:               *d.clusterConfig.GetMigrationConfig().BandwidthPerMigration,
+				ProgressTimeout:         *d.clusterConfig.GetMigrationConfig().ProgressTimeout,
+				CompletionTimeoutPerGiB: *d.clusterConfig.GetMigrationConfig().CompletionTimeoutPerGiB,
+				UnsafeMigration:         d.clusterConfig.GetMigrationConfig().UnsafeMigrationOverride,
+			}
+			err = client.MigrateVirtualMachine(vmi, options)
+			if err != nil {
+				return err
+			}
+			d.recorder.Event(vmi, k8sv1.EventTypeNormal, v1.Migrating.String(), "VirtualMachineInstance is migrating.")
+		}
 	} else {
 		err = client.SyncVirtualMachine(vmi)
 		if err != nil {

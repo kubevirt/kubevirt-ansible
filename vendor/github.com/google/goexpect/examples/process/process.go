@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/google/goexpect"
+	expect "github.com/google/goexpect"
 	"github.com/google/goterm/term"
 )
 
@@ -36,6 +36,10 @@ func main() {
 		glog.Exit(err)
 	}
 
+	if scale < 3 {
+		glog.Exitf("scale must be at least 3 for this sample to work")
+	}
+
 	e, _, err := expect.Spawn(command, -1)
 	if err != nil {
 		glog.Exit(err)
@@ -49,7 +53,7 @@ func main() {
 	}
 	out, match, err := e.Expect(piRE, timeout)
 	if err != nil {
-		glog.Exitf("e.Expect(%q,%v) failed: %v, out: %q", piRE.String(), timeout, out)
+		glog.Exitf("e.Expect(%q,%v) failed: %v, out: %q", piRE.String(), timeout, err, out)
 	}
 
 	fmt.Println(term.Bluef("Pi with %d digits: %s", scale, match[0]))

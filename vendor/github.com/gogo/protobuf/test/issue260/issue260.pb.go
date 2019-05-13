@@ -435,9 +435,9 @@ func (m *DroppedWithoutGetters) MarshalTo(dAtA []byte) (int, error) {
 	dAtA[i] = 0x1a
 	i++
 	i = encodeVarintIssue260(dAtA, i, uint64(github_com_gogo_protobuf_types.SizeOfStdTime(m.Timestamp)))
-	n1, err := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.Timestamp, dAtA[i:])
-	if err != nil {
-		return 0, err
+	n1, err1 := github_com_gogo_protobuf_types.StdTimeMarshalTo(m.Timestamp, dAtA[i:])
+	if err1 != nil {
+		return 0, err1
 	}
 	i += n1
 	return i, nil
@@ -671,7 +671,7 @@ func (m *Dropped) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -699,7 +699,7 @@ func (m *Dropped) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -709,6 +709,9 @@ func (m *Dropped) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthIssue260
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIssue260
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -728,7 +731,7 @@ func (m *Dropped) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Age |= (int32(b) & 0x7F) << shift
+				m.Age |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -740,6 +743,9 @@ func (m *Dropped) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthIssue260
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthIssue260
 			}
 			if (iNdEx + skippy) > l {
@@ -769,7 +775,7 @@ func (m *DroppedWithoutGetters) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -797,7 +803,7 @@ func (m *DroppedWithoutGetters) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Height |= (int64(b) & 0x7F) << shift
+				m.Height |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -816,7 +822,7 @@ func (m *DroppedWithoutGetters) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Width |= (int64(b) & 0x7F) << shift
+				m.Width |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -835,7 +841,7 @@ func (m *DroppedWithoutGetters) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -844,6 +850,9 @@ func (m *DroppedWithoutGetters) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthIssue260
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthIssue260
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -858,6 +867,9 @@ func (m *DroppedWithoutGetters) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthIssue260
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthIssue260
 			}
 			if (iNdEx + skippy) > l {
@@ -887,7 +899,7 @@ func (m *Kept) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -915,7 +927,7 @@ func (m *Kept) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -925,6 +937,9 @@ func (m *Kept) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthIssue260
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthIssue260
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -944,7 +959,7 @@ func (m *Kept) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.Age |= (int32(b) & 0x7F) << shift
+				m.Age |= int32(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -956,6 +971,9 @@ func (m *Kept) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthIssue260
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthIssue260
 			}
 			if (iNdEx + skippy) > l {
@@ -1024,8 +1042,11 @@ func skipIssue260(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthIssue260
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthIssue260
 			}
 			return iNdEx, nil
@@ -1056,6 +1077,9 @@ func skipIssue260(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthIssue260
+				}
 			}
 			return iNdEx, nil
 		case 4:

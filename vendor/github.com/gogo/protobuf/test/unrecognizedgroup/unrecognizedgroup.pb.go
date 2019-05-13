@@ -1125,9 +1125,9 @@ func (m *NewNoGroup) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintUnrecognizedgroup(dAtA, i, uint64(m.A.Size()))
-		n2, err := m.A.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		n2, err2 := m.A.MarshalTo(dAtA[i:])
+		if err2 != nil {
+			return 0, err2
 		}
 		i += n2
 	}
@@ -1432,7 +1432,7 @@ func (this *NewNoGroup) String() string {
 	s := strings.Join([]string{`&NewNoGroup{`,
 		`Field1:` + valueToStringUnrecognizedgroup(this.Field1) + `,`,
 		`Field3:` + fmt.Sprintf("%v", this.Field3) + `,`,
-		`A:` + strings.Replace(fmt.Sprintf("%v", this.A), "A", "A", 1) + `,`,
+		`A:` + strings.Replace(this.A.String(), "A", "A", 1) + `,`,
 		`XXX_unrecognized:` + fmt.Sprintf("%v", this.XXX_unrecognized) + `,`,
 		`}`,
 	}, "")
@@ -1511,7 +1511,7 @@ func (m *NewNoGroup) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1539,7 +1539,7 @@ func (m *NewNoGroup) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1566,7 +1566,7 @@ func (m *NewNoGroup) Unmarshal(dAtA []byte) error {
 					}
 					b := dAtA[iNdEx]
 					iNdEx++
-					packedLen |= (int(b) & 0x7F) << shift
+					packedLen |= int(b&0x7F) << shift
 					if b < 0x80 {
 						break
 					}
@@ -1575,6 +1575,9 @@ func (m *NewNoGroup) Unmarshal(dAtA []byte) error {
 					return ErrInvalidLengthUnrecognizedgroup
 				}
 				postIndex := iNdEx + packedLen
+				if postIndex < 0 {
+					return ErrInvalidLengthUnrecognizedgroup
+				}
 				if postIndex > l {
 					return io.ErrUnexpectedEOF
 				}
@@ -1610,7 +1613,7 @@ func (m *NewNoGroup) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1619,6 +1622,9 @@ func (m *NewNoGroup) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthUnrecognizedgroup
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthUnrecognizedgroup
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1636,6 +1642,9 @@ func (m *NewNoGroup) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnrecognizedgroup
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnrecognizedgroup
 			}
 			if (iNdEx + skippy) > l {
@@ -1666,7 +1675,7 @@ func (m *A) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1694,7 +1703,7 @@ func (m *A) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int64(b) & 0x7F) << shift
+				v |= int64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1707,6 +1716,9 @@ func (m *A) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthUnrecognizedgroup
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthUnrecognizedgroup
 			}
 			if (iNdEx + skippy) > l {
@@ -1776,8 +1788,11 @@ func skipUnrecognizedgroup(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthUnrecognizedgroup
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthUnrecognizedgroup
 			}
 			return iNdEx, nil
@@ -1808,6 +1823,9 @@ func skipUnrecognizedgroup(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthUnrecognizedgroup
+				}
 			}
 			return iNdEx, nil
 		case 4:

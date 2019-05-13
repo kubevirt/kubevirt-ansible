@@ -47,13 +47,24 @@ import (
 )
 
 const (
-	cloudInitMaxLen = 2048
-	arrayLenMax     = 256
-	maxStrLen       = 256
+	cloudInitUserMaxLen = 2048
+	arrayLenMax         = 256
+	maxStrLen           = 256
+
+	// cloudInitNetworkMaxLen size is an arbitrary limit. It was selected to
+	// accommodate a reasonable number of interfaces and routes.
+	cloudInitNetworkMaxLen = 16384
+
+	// Copied from kubernetes/pkg/apis/core/validation/validation.go
+	maxDNSNameservers     = 3
+	maxDNSSearchPaths     = 6
+	maxDNSSearchListChars = 256
 )
 
 var validInterfaceModels = []string{"e1000", "e1000e", "ne2k_pci", "pcnet", "rtl8139", "virtio"}
 var validIOThreadsPolicies = []v1.IOThreadsPolicy{v1.IOThreadsPolicyShared, v1.IOThreadsPolicyAuto}
+var validCPUFeaturePolicies = []string{"", "force", "require", "optional", "disable", "forbid"}
+var validRunStrategies = []v1.VirtualMachineRunStrategy{v1.RunStrategyHalted, v1.RunStrategyManual, v1.RunStrategyAlways, v1.RunStrategyRerunOnFailure}
 
 type admitFunc func(*v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
 
@@ -115,6 +126,16 @@ func validateDisks(field *k8sfield.Path, disks []v1.Disk) []metav1.StatusCause {
 				Field:   field.Index(idx).Child("name").String(),
 			})
 		}
+
+		// Reject Floppy disks
+		if disk.Floppy != nil {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueNotSupported,
+				Message: fmt.Sprintf("Floppy disks are deprecated and will be removed from the API soon."),
+				Field:   field.Index(idx).Child("name").String(),
+			})
+		}
+
 		// Verify only a single device type is set.
 		deviceTargetSetCount := 0
 		var diskType, bus string
@@ -234,6 +255,20 @@ func validateDisks(field *k8sfield.Path, disks []v1.Disk) []metav1.StatusCause {
 	return causes
 }
 
+func validateBootloader(field *k8sfield.Path, bootloader *v1.Bootloader) []metav1.StatusCause {
+	var causes []metav1.StatusCause
+
+	if bootloader != nil && bootloader.EFI != nil && bootloader.BIOS != nil {
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("%s has both EFI and BIOS configured, but they are mutually exclusive.", field.String()),
+			Field:   field.String(),
+		})
+	}
+
+	return causes
+}
+
 func validateVolumes(field *k8sfield.Path, volumes []v1.Volume) []metav1.StatusCause {
 	var causes []metav1.StatusCause
 	nameMap := make(map[string]int)
@@ -325,8 +360,10 @@ func validateVolumes(field *k8sfield.Path, volumes []v1.Volume) []metav1.StatusC
 		if volume.CloudInitNoCloud != nil {
 			noCloud := volume.CloudInitNoCloud
 			userDataLen := 0
-
 			userDataSourceCount := 0
+			networkDataLen := 0
+			networkDataSourceCount := 0
+
 			if noCloud.UserDataSecretRef != nil && noCloud.UserDataSecretRef.Name != "" {
 				userDataSourceCount++
 			}
@@ -355,10 +392,46 @@ func validateVolumes(field *k8sfield.Path, volumes []v1.Volume) []metav1.StatusC
 				})
 			}
 
-			if userDataLen > cloudInitMaxLen {
+			if userDataLen > cloudInitUserMaxLen {
 				causes = append(causes, metav1.StatusCause{
 					Type:    metav1.CauseTypeFieldValueInvalid,
-					Message: fmt.Sprintf("%s userdata exceeds %d byte limit", field.Index(idx).Child("cloudInitNoCloud").String(), cloudInitMaxLen),
+					Message: fmt.Sprintf("%s userdata exceeds %d byte limit", field.Index(idx).Child("cloudInitNoCloud").String(), cloudInitUserMaxLen),
+					Field:   field.Index(idx).Child("cloudInitNoCloud").String(),
+				})
+			}
+
+			if noCloud.NetworkDataSecretRef != nil && noCloud.NetworkDataSecretRef.Name != "" {
+				networkDataSourceCount++
+			}
+			if noCloud.NetworkDataBase64 != "" {
+				networkDataSourceCount++
+				networkData, err := base64.StdEncoding.DecodeString(noCloud.NetworkDataBase64)
+				if err != nil {
+					causes = append(causes, metav1.StatusCause{
+						Type:    metav1.CauseTypeFieldValueInvalid,
+						Message: fmt.Sprintf("%s.cloudInitNoCloud.networkDataBase64 is not a valid base64 value.", field.Index(idx).Child("cloudInitNoCloud", "networkDataBase64").String()),
+						Field:   field.Index(idx).Child("cloudInitNoCloud", "networkDataBase64").String(),
+					})
+				}
+				networkDataLen = len(networkData)
+			}
+			if noCloud.NetworkData != "" {
+				networkDataSourceCount++
+				networkDataLen = len(noCloud.NetworkData)
+			}
+
+			if networkDataSourceCount > 1 {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("%s must have only one networkdata source set.", field.Index(idx).Child("cloudInitNoCloud").String()),
+					Field:   field.Index(idx).Child("cloudInitNoCloud").String(),
+				})
+			}
+
+			if networkDataLen > cloudInitNetworkMaxLen {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("%s networkdata exceeds %d byte limit", field.Index(idx).Child("cloudInitNoCloud").String(), cloudInitNetworkMaxLen),
 					Field:   field.Index(idx).Child("cloudInitNoCloud").String(),
 				})
 			}
@@ -440,15 +513,27 @@ func validateDevices(field *k8sfield.Path, devices *v1.Devices) []metav1.StatusC
 	return causes
 }
 
+func validateFirmware(field *k8sfield.Path, firmware *v1.Firmware) []metav1.StatusCause {
+	var causes []metav1.StatusCause
+
+	if firmware != nil {
+		causes = append(causes, validateBootloader(field.Child("bootloader"), firmware.Bootloader)...)
+	}
+
+	return causes
+}
+
 func validateDomainPresetSpec(field *k8sfield.Path, spec *v1.DomainSpec) []metav1.StatusCause {
 	var causes []metav1.StatusCause
 	causes = append(causes, validateDevices(field.Child("devices"), &spec.Devices)...)
+	causes = append(causes, validateFirmware(field.Child("firmware"), spec.Firmware)...)
 	return causes
 }
 
 func validateDomainSpec(field *k8sfield.Path, spec *v1.DomainSpec) []metav1.StatusCause {
 	var causes []metav1.StatusCause
 	causes = append(causes, validateDevices(field.Child("devices"), &spec.Devices)...)
+	causes = append(causes, validateFirmware(field.Child("firmware"), spec.Firmware)...)
 	return causes
 }
 
@@ -536,11 +621,18 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 		}
 	}
 
-	// Validate memory size if values are not negative
+	// Validate memory size if values are not negative or too small
 	if spec.Domain.Resources.Requests.Memory().Value() < 0 {
 		causes = append(causes, metav1.StatusCause{
 			Type: metav1.CauseTypeFieldValueInvalid,
 			Message: fmt.Sprintf("%s '%s': must be greater than or equal to 0.", field.Child("domain", "resources", "requests", "memory").String(),
+				spec.Domain.Resources.Requests.Memory()),
+			Field: field.Child("domain", "resources", "requests", "memory").String(),
+		})
+	} else if spec.Domain.Resources.Requests.Memory().Value() > 0 && spec.Domain.Resources.Requests.Memory().Cmp(resource.MustParse("1M")) < 0 {
+		causes = append(causes, metav1.StatusCause{
+			Type: metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("%s '%s': must be greater than or equal to 1M.", field.Child("domain", "resources", "requests", "memory").String(),
 				spec.Domain.Resources.Requests.Memory()),
 			Field: field.Child("domain", "resources", "requests", "memory").String(),
 		})
@@ -671,6 +763,60 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 		}
 	}
 
+	if spec.Domain.Firmware != nil && len(spec.Domain.Firmware.Serial) > 0 {
+		// Verify serial number is within valid length, if provided
+		if len(spec.Domain.Firmware.Serial) > maxStrLen {
+			causes = append(causes, metav1.StatusCause{
+				Type: metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s must be less than or equal to %d in length, if specified",
+					field.Child("domain", "firmware", "serial").String(),
+					maxStrLen,
+				),
+				Field: field.Child("domain", "firmware", "serial").String(),
+			})
+		}
+		// Verify serial number is made up of valid characters for libvirt, if provided
+		isValid := regexp.MustCompile(`^[A-Za-z0-9_.+-]+$`).MatchString
+		if !isValid(spec.Domain.Firmware.Serial) {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s must be made up of the following characters [A-Za-z0-9_.+-], if specified", field.Child("domain", "firmware", "serial").String()),
+				Field:   field.Child("domain", "firmware", "serial").String(),
+			})
+		}
+	}
+
+	// Validate cpu if values are not negative
+	if spec.Domain.Resources.Requests.Cpu().MilliValue() < 0 {
+		causes = append(causes, metav1.StatusCause{
+			Type: metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("%s '%s': must be greater than or equal to 0.", field.Child("domain", "resources", "requests", "cpu").String(),
+				spec.Domain.Resources.Requests.Cpu()),
+			Field: field.Child("domain", "resources", "requests", "cpu").String(),
+		})
+	}
+
+	if spec.Domain.Resources.Limits.Cpu().MilliValue() < 0 {
+		causes = append(causes, metav1.StatusCause{
+			Type: metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("%s '%s': must be greater than or equal to 0.", field.Child("domain", "resources", "limits", "cpu").String(),
+				spec.Domain.Resources.Limits.Cpu()),
+			Field: field.Child("domain", "resources", "limits", "cpu").String(),
+		})
+	}
+
+	if spec.Domain.Resources.Limits.Cpu().MilliValue() > 0 &&
+		spec.Domain.Resources.Requests.Cpu().MilliValue() > spec.Domain.Resources.Limits.Cpu().MilliValue() {
+		causes = append(causes, metav1.StatusCause{
+			Type: metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("%s '%s' is greater than %s '%s'", field.Child("domain", "resources", "requests", "cpu").String(),
+				spec.Domain.Resources.Requests.Cpu(),
+				field.Child("domain", "resources", "limits", "cpu").String(),
+				spec.Domain.Resources.Limits.Cpu()),
+			Field: field.Child("domain", "resources", "requests", "cpu").String(),
+		})
+	}
+
 	// Validate CPU pinning
 	if spec.Domain.CPU != nil && spec.Domain.CPU.DedicatedCPUPlacement {
 		requestsMem := spec.Domain.Resources.Requests.Memory().Value()
@@ -761,6 +907,27 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 		}
 	}
 
+	// Validate CPU Feature Policies
+	if spec.Domain.CPU != nil && spec.Domain.CPU.Features != nil {
+		isValidPolicy := func(policy string) bool {
+			for _, p := range validCPUFeaturePolicies {
+				if p == policy {
+					return true
+				}
+			}
+			return false
+		}
+		for idx, feature := range spec.Domain.CPU.Features {
+			if !isValidPolicy(feature.Policy) {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueNotSupported,
+					Message: fmt.Sprintf("CPU feature %s uses policy %s that is not supported.", feature.Name, feature.Policy),
+					Field:   field.Child("domain", "cpu", "features").Index(idx).Child("policy").String(),
+				})
+			}
+		}
+	}
+
 	podNetworkInterfacePresent := false
 
 	if len(spec.Domain.Devices.Interfaces) > arrayLenMax {
@@ -834,6 +1001,7 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 	}
 
 	if len(spec.Networks) > 0 && len(spec.Domain.Devices.Interfaces) > 0 {
+		multusDefaultCount := 0
 		multusExists := false
 		genieExists := false
 		podExists := false
@@ -853,6 +1021,9 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 				cniTypesCount++
 				multusExists = true
 				networkNameExistsOrNotNeeded = network.Multus.NetworkName != ""
+				if network.NetworkSource.Multus.Default {
+					multusDefaultCount++
+				}
 			}
 
 			if network.NetworkSource.Genie != nil {
@@ -890,6 +1061,22 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 			}
 
 			networkNameMap[spec.Networks[idx].Name] = &spec.Networks[idx]
+		}
+
+		if multusDefaultCount > 1 {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("Multus CNI should only have one default network"),
+				Field:   field.Child("networks").String(),
+			})
+		}
+
+		if podExists && multusDefaultCount > 0 {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("Pod network cannot be defined when Multus default network is defined"),
+				Field:   field.Child("networks").String(),
+			})
 		}
 
 		// Make sure interfaces and networks are 1to1 related
@@ -1061,6 +1248,29 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 					})
 				}
 			}
+			// verify that the extra dhcp options are valid
+			if iface.DHCPOptions != nil {
+				PrivateOptions := iface.DHCPOptions.PrivateOptions
+				err := ValidateDuplicateDHCPPrivateOptions(PrivateOptions)
+				if err != nil {
+					causes = append(causes, metav1.StatusCause{
+						Type:    metav1.CauseTypeFieldValueInvalid,
+						Message: fmt.Sprintf("Found Duplicates: %v", err),
+						Field:   field.String(),
+					})
+					return causes
+				}
+				for _, DHCPPrivateOption := range PrivateOptions {
+					if !(DHCPPrivateOption.Option >= 224 && DHCPPrivateOption.Option <= 254) {
+						causes = append(causes, metav1.StatusCause{
+							Type:    metav1.CauseTypeFieldValueInvalid,
+							Message: "provided DHCPPrivateOptions are out of range, must be in range 224 to 254",
+							Field:   field.String(),
+						})
+					}
+				}
+			}
+
 			if iface.Model == "virtio" || iface.Model == "" {
 				isVirtioNicRequested = true
 			}
@@ -1098,6 +1308,23 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 		}
 	}
 
+	for idx, input := range spec.Domain.Devices.Inputs {
+		if input.Bus != "virtio" && input.Bus != "usb" && input.Bus != "" {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("Input device can have only virtio or usb bus."),
+				Field:   field.Child("domain", "devices", "inputs").Index(idx).Child("bus").String(),
+			})
+		}
+
+		if input.Type != "tablet" {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("Input device can have only tablet type."),
+				Field:   field.Child("domain", "devices", "inputs").Index(idx).Child("type").String(),
+			})
+		}
+	}
 	_, requestOk := spec.Domain.Resources.Requests[k8sv1.ResourceCPU]
 	_, limitOK := spec.Domain.Resources.Limits[k8sv1.ResourceCPU]
 	isCPUResourcesSet := (requestOk == true) || (limitOK == true)
@@ -1193,6 +1420,42 @@ func ValidateVirtualMachineInstanceSpec(field *k8sfield.Path, spec *v1.VirtualMa
 
 	causes = append(causes, validateDomainSpec(field.Child("domain"), &spec.Domain)...)
 	causes = append(causes, validateVolumes(field.Child("volumes"), spec.Volumes)...)
+	if spec.DNSPolicy != "" {
+		causes = append(causes, validateDNSPolicy(&spec.DNSPolicy, field.Child("dnsPolicy"))...)
+	}
+	causes = append(causes, validatePodDNSConfig(spec.DNSConfig, &spec.DNSPolicy, field.Child("dnsConfig"))...)
+
+	if !virtconfig.LiveMigrationEnabled() && spec.EvictionStrategy != nil {
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Message: "LiveMigration feature gate is not enabled",
+			Field:   field.Child("evictionStrategy").String(),
+		})
+	} else if spec.EvictionStrategy != nil {
+		if *spec.EvictionStrategy != v1.EvictionStrategyLiveMigrate {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("%s is set with an unrecognized option: %s", field.Child("evictionStrategy").String(), *spec.EvictionStrategy),
+				Field:   field.Child("evictionStrategy").String(),
+			})
+		}
+
+	}
+
+	return causes
+}
+
+func ValidateVirtualMachineInstanceMetadata(field *k8sfield.Path, vmi *v1.VirtualMachineInstance) []metav1.StatusCause {
+	var causes []metav1.StatusCause
+	// Validate ignition feature gate if set when the corresponding annotation is found
+	if vmi.GetObjectMeta().GetAnnotations()[v1.IgnitionAnnotation] != "" && !virtconfig.IgnitionEnabled() {
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("ExperimentalIgnitionSupport feature gate is not enabled in kubevirt-config"),
+			Field:   field.String(),
+		})
+	}
+
 	return causes
 }
 
@@ -1240,6 +1503,48 @@ func ValidateVirtualMachineSpec(field *k8sfield.Path, spec *v1.VirtualMachineSpe
 		}
 	}
 
+	// Validate RunStrategy
+	if spec.Running != nil && spec.RunStrategy != nil {
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("Running and RunStrategy are mutually exclusive"),
+			Field:   field.Child("running").String(),
+		})
+	}
+
+	if spec.Running == nil && spec.RunStrategy == nil {
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("One of Running or RunStrategy must be specified"),
+			Field:   field.Child("running").String(),
+		})
+	}
+
+	if spec.RunStrategy != nil {
+		validRunStrategy := false
+		for _, strategy := range validRunStrategies {
+			if *spec.RunStrategy == strategy {
+				validRunStrategy = true
+				break
+			}
+		}
+		if validRunStrategy == false {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("Invalid RunStrategy (%s)", *spec.RunStrategy),
+				Field:   field.Child("runStrategy").String(),
+			})
+		}
+	}
+
+	// Validate ignition feature gate if set when the corresponding annotation is found
+	if spec.Template.ObjectMeta.GetAnnotations()[v1.IgnitionAnnotation] != "" && !virtconfig.IgnitionEnabled() {
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Message: fmt.Sprintf("ExperimentalIgnitionSupport feature gate is not enabled in kubevirt-config"),
+			Field:   field.String(),
+		})
+	}
 	return causes
 }
 
@@ -1342,6 +1647,7 @@ func admitVMICreate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 
 	causes := ValidateVirtualMachineInstanceSpec(k8sfield.NewPath("spec"), &vmi.Spec)
 	causes = append(causes, ValidateVirtualMachineInstanceMandatoryFields(k8sfield.NewPath("spec"), &vmi.Spec)...)
+	causes = append(causes, ValidateVirtualMachineInstanceMetadata(k8sfield.NewPath("spec"), vmi)...)
 
 	if len(causes) > 0 {
 		return webhooks.ToAdmissionResponse(causes)
@@ -1370,7 +1676,7 @@ func admitVMIUpdate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionResponse {
 	// Reject VMI update if VMI spec changed
 	if !reflect.DeepEqual(newVMI.Spec, oldVMI.Spec) {
 		return webhooks.ToAdmissionResponse([]metav1.StatusCause{
-			metav1.StatusCause{
+			{
 				Type:    metav1.CauseTypeFieldValueNotSupported,
 				Message: "update of VMI object is restricted",
 			},
@@ -1546,11 +1852,13 @@ func admitMigrationCreate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespons
 	}
 
 	// Reject migration jobs for non-migratable VMIs
-	cond := getVMIMigrationCondition(vmi)
-	if cond != nil && cond.Status == k8sv1.ConditionFalse {
-		errMsg := fmt.Errorf("Cannot migrate VMI, Reason: %s, Message: %s",
-			cond.Reason, cond.Message)
-		return webhooks.ToAdmissionResponseError(errMsg)
+	for _, c := range vmi.Status.Conditions {
+		if c.Type == v1.VirtualMachineInstanceIsMigratable &&
+			c.Status == k8sv1.ConditionFalse {
+			errMsg := fmt.Errorf("Cannot migrate VMI, Reason: %s, Message: %s",
+				c.Reason, c.Message)
+			return webhooks.ToAdmissionResponseError(errMsg)
+		}
 	}
 
 	// Don't allow new migration jobs to be introduced when previous migration jobs
@@ -1566,15 +1874,6 @@ func admitMigrationCreate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespons
 	reviewResponse := v1beta1.AdmissionResponse{}
 	reviewResponse.Allowed = true
 	return &reviewResponse
-}
-
-func getVMIMigrationCondition(vmi *v1.VirtualMachineInstance) (cond *v1.VirtualMachineInstanceCondition) {
-	for _, c := range vmi.Status.Conditions {
-		if c.Type == v1.VirtualMachineInstanceIsMigratable {
-			cond = &c
-		}
-	}
-	return cond
 }
 
 func ServeMigrationCreate(resp http.ResponseWriter, req *http.Request) {
@@ -1595,7 +1894,7 @@ func admitMigrationUpdate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespons
 	// Reject Migration update if spec changed
 	if !reflect.DeepEqual(newMigration.Spec, oldMigration.Spec) {
 		return webhooks.ToAdmissionResponse([]metav1.StatusCause{
-			metav1.StatusCause{
+			{
 				Type:    metav1.CauseTypeFieldValueNotSupported,
 				Message: "update of Migration object's spec is restricted",
 			},
@@ -1609,4 +1908,112 @@ func admitMigrationUpdate(ar *v1beta1.AdmissionReview) *v1beta1.AdmissionRespons
 
 func ServeMigrationUpdate(resp http.ResponseWriter, req *http.Request) {
 	serve(resp, req, admitMigrationUpdate)
+}
+
+// Copied from kubernetes/pkg/apis/core/validation/validation.go
+func validateDNSPolicy(dnsPolicy *k8sv1.DNSPolicy, field *k8sfield.Path) []metav1.StatusCause {
+	var causes []metav1.StatusCause
+	switch *dnsPolicy {
+	case k8sv1.DNSClusterFirstWithHostNet, k8sv1.DNSClusterFirst, k8sv1.DNSDefault, k8sv1.DNSNone, "":
+	default:
+		validValues := []string{string(k8sv1.DNSClusterFirstWithHostNet), string(k8sv1.DNSClusterFirst), string(k8sv1.DNSDefault), string(k8sv1.DNSNone), ""}
+		causes = append(causes, metav1.StatusCause{
+			Type:    metav1.CauseTypeFieldValueNotSupported,
+			Message: fmt.Sprintf("DNSPolicy: %s is not supported, valid values: %s", *dnsPolicy, validValues),
+			Field:   field.String(),
+		})
+	}
+	return causes
+}
+
+// Copied from kubernetes/pkg/apis/core/validation/validation.go
+func validatePodDNSConfig(dnsConfig *k8sv1.PodDNSConfig, dnsPolicy *k8sv1.DNSPolicy, field *k8sfield.Path) []metav1.StatusCause {
+	var causes []metav1.StatusCause
+
+	// Validate DNSNone case. Must provide at least one DNS name server.
+	if dnsPolicy != nil && *dnsPolicy == k8sv1.DNSNone {
+		if dnsConfig == nil {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueRequired,
+				Message: fmt.Sprintf("must provide `dnsConfig` when `dnsPolicy` is %s", k8sv1.DNSNone),
+				Field:   field.String(),
+			})
+			return causes
+		}
+		if len(dnsConfig.Nameservers) == 0 {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueRequired,
+				Message: fmt.Sprintf("must provide at least one DNS nameserver when `dnsPolicy` is %s", k8sv1.DNSNone),
+				Field:   "nameservers",
+			})
+			return causes
+		}
+	}
+
+	if dnsConfig != nil {
+		// Validate nameservers.
+		if len(dnsConfig.Nameservers) > maxDNSNameservers {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("must not have more than %v nameservers: %s", maxDNSNameservers, dnsConfig.Nameservers),
+				Field:   "nameservers",
+			})
+		}
+		for _, ns := range dnsConfig.Nameservers {
+			if ip := net.ParseIP(ns); ip == nil {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("must be valid IP address: %s", ns),
+					Field:   "nameservers",
+				})
+			}
+		}
+		// Validate searches.
+		if len(dnsConfig.Searches) > maxDNSSearchPaths {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("must not have more than %v search paths", maxDNSSearchPaths),
+				Field:   "searchDomains",
+			})
+		}
+		// Include the space between search paths.
+		if len(strings.Join(dnsConfig.Searches, " ")) > maxDNSSearchListChars {
+			causes = append(causes, metav1.StatusCause{
+				Type:    metav1.CauseTypeFieldValueInvalid,
+				Message: fmt.Sprintf("must not have more than %v characters (including spaces) in the search list", maxDNSSearchListChars),
+				Field:   "searchDomains",
+			})
+		}
+		for _, search := range dnsConfig.Searches {
+			for _, msg := range validation.IsDNS1123Subdomain(search) {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("%v", msg),
+					Field:   "searchDomains",
+				})
+			}
+		}
+		// Validate options.
+		for _, option := range dnsConfig.Options {
+			if len(option.Name) == 0 {
+				causes = append(causes, metav1.StatusCause{
+					Type:    metav1.CauseTypeFieldValueInvalid,
+					Message: fmt.Sprintf("Option.Name must not be empty for value: %s", *option.Value),
+					Field:   "options",
+				})
+			}
+		}
+	}
+	return causes
+}
+
+func ValidateDuplicateDHCPPrivateOptions(PrivateOptions []v1.DHCPPrivateOptions) error {
+	isUnique := map[int]bool{}
+	for _, DHCPPrivateOption := range PrivateOptions {
+		if isUnique[DHCPPrivateOption.Option] == true {
+			return fmt.Errorf("You have provided duplicate DHCPPrivateOptions")
+		}
+		isUnique[DHCPPrivateOption.Option] = true
+	}
+	return nil
 }

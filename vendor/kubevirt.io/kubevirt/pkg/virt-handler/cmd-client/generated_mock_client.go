@@ -8,6 +8,7 @@ import (
 
 	v1 "kubevirt.io/kubevirt/pkg/api/v1"
 	api "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
+	stats "kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
 )
 
 // Mock of LauncherClient interface
@@ -71,14 +72,24 @@ func (_mr *_MockLauncherClientRecorder) KillVirtualMachine(arg0 interface{}) *go
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "KillVirtualMachine", arg0)
 }
 
-func (_m *MockLauncherClient) MigrateVirtualMachine(vmi *v1.VirtualMachineInstance) error {
-	ret := _m.ctrl.Call(_m, "MigrateVirtualMachine", vmi)
+func (_m *MockLauncherClient) MigrateVirtualMachine(vmi *v1.VirtualMachineInstance, options *MigrationOptions) error {
+	ret := _m.ctrl.Call(_m, "MigrateVirtualMachine", vmi, options)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-func (_mr *_MockLauncherClientRecorder) MigrateVirtualMachine(arg0 interface{}) *gomock.Call {
-	return _mr.mock.ctrl.RecordCall(_mr.mock, "MigrateVirtualMachine", arg0)
+func (_mr *_MockLauncherClientRecorder) MigrateVirtualMachine(arg0, arg1 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "MigrateVirtualMachine", arg0, arg1)
+}
+
+func (_m *MockLauncherClient) CancelVirtualMachineMigration(vmi *v1.VirtualMachineInstance) error {
+	ret := _m.ctrl.Call(_m, "CancelVirtualMachineMigration", vmi)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+func (_mr *_MockLauncherClientRecorder) CancelVirtualMachineMigration(arg0 interface{}) *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "CancelVirtualMachineMigration", arg0)
 }
 
 func (_m *MockLauncherClient) DeleteDomain(vmi *v1.VirtualMachineInstance) error {
@@ -101,6 +112,18 @@ func (_m *MockLauncherClient) GetDomain() (*api.Domain, bool, error) {
 
 func (_mr *_MockLauncherClientRecorder) GetDomain() *gomock.Call {
 	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetDomain")
+}
+
+func (_m *MockLauncherClient) GetDomainStats() (*stats.DomainStats, bool, error) {
+	ret := _m.ctrl.Call(_m, "GetDomainStats")
+	ret0, _ := ret[0].(*stats.DomainStats)
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+func (_mr *_MockLauncherClientRecorder) GetDomainStats() *gomock.Call {
+	return _mr.mock.ctrl.RecordCall(_mr.mock, "GetDomainStats")
 }
 
 func (_m *MockLauncherClient) Ping() error {

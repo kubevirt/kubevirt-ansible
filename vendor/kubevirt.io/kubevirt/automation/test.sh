@@ -29,30 +29,26 @@
 set -ex
 
 export WORKSPACE="${WORKSPACE:-$PWD}"
-readonly ARTIFACTS_PATH="$WORKSPACE/exported-artifacts"
+readonly ARTIFACTS_PATH="${ARTIFACTS-$WORKSPACE/exported-artifacts}"
 readonly TEMPLATES_SERVER="https://templates.ovirt.org/kubevirt/"
 
-if [[ $TARGET =~ openshift-.* ]]; then
+if [[ $TARGET =~ windows.* ]]; then
+  export KUBEVIRT_PROVIDER="k8s-1.11.0"
+else
+  export KUBEVIRT_PROVIDER=$TARGET
+fi
+
+if [ ! -d "cluster/$KUBEVIRT_PROVIDER" ]; then
+  echo "The cluster provider $KUBEVIRT_PROVIDER does not exist"
+  exit 1
+fi
+
+if [[ $TARGET =~ os-.* ]]; then
   # when testing on slow CI system cleanup sometimes takes very long.
   # openshift clusters are more memory demanding. If the cleanup
   # of old vms does not go fast enough they run out of memory.
   # To still allow continuing with the tests, give more memory in CI.
   export KUBEVIRT_MEMORY_SIZE=6144M
-  if [[ $TARGET =~ .*-crio-.* ]]; then
-    export KUBEVIRT_PROVIDER="os-3.11.0-crio"
-  elif [[ $TARGET =~ .*-multus-.* ]]; then
-    export KUBEVIRT_PROVIDER="os-3.11.0-multus"
-  else
-    export KUBEVIRT_PROVIDER="os-3.11.0"
-  fi
-elif [[ $TARGET =~ .*-1.10.4-.* ]]; then
-  export KUBEVIRT_PROVIDER="k8s-1.10.11"
-elif [[ $TARGET =~ .*-multus-1.12.2-.* ]]; then
-  export KUBEVIRT_PROVIDER="k8s-multus-1.12.2"
-elif [[ $TARGET =~ .*-genie-1.11.1-.* ]]; then
-  export KUBEVIRT_PROVIDER="k8s-genie-1.11.1"
-else
-  export KUBEVIRT_PROVIDER="k8s-1.11.0"
 fi
 
 export KUBEVIRT_NUM_NODES=2
@@ -94,8 +90,16 @@ safe_download() (
     local remote_sha1_url="${download_from}.sha1"
     local local_sha1_file="${download_to}.sha1"
     local remote_sha1
+    local retry=3
     # Remote file includes only sha1 w/o filename suffix
-    remote_sha1="$(curl -s "${remote_sha1_url}")"
+    for i in $(seq 1 $retry);
+    do
+      remote_sha1="$(curl -s "${remote_sha1_url}")"
+      if [[ "$remote_sha1" != "" ]]; then
+        break
+      fi
+    done
+
     if [[ "$(cat "$local_sha1_file")" != "$remote_sha1" ]]; then
         echo "${download_to} is not up to date, corrupted or doesn't exist."
         echo "Downloading file from: ${remote_sha1_url}"
@@ -110,7 +114,7 @@ safe_download() (
     fi
 )
 
-if [[ $TARGET =~ openshift.* ]]; then
+if [[ $TARGET =~ os-.* ]]; then
     # Create images directory
     if [[ ! -d $RHEL_NFS_DIR ]]; then
         mkdir -p $RHEL_NFS_DIR
@@ -136,17 +140,7 @@ fi
 
 kubectl() { cluster/kubectl.sh "$@"; }
 
-
-# If run on CI use random kubevirt system-namespaces
-if [ -n "${JOB_NAME}" ]; then
-  export NAMESPACE="kubevirt-system-$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)"
-  cat >hack/config-local.sh <<EOF
-namespace=${NAMESPACE}
-EOF
-else
-  export NAMESPACE="${NAMESPACE:-kubevirt}"
-fi
-
+export NAMESPACE="${NAMESPACE:-kubevirt}"
 
 # Make sure that the VM is properly shut down on exit
 trap '{ make cluster-down; }' EXIT SIGINT SIGTERM SIGSTOP
@@ -159,6 +153,26 @@ if [ -n "${KUBEVIRT_CACHE_FROM}" ]; then
 fi
 
 make cluster-down
+
+# Create .bazelrc to use remote cache
+cat >.bazelrc <<EOF
+startup --host_jvm_args=-Dbazel.DigestFunction=sha256
+build --remote_local_fallback
+build --remote_http_cache=http://bazel-cache.kubevirt-prow.svc.cluster.local:8080/kubevirt.io/kubevirt
+EOF
+
+# build all images with the basic repeat logic
+# probably because load on the node, possible situation when the bazel
+# fails to download artifacts, to avoid job fails because of it,
+# we repeat the build images action
+set +e
+for i in $(seq 1 3);
+do
+  make bazel-build-images
+done
+set -e
+make bazel-build-images
+
 make cluster-up
 
 # Wait for nodes to become ready
@@ -176,7 +190,8 @@ set -e
 echo "Nodes are ready:"
 kubectl get nodes
 
-make cluster-sync-operator
+make cluster-sync
+hack/dockerized bazel shutdown
 
 # OpenShift is running important containers under default namespace
 namespaces=(kubevirt default)
@@ -220,7 +235,7 @@ kubectl version
 
 mkdir -p "$ARTIFACTS_PATH"
 
-ginko_params="--ginkgo.noColor --junit-output=$ARTIFACTS_PATH/tests.junit.xml"
+ginko_params="--ginkgo.noColor --junit-output=$ARTIFACTS_PATH/junit.functest.xml"
 
 # Prepare PV for Windows testing
 if [[ $TARGET =~ windows.* ]]; then
@@ -240,19 +255,22 @@ spec:
   nfs:
     server: "nfs"
     path: /
-  storageClassName: local
+  storageClassName: windows
 EOF
   # Run only Windows tests
   ginko_params="$ginko_params --ginkgo.focus=Windows"
-
-elif [[ $TARGET =~ multus.* ]] || [[ $TARGET =~ genie.* ]]; then
-  # Run networking tests only (general networking, multus, genie, ...)
-  # If multus or genie is not present the test will  be skipped base on per-test checks
-  ginko_params="$ginko_params --ginkgo.focus=Networking|VMIlifecycle|Expose|Networkpolicy"
+elif [[ $TARGET =~ multus.* ]]; then
+  ginko_params="$ginko_params --ginkgo.focus=Multus|Networking|VMIlifecycle|Expose"
+elif [[ $TARGET =~ genie.* ]]; then
+  ginko_params="$ginko_params --ginkgo.focus=Genie|Networking|VMIlifecycle|Expose"
+else
+  ginko_params="$ginko_params --ginkgo.skip=Multus|Genie"
 fi
 
 # Prepare RHEL PV for Template testing
-if [[ $TARGET =~ openshift-.* ]]; then
+if [[ $TARGET =~ os-.* ]]; then
+  ginko_params="$ginko_params|Networkpolicy"
+
   kubectl create -f - <<EOF
 ---
 apiVersion: v1
@@ -269,7 +287,7 @@ spec:
   nfs:
     server: "nfs"
     path: /
-  storageClassName: local
+  storageClassName: rhel
 EOF
 fi
 

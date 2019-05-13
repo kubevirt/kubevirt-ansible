@@ -20,18 +20,22 @@
 package virt_operator
 
 import (
+	"context"
 	"io/ioutil"
 	golog "log"
 	"net/http"
 	"os"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/spf13/pflag"
 
 	k8sv1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	k8coresv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clientrest "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/leaderelection"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/client-go/tools/record"
 
 	"kubevirt.io/kubevirt/pkg/certificates"
@@ -40,6 +44,8 @@ import (
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/service"
 	kvutil "kubevirt.io/kubevirt/pkg/util"
+	"kubevirt.io/kubevirt/pkg/virt-controller/leaderelectionconfig"
+	installstrategy "kubevirt.io/kubevirt/pkg/virt-operator/install-strategy"
 	"kubevirt.io/kubevirt/pkg/virt-operator/util"
 )
 
@@ -70,6 +76,8 @@ type VirtOperatorApp struct {
 
 	stores    util.Stores
 	informers util.Informers
+
+	LeaderElection leaderelectionconfig.Configuration
 }
 
 var _ service.Service = &VirtOperatorApp{}
@@ -77,6 +85,8 @@ var _ service.Service = &VirtOperatorApp{}
 func Execute() {
 	var err error
 	app := VirtOperatorApp{}
+
+	dumpInstallStrategy := pflag.Bool("dump-install-strategy", false, "Dump install strategy to configmap and exit")
 
 	service.Setup(&app)
 
@@ -90,37 +100,70 @@ func Execute() {
 
 	app.restClient = app.clientSet.RestClient()
 
+	app.LeaderElection = leaderelectionconfig.DefaultLeaderElectionConfiguration()
+
 	app.operatorNamespace, err = kvutil.GetNamespace()
 	if err != nil {
 		golog.Fatalf("Error searching for namespace: %v", err)
 	}
+
+	if *dumpInstallStrategy {
+		err = installstrategy.DumpInstallStrategyToConfigMap(app.clientSet)
+		if err != nil {
+			golog.Fatal(err)
+		}
+		os.Exit(0)
+	}
+
 	app.informerFactory = controller.NewKubeInformerFactory(app.restClient, app.clientSet, app.operatorNamespace)
 
 	app.kubeVirtInformer = app.informerFactory.KubeVirt()
 	app.kubeVirtCache = app.kubeVirtInformer.GetStore()
 
 	app.informers = util.Informers{
-		ServiceAccount:     app.informerFactory.OperatorServiceAccount(),
-		ClusterRole:        app.informerFactory.OperatorClusterRole(),
-		ClusterRoleBinding: app.informerFactory.OperatorClusterRoleBinding(),
-		Role:               app.informerFactory.OperatorRole(),
-		RoleBinding:        app.informerFactory.OperatorRoleBinding(),
-		Crd:                app.informerFactory.OperatorCRD(),
-		Service:            app.informerFactory.OperatorService(),
-		Deployment:         app.informerFactory.OperatorDeployment(),
-		DaemonSet:          app.informerFactory.OperatorDaemonSet(),
+		ServiceAccount:           app.informerFactory.OperatorServiceAccount(),
+		ClusterRole:              app.informerFactory.OperatorClusterRole(),
+		ClusterRoleBinding:       app.informerFactory.OperatorClusterRoleBinding(),
+		Role:                     app.informerFactory.OperatorRole(),
+		RoleBinding:              app.informerFactory.OperatorRoleBinding(),
+		Crd:                      app.informerFactory.OperatorCRD(),
+		Service:                  app.informerFactory.OperatorService(),
+		Deployment:               app.informerFactory.OperatorDeployment(),
+		DaemonSet:                app.informerFactory.OperatorDaemonSet(),
+		ValidationWebhook:        app.informerFactory.OperatorValidationWebhook(),
+		InstallStrategyConfigMap: app.informerFactory.OperatorInstallStrategyConfigMaps(),
+		InstallStrategyJob:       app.informerFactory.OperatorInstallStrategyJob(),
+		InfrastructurePod:        app.informerFactory.OperatorPod(),
 	}
 
 	app.stores = util.Stores{
-		ServiceAccountCache:     app.informerFactory.OperatorServiceAccount().GetStore(),
-		ClusterRoleCache:        app.informerFactory.OperatorClusterRole().GetStore(),
-		ClusterRoleBindingCache: app.informerFactory.OperatorClusterRoleBinding().GetStore(),
-		RoleCache:               app.informerFactory.OperatorRole().GetStore(),
-		RoleBindingCache:        app.informerFactory.OperatorRoleBinding().GetStore(),
-		CrdCache:                app.informerFactory.OperatorCRD().GetStore(),
-		ServiceCache:            app.informerFactory.OperatorService().GetStore(),
-		DeploymentCache:         app.informerFactory.OperatorDeployment().GetStore(),
-		DaemonSetCache:          app.informerFactory.OperatorDaemonSet().GetStore(),
+		ServiceAccountCache:           app.informerFactory.OperatorServiceAccount().GetStore(),
+		ClusterRoleCache:              app.informerFactory.OperatorClusterRole().GetStore(),
+		ClusterRoleBindingCache:       app.informerFactory.OperatorClusterRoleBinding().GetStore(),
+		RoleCache:                     app.informerFactory.OperatorRole().GetStore(),
+		RoleBindingCache:              app.informerFactory.OperatorRoleBinding().GetStore(),
+		CrdCache:                      app.informerFactory.OperatorCRD().GetStore(),
+		ServiceCache:                  app.informerFactory.OperatorService().GetStore(),
+		DeploymentCache:               app.informerFactory.OperatorDeployment().GetStore(),
+		DaemonSetCache:                app.informerFactory.OperatorDaemonSet().GetStore(),
+		ValidationWebhookCache:        app.informerFactory.OperatorValidationWebhook().GetStore(),
+		InstallStrategyConfigMapCache: app.informerFactory.OperatorInstallStrategyConfigMaps().GetStore(),
+		InstallStrategyJobCache:       app.informerFactory.OperatorInstallStrategyJob().GetStore(),
+		InfrastructurePodCache:        app.informerFactory.OperatorPod().GetStore(),
+	}
+
+	onOpenShift, err := util.IsOnOpenshift(app.clientSet)
+	if err != nil {
+		golog.Fatalf("Error determining cluster type: %v", err)
+	}
+	if onOpenShift {
+		log.Log.Info("we are on openshift")
+		app.informers.SCC = app.informerFactory.OperatorSCC()
+		app.stores.SCCCache = app.informerFactory.OperatorSCC().GetStore()
+	} else {
+		log.Log.Info("we are on kubernetes")
+		app.informers.SCC = app.informerFactory.DummyOperatorSCC()
+		app.stores.SCCCache = app.informerFactory.DummyOperatorSCC().GetStore()
 	}
 
 	app.kubeVirtRecorder = app.getNewRecorder(k8sv1.NamespaceAll, "virt-operator")
@@ -150,20 +193,66 @@ func (app *VirtOperatorApp) Run() {
 		panic(err)
 	}
 
-	// run app
-	stop := make(chan struct{})
-	defer close(stop)
+	go func() {
+		// serve metrics
+		http.Handle("/metrics", promhttp.Handler())
+		err = http.ListenAndServeTLS(app.ServiceListen.Address(), certStore.CurrentPath(), certStore.CurrentPath(), nil)
+		if err != nil {
+			log.Log.Reason(err).Error("Serving prometheus failed.")
+			panic(err)
+		}
+	}()
 
-	app.informerFactory.Start(stop)
-	go app.kubeVirtController.Run(controllerThreads, stop)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// serve metrics
-	http.Handle("/metrics", promhttp.Handler())
-	err = http.ListenAndServeTLS(app.ServiceListen.Address(), certStore.CurrentPath(), certStore.CurrentPath(), nil)
+	endpointName := "virt-operator"
+
+	recorder := app.getNewRecorder(k8sv1.NamespaceAll, endpointName)
+
+	id, err := os.Hostname()
 	if err != nil {
-		log.Log.Reason(err).Error("Serving prometheus failed.")
-		panic(err)
+		golog.Fatalf("unable to get hostname: %v", err)
 	}
+
+	rl, err := resourcelock.New(app.LeaderElection.ResourceLock,
+		app.operatorNamespace,
+		endpointName,
+		app.clientSet.CoreV1(),
+		resourcelock.ResourceLockConfig{
+			Identity:      id,
+			EventRecorder: recorder,
+		})
+	if err != nil {
+		golog.Fatal(err)
+	}
+
+	leaderElector, err := leaderelection.NewLeaderElector(
+		leaderelection.LeaderElectionConfig{
+			Lock:          rl,
+			LeaseDuration: app.LeaderElection.LeaseDuration.Duration,
+			RenewDeadline: app.LeaderElection.RenewDeadline.Duration,
+			RetryPeriod:   app.LeaderElection.RetryPeriod.Duration,
+			Callbacks: leaderelection.LeaderCallbacks{
+				OnStartedLeading: func(ctx context.Context) {
+					log.Log.Infof("Started leading")
+					// run app
+					stop := ctx.Done()
+					app.informerFactory.Start(stop)
+					go app.kubeVirtController.Run(controllerThreads, stop)
+				},
+				OnStoppedLeading: func() {
+					golog.Fatal("leaderelection lost")
+				},
+			},
+		})
+	if err != nil {
+		golog.Fatal(err)
+	}
+
+	log.Log.Infof("Attempting to aquire leader status")
+	leaderElector.Run(ctx)
+	panic("unreachable")
 
 }
 

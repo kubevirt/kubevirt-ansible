@@ -36,10 +36,13 @@ func (ServiceAccountVolumeSource) SwaggerDoc() map[string]string {
 
 func (CloudInitNoCloudSource) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"":               "Represents a cloud-init nocloud user data source.\nMore info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html",
-		"secretRef":      "UserDataSecretRef references a k8s secret that contains NoCloud userdata.\n+ optional",
-		"userDataBase64": "UserDataBase64 contains NoCloud cloud-init userdata as a base64 encoded string.\n+ optional",
-		"userData":       "UserData contains NoCloud inline cloud-init userdata.\n+ optional",
+		"":                     "Represents a cloud-init nocloud user data source.\nMore info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html",
+		"secretRef":            "UserDataSecretRef references a k8s secret that contains NoCloud userdata.\n+ optional",
+		"userDataBase64":       "UserDataBase64 contains NoCloud cloud-init userdata as a base64 encoded string.\n+ optional",
+		"userData":             "UserData contains NoCloud inline cloud-init userdata.\n+ optional",
+		"networkDataSecretRef": "NetworkDataSecretRef references a k8s secret that contains NoCloud networkdata.\n+ optional",
+		"networkDataBase64":    "NetworkDataBase64 contains NoCloud cloud-init networkdata as a base64 encoded string.\n+ optional",
+		"networkData":          "NetworkData contains NoCloud inline cloud-init networkdata.\n+ optional",
 	}
 }
 
@@ -51,9 +54,29 @@ func (DomainSpec) SwaggerDoc() map[string]string {
 		"machine":         "Machine type.\n+optional",
 		"firmware":        "Firmware.\n+optional",
 		"clock":           "Clock sets the clock and timers of the vmi.\n+optional",
-		"features":        "Features like acpi, apic, hyperv.\n+optional",
+		"features":        "Features like acpi, apic, hyperv, smm.\n+optional",
 		"devices":         "Devices allows adding disks, network interfaces, ...",
 		"ioThreadsPolicy": "Controls whether or not disks will share IOThreads.\nOmitting IOThreadsPolicy disables use of IOThreads.\nOne of: shared, auto\n+optional",
+	}
+}
+
+func (Bootloader) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"":     "Represents the firmware blob used to assist in the domain creation process.\nUsed for setting the QEMU BIOS file path for the libvirt domain.",
+		"bios": "If set (default), BIOS will be used.\n+optional",
+		"efi":  "If set, EFI will be used instead of BIOS.\n+optional",
+	}
+}
+
+func (BIOS) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"": "If set (default), BIOS will be used.",
+	}
+}
+
+func (EFI) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"": "If set, EFI will be used instead of BIOS.",
 	}
 }
 
@@ -71,8 +94,17 @@ func (CPU) SwaggerDoc() map[string]string {
 		"cores":                 "Cores specifies the number of cores inside the vmi.\nMust be a value greater or equal 1.",
 		"sockets":               "Sockets specifies the number of sockets inside the vmi.\nMust be a value greater or equal 1.",
 		"threads":               "Threads specifies the number of threads inside the vmi.\nMust be a value greater or equal 1.",
-		"model":                 "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\nIt is possible to specify special cases like \"host-passthrough\" to get the same CPU as the node\nand \"host-model\" to get CPU closest to the node one.\nFor more information see https://libvirt.org/formatdomain.html#elementsCPU.\nDefaults to host-model.\n+optional",
+		"model":                 "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\nIt is possible to specify special cases like \"host-passthrough\" to get the same CPU as the node\nand \"host-model\" to get CPU closest to the node one.\nDefaults to host-model.\n+optional",
+		"features":              "Features specifies the CPU features list inside the VMI.\n+optional",
 		"dedicatedCpuPlacement": "DedicatedCPUPlacement requests the scheduler to place the VirtualMachineInstance on a node\nwith enough dedicated pCPUs and pin the vCPUs to it.\n+optional",
+	}
+}
+
+func (CPUFeature) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"":       "CPUFeature allows specifying a CPU feature.",
+		"name":   "Name of the CPU feature",
+		"policy": "Policy is the CPU feature attribute which can have the following attributes:\nforce    - The virtual CPU will claim the feature is supported regardless of it being supported by host CPU.\nrequire  - Guest creation will fail unless the feature is supported by the host CPU or the hypervisor is able to emulate it.\noptional - The feature will be supported by virtual CPU if and only if it is supported by host CPU.\ndisable  - The feature will not be supported by virtual CPU.\nforbid   - Guest creation will fail if the feature is supported by host CPU.\nDefaults to require\n+optional",
 	}
 }
 
@@ -99,7 +131,9 @@ func (Machine) SwaggerDoc() map[string]string {
 
 func (Firmware) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"uuid": "UUID reported by the vmi bios.\nDefaults to a random generated uid.",
+		"uuid":       "UUID reported by the vmi bios.\nDefaults to a random generated uid.",
+		"bootloader": "Settings to control the bootloader that is used.\n+optional",
+		"serial":     "The system-serial-number in SMBIOS",
 	}
 }
 
@@ -108,11 +142,20 @@ func (Devices) SwaggerDoc() map[string]string {
 		"disks":                      "Disks describes disks, cdroms, floppy and luns which are connected to the vmi.",
 		"watchdog":                   "Watchdog describes a watchdog device which can be added to the vmi.",
 		"interfaces":                 "Interfaces describe network interfaces which are added to the vmi.",
+		"inputs":                     "Inputs describe input devices",
 		"autoattachPodInterface":     "Whether to attach a pod network interface. Defaults to true.",
 		"autoattachGraphicsDevice":   "Whether to attach the default graphics device or not.\nVNC will not be available if set to false. Defaults to true.",
 		"rng":                        "Whether to have random number generator from host\n+optional",
 		"blockMultiQueue":            "Whether or not to enable virtio multi-queue for block devices\n+optional",
 		"networkInterfaceMultiqueue": "If specified, virtual network interfaces configured with a virtio bus will also enable the vhost multiqueue feature\n+optional",
+	}
+}
+
+func (Input) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"bus":  "Bus indicates the bus of input device to emulate.\nSupported values: virtio, usb.",
+		"type": "Type indicated the type of input device.\nSupported values: tablet.",
+		"name": "Name is the device name",
 	}
 }
 
@@ -289,6 +332,7 @@ func (Features) SwaggerDoc() map[string]string {
 		"acpi":   "ACPI enables/disables ACPI insidejsondata guest.\nDefaults to enabled.\n+optional",
 		"apic":   "Defaults to the machine type setting.\n+optional",
 		"hyperv": "Defaults to the machine type setting.\n+optional",
+		"smm":    "SMM enables/disables System Management Mode.\nTSEG not yet implemented.\n+optional",
 	}
 }
 
@@ -322,16 +366,21 @@ func (FeatureVendorID) SwaggerDoc() map[string]string {
 
 func (FeatureHyperv) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"":           "Hyperv specific features.",
-		"relaxed":    "Relaxed relaxes constraints on timer.\nDefaults to the machine type setting.\n+optional",
-		"vapic":      "VAPIC indicates whether virtual APIC is enabled.\nDefaults to the machine type setting.\n+optional",
-		"spinlocks":  "Spinlocks indicates if spinlocks should be made available to the guest.\n+optional",
-		"vpindex":    "VPIndex enables the Virtual Processor Index to help windows identifying virtual processors.\nDefaults to the machine type setting.\n+optional",
-		"runtime":    "Runtime.\nDefaults to the machine type setting.\n+optional",
-		"synic":      "SyNIC enable Synthetic Interrupt Controller.\nDefaults to the machine type setting.\n+optional",
-		"synictimer": "SyNICTimer enable Synthetic Interrupt Controller timer.\nDefaults to the machine type setting.\n+optional",
-		"reset":      "Reset enables Hyperv reboot/reset for the vmi.\nDefaults to the machine type setting.\n+optional",
-		"vendorid":   "VendorID allows setting the hypervisor vendor id.\nDefaults to the machine type setting.\n+optional",
+		"":                "Hyperv specific features.",
+		"relaxed":         "Relaxed relaxes constraints on timer.\nDefaults to the machine type setting.\n+optional",
+		"vapic":           "VAPIC indicates whether virtual APIC is enabled.\nDefaults to the machine type setting.\n+optional",
+		"spinlocks":       "Spinlocks indicates if spinlocks should be made available to the guest.\n+optional",
+		"vpindex":         "VPIndex enables the Virtual Processor Index to help windows identifying virtual processors.\nDefaults to the machine type setting.\n+optional",
+		"runtime":         "Runtime.\nDefaults to the machine type setting.\n+optional",
+		"synic":           "SyNIC enable Synthetic Interrupt Controller.\nDefaults to the machine type setting.\n+optional",
+		"synictimer":      "SyNICTimer enable Synthetic Interrupt Controller timer.\nDefaults to the machine type setting.\n+optional",
+		"reset":           "Reset enables Hyperv reboot/reset for the vmi. Requires synic.\nDefaults to the machine type setting.\n+optional",
+		"vendorid":        "VendorID allows setting the hypervisor vendor id.\nDefaults to the machine type setting.\n+optional",
+		"frequencies":     "Frequencies improve Hyper-V on KVM (TSC clock source).\nDefaults to the machine type setting.\n+optional",
+		"reenlightenment": "Reenlightenment improve Hyper-V on KVM (TSC clock source).\nDefaults to the machine type setting.\n+optional",
+		"tlbflush":        "TLBFlush improves performances in overcommited environments. Requires vpindex.\nDefaults to the machine type setting.\n+optional",
+		"ipi":             "IPI improves performances in overcommited environments. Requires vpindex.\nDefaults to the machine type setting.\n+optional",
+		"evmcs":           "EVMCS Speeds up L2 vmexits, but disables other virtualization features. Requires vapic.\nDefaults to the machine type setting.\n+optional",
 	}
 }
 
@@ -374,6 +423,15 @@ func (DHCPOptions) SwaggerDoc() map[string]string {
 		"bootFileName":   "If specified will pass option 67 to interface's DHCP server\n+optional",
 		"tftpServerName": "If specified will pass option 66 to interface's DHCP server\n+optional",
 		"ntpServers":     "If specified will pass the configured NTP server to the VM via DHCP option 042.\n+optional",
+		"privateOptions": "If specified will pass extra DHCP options for private use, range: 224-254\n+optional",
+	}
+}
+
+func (DHCPPrivateOptions) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"":       "DHCPExtraOptions defines Extra DHCP options for a VM.",
+		"option": "Option is an Integer value from 224-254\nRequired.",
+		"value":  "Value is a String value for the Option provided\nRequired.",
 	}
 }
 
@@ -434,9 +492,17 @@ func (Rng) SwaggerDoc() map[string]string {
 	}
 }
 
-func (CniNetwork) SwaggerDoc() map[string]string {
+func (GenieNetwork) SwaggerDoc() map[string]string {
 	return map[string]string{
-		"":            "Represents the cni network.",
-		"networkName": "References to a NetworkAttachmentDefinition CRD object. Format:\n<networkName>, <namespace>/<networkName>. If namespace is not\nspecified, VMI namespace is assumed.\nIn case of genie, it references the CNI plugin name.",
+		"":            "Represents the genie cni network.",
+		"networkName": "References the CNI plugin name.",
+	}
+}
+
+func (MultusNetwork) SwaggerDoc() map[string]string {
+	return map[string]string{
+		"":            "Represents the multus cni network.",
+		"networkName": "References to a NetworkAttachmentDefinition CRD object. Format:\n<networkName>, <namespace>/<networkName>. If namespace is not\nspecified, VMI namespace is assumed.",
+		"default":     "Select the default network and add it to the\nmultus-cni.io/default-network annotation.",
 	}
 }

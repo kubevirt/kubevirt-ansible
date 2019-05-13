@@ -59,7 +59,7 @@ func CreateControllers(clientset kubecli.KubevirtClient, kv *virtv1.KubeVirt, co
 				objectsAdded++
 			}
 		} else {
-			log.Log.Infof("service %v already exists", service.GetName())
+			log.Log.V(4).Infof("service %v already exists", service.GetName())
 		}
 	}
 
@@ -88,7 +88,7 @@ func CreateControllers(clientset kubecli.KubevirtClient, kv *virtv1.KubeVirt, co
 				objectsAdded++
 			}
 		} else {
-			log.Log.Infof("deployment %v already exists", deployment.GetName())
+			log.Log.V(4).Infof("deployment %v already exists", deployment.GetName())
 		}
 	}
 
@@ -107,7 +107,7 @@ func CreateControllers(clientset kubecli.KubevirtClient, kv *virtv1.KubeVirt, co
 			objectsAdded++
 		}
 	} else {
-		log.Log.Infof("daemonset %v already exists", handler.GetName())
+		log.Log.V(4).Infof("daemonset %v already exists", handler.GetName())
 	}
 
 	return objectsAdded, nil
@@ -125,7 +125,6 @@ func NewPrometheusService(namespace string) *corev1.Service {
 			Name:      "kubevirt-prometheus-metrics",
 			Labels: map[string]string{
 				virtv1.AppLabel:          "",
-				virtv1.ManagedByLabel:    virtv1.ManagedByLabelOperatorValue,
 				"prometheus.kubevirt.io": "",
 			},
 		},
@@ -144,6 +143,7 @@ func NewPrometheusService(namespace string) *corev1.Service {
 					Protocol: corev1.ProtocolTCP,
 				},
 			},
+			Type: corev1.ServiceTypeClusterIP,
 		},
 	}
 }
@@ -158,8 +158,7 @@ func NewApiServerService(namespace string) *corev1.Service {
 			Namespace: namespace,
 			Name:      "virt-api",
 			Labels: map[string]string{
-				virtv1.AppLabel:       "virt-api",
-				virtv1.ManagedByLabel: virtv1.ManagedByLabelOperatorValue,
+				virtv1.AppLabel: "virt-api",
 			},
 		},
 		Spec: corev1.ServiceSpec{
@@ -176,23 +175,18 @@ func NewApiServerService(namespace string) *corev1.Service {
 					Protocol: corev1.ProtocolTCP,
 				},
 			},
+			Type: corev1.ServiceTypeClusterIP,
 		},
 	}
 }
 
-func newPodTemplateSpec(name string, repository string, version string, pullPolicy corev1.PullPolicy) (*corev1.PodTemplateSpec, error) {
+func newPodTemplateSpec(name string, repository string, version string, pullPolicy corev1.PullPolicy, podAffinity *corev1.Affinity) (*corev1.PodTemplateSpec, error) {
 
-	tolerations := []corev1.Toleration{
-		{
-			Key:      "CriticalAddonsOnly",
-			Operator: corev1.TolerationOpExists,
-		},
-	}
-	tolerationsStr, err := json.Marshal(tolerations)
-
+	tolerations, err := criticalAddonsToleration()
 	if err != nil {
-		return nil, fmt.Errorf("unable to create service: %v", err)
+		return nil, fmt.Errorf("unable to create toleration: %v", err)
 	}
+
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
@@ -201,11 +195,12 @@ func newPodTemplateSpec(name string, repository string, version string, pullPoli
 			},
 			Annotations: map[string]string{
 				"scheduler.alpha.kubernetes.io/critical-pod": "",
-				"scheduler.alpha.kubernetes.io/tolerations":  string(tolerationsStr),
+				"scheduler.alpha.kubernetes.io/tolerations":  string(tolerations),
 			},
 			Name: name,
 		},
 		Spec: corev1.PodSpec{
+			Affinity: podAffinity,
 			Containers: []corev1.Container{
 				{
 					Name:            name,
@@ -217,9 +212,9 @@ func newPodTemplateSpec(name string, repository string, version string, pullPoli
 	}, nil
 }
 
-func newBaseDeployment(name string, namespace string, repository string, version string, pullPolicy corev1.PullPolicy) (*appsv1.Deployment, error) {
+func newBaseDeployment(name string, namespace string, repository string, version string, pullPolicy corev1.PullPolicy, podAffinity *corev1.Affinity) (*appsv1.Deployment, error) {
 
-	podTemplateSpec, err := newPodTemplateSpec(name, repository, version, pullPolicy)
+	podTemplateSpec, err := newPodTemplateSpec(name, repository, version, pullPolicy, podAffinity)
 	if err != nil {
 		return nil, err
 	}
@@ -233,8 +228,7 @@ func newBaseDeployment(name string, namespace string, repository string, version
 			Namespace: namespace,
 			Name:      name,
 			Labels: map[string]string{
-				virtv1.AppLabel:       name,
-				virtv1.ManagedByLabel: virtv1.ManagedByLabelOperatorValue,
+				virtv1.AppLabel: name,
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -249,8 +243,33 @@ func newBaseDeployment(name string, namespace string, repository string, version
 	}, nil
 }
 
+func newPodAntiAffinity(key, topologyKey string, operator metav1.LabelSelectorOperator, values []string) *corev1.Affinity {
+	return &corev1.Affinity{
+		PodAntiAffinity: &corev1.PodAntiAffinity{
+			PreferredDuringSchedulingIgnoredDuringExecution: []corev1.WeightedPodAffinityTerm{
+				{
+					Weight: 1,
+					PodAffinityTerm: corev1.PodAffinityTerm{
+						LabelSelector: &metav1.LabelSelector{
+							MatchExpressions: []metav1.LabelSelectorRequirement{
+								{
+									Key:      key,
+									Operator: operator,
+									Values:   values,
+								},
+							},
+						},
+						TopologyKey: topologyKey,
+					},
+				},
+			},
+		},
+	}
+}
+
 func NewApiServerDeployment(namespace string, repository string, version string, pullPolicy corev1.PullPolicy, verbosity string) (*appsv1.Deployment, error) {
-	deployment, err := newBaseDeployment("virt-api", namespace, repository, version, pullPolicy)
+	podAntiAffinity := newPodAntiAffinity("kubevirt.io", "kubernetes.io/hostname", metav1.LabelSelectorOpIn, []string{"virt-api"})
+	deployment, err := newBaseDeployment("virt-api", namespace, repository, version, pullPolicy, podAntiAffinity)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +319,8 @@ func NewApiServerDeployment(namespace string, repository string, version string,
 }
 
 func NewControllerDeployment(namespace string, repository string, version string, pullPolicy corev1.PullPolicy, verbosity string) (*appsv1.Deployment, error) {
-	deployment, err := newBaseDeployment("virt-controller", namespace, repository, version, pullPolicy)
+	podAntiAffinity := newPodAntiAffinity("kubevirt.io", "kubernetes.io/hostname", metav1.LabelSelectorOpIn, []string{"virt-controller"})
+	deployment, err := newBaseDeployment("virt-controller", namespace, repository, version, pullPolicy, podAntiAffinity)
 	if err != nil {
 		return nil, err
 	}
@@ -361,8 +381,7 @@ func NewControllerDeployment(namespace string, repository string, version string
 }
 
 func NewHandlerDaemonSet(namespace string, repository string, version string, pullPolicy corev1.PullPolicy, verbosity string) (*appsv1.DaemonSet, error) {
-
-	podTemplateSpec, err := newPodTemplateSpec("virt-handler", repository, version, pullPolicy)
+	podTemplateSpec, err := newPodTemplateSpec("virt-handler", repository, version, pullPolicy, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -376,8 +395,7 @@ func NewHandlerDaemonSet(namespace string, repository string, version string, pu
 			Namespace: namespace,
 			Name:      "virt-handler",
 			Labels: map[string]string{
-				virtv1.AppLabel:       "virt-handler",
-				virtv1.ManagedByLabel: virtv1.ManagedByLabelOperatorValue,
+				virtv1.AppLabel: "virt-handler",
 			},
 		},
 		Spec: appsv1.DaemonSetSpec{
@@ -394,7 +412,7 @@ func NewHandlerDaemonSet(namespace string, repository string, version string, pu
 	}
 
 	pod := &daemonset.Spec.Template.Spec
-	pod.ServiceAccountName = "kubevirt-privileged"
+	pod.ServiceAccountName = "kubevirt-handler"
 	pod.HostPID = true
 
 	container := &pod.Containers[0]
@@ -472,9 +490,126 @@ func NewHandlerDaemonSet(namespace string, repository string, version string, pu
 
 }
 
+// Used for manifest generation only
+func NewOperatorDeployment(namespace string, repository string, version string, pullPolicy corev1.PullPolicy, verbosity string) (*appsv1.Deployment, error) {
+
+	name := "virt-operator"
+	image := fmt.Sprintf("%s/%s:%s", repository, name, version)
+
+	tolerations, err := criticalAddonsToleration()
+	if err != nil {
+		return nil, fmt.Errorf("unable to create toleration: %v", err)
+	}
+
+	deployment := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "apps/v1",
+			Kind:       "Deployment",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      name,
+			Labels: map[string]string{
+				virtv1.AppLabel: name,
+			},
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: int32Ptr(2),
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					virtv1.AppLabel: name,
+				},
+			},
+			Strategy: appsv1.DeploymentStrategy{
+				Type: appsv1.RollingUpdateDeploymentStrategyType,
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						virtv1.AppLabel:          name,
+						"prometheus.kubevirt.io": "",
+					},
+					Annotations: map[string]string{
+						"scheduler.alpha.kubernetes.io/critical-pod": "",
+						"scheduler.alpha.kubernetes.io/tolerations":  string(tolerations),
+					},
+					Name: name,
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: "kubevirt-operator",
+					Containers: []corev1.Container{
+						{
+							Name:            name,
+							Image:           image,
+							ImagePullPolicy: pullPolicy,
+							Command: []string{
+								"virt-operator",
+								"--port",
+								"8443",
+								"-v",
+								verbosity,
+							},
+							Ports: []corev1.ContainerPort{
+								{
+									Name:          "metrics",
+									Protocol:      corev1.ProtocolTCP,
+									ContainerPort: 8443,
+								},
+							},
+							ReadinessProbe: &corev1.Probe{
+								Handler: corev1.Handler{
+									HTTPGet: &corev1.HTTPGetAction{
+										Scheme: corev1.URISchemeHTTPS,
+										Port: intstr.IntOrString{
+											Type:   intstr.Int,
+											IntVal: 8443,
+										},
+										Path: "/metrics",
+									},
+								},
+								InitialDelaySeconds: 5,
+								TimeoutSeconds:      10,
+							},
+							Env: []corev1.EnvVar{
+								{
+									Name:  "OPERATOR_IMAGE",
+									Value: image,
+								},
+								{
+									Name: "WATCH_NAMESPACE", // not used yet
+									ValueFrom: &corev1.EnvVarSource{
+										FieldRef: &corev1.ObjectFieldSelector{
+											FieldPath: "metadata.annotations['olm.targetNamespaces']", // filled by OLM
+										},
+									},
+								},
+							},
+						},
+					},
+					SecurityContext: &corev1.PodSecurityContext{
+						RunAsNonRoot: boolPtr(true),
+					},
+				},
+			},
+		},
+	}
+
+	return deployment, nil
+}
+
 func int32Ptr(i int32) *int32 {
 	return &i
 }
 func boolPtr(b bool) *bool {
 	return &b
+}
+func criticalAddonsToleration() ([]byte, error) {
+	tolerations := []corev1.Toleration{
+		{
+			Key:      "CriticalAddonsOnly",
+			Operator: corev1.TolerationOpExists,
+		},
+	}
+	tolerationsStr, err := json.Marshal(tolerations)
+	return tolerationsStr, err
 }

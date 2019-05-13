@@ -32,10 +32,12 @@ import (
 
 	"kubevirt.io/kubevirt/pkg/log"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/errors"
+	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/stats"
+	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/statsconv"
 )
 
 const ConnectionTimeout = 15 * time.Second
-const ConnectionInterval = 10 * time.Second
+const ConnectionInterval = 500 * time.Millisecond
 
 // TODO: Should we handle libvirt connection errors transparent or panic?
 type Connection interface {
@@ -48,6 +50,12 @@ type Connection interface {
 	NewStream(flags libvirt.StreamFlags) (Stream, error)
 	SetReconnectChan(reconnect chan bool)
 	QemuAgentCommand(command string, domainName string) (string, error)
+	GetAllDomainStats(statsTypes libvirt.DomainStatsTypes, flags libvirt.ConnectGetAllDomainStatsFlags) ([]libvirt.DomainStats, error)
+	// helper method, not found in libvirt
+	// We add this helper to
+	// 1. avoid to expose to the client code the libvirt-specific return type, see docs in stats/ subpackage
+	// 2. transparently handling the addition of the memory stats, currently (libvirt 4.9) not handled by the bulk stats API
+	GetDomainStats(statsTypes libvirt.DomainStatsTypes, flags libvirt.ConnectGetAllDomainStatsFlags) ([]*stats.DomainStats, error)
 }
 
 type Stream interface {
@@ -114,7 +122,11 @@ func (l *LibvirtConnection) NewStream(flags libvirt.StreamFlags) (Stream, error)
 
 func (l *LibvirtConnection) Close() (int, error) {
 	close(l.stop)
-	return l.Connect.Close()
+	if l.Connect != nil {
+		return l.Connect.Close()
+	} else {
+		return 0, nil
+	}
 }
 
 func (l *LibvirtConnection) DomainEventLifecycleRegister(callback libvirt.DomainEventLifecycleCallback) (err error) {
@@ -183,6 +195,48 @@ func (l *LibvirtConnection) QemuAgentCommand(command string, domainName string) 
 	return result, err
 }
 
+func (l *LibvirtConnection) GetAllDomainStats(statsTypes libvirt.DomainStatsTypes, flags libvirt.ConnectGetAllDomainStatsFlags) ([]libvirt.DomainStats, error) {
+	if err := l.reconnectIfNecessary(); err != nil {
+		return nil, err
+	}
+
+	doms := []*libvirt.Domain{}
+	domStats, err := l.Connect.GetAllDomainStats(doms, statsTypes, flags)
+	if err != nil {
+		l.checkConnectionLost(err)
+		return nil, err
+	}
+	return domStats, nil
+}
+
+func (l *LibvirtConnection) GetDomainStats(statsTypes libvirt.DomainStatsTypes, flags libvirt.ConnectGetAllDomainStatsFlags) ([]*stats.DomainStats, error) {
+	domStats, err := l.GetAllDomainStats(statsTypes, flags)
+	if err != nil {
+		return nil, err
+	}
+
+	var list []*stats.DomainStats
+	for _, domStat := range domStats {
+		var err error
+
+		memStats, err := domStat.Domain.MemoryStats(uint32(libvirt.DOMAIN_MEMORY_STAT_NR), 0)
+		if err != nil {
+			return list, err
+		}
+
+		stat := &stats.DomainStats{}
+		err = statsconv.Convert_libvirt_DomainStats_to_stats_DomainStats(statsconv.DomainIdentifier(domStat.Domain), &domStat, memStats, stat)
+		if err != nil {
+			return list, err
+		}
+
+		list = append(list, stat)
+		domStat.Domain.Free()
+	}
+
+	return list, nil
+}
+
 // Installs a watchdog which will check periodically if the libvirt connection is still alive.
 func (l *LibvirtConnection) installWatchdog(checkInterval time.Duration) {
 	go func() {
@@ -193,9 +247,12 @@ func (l *LibvirtConnection) installWatchdog(checkInterval time.Duration) {
 				return
 
 			case <-time.After(checkInterval):
-				l.reconnectIfNecessary()
-
-				alive, err := l.Connect.IsAlive()
+				var alive bool
+				var err error
+				err = l.reconnectIfNecessary()
+				if l.Connect != nil {
+					alive, err = l.Connect.IsAlive()
+				}
 
 				// If the connection is ok, continue
 				if alive {
@@ -272,13 +329,17 @@ type VirDomain interface {
 	Resume() error
 	DestroyFlags(flags libvirt.DomainDestroyFlags) error
 	ShutdownFlags(flags libvirt.DomainShutdownFlags) error
-	Undefine() error
+	UndefineFlags(flags libvirt.DomainUndefineFlagsValues) error
 	GetName() (string, error)
 	GetUUIDString() (string, error)
 	GetXMLDesc(flags libvirt.DomainXMLFlags) (string, error)
 	GetMetadata(tipus libvirt.DomainMetadataType, uri string, flags libvirt.DomainModificationImpact) (string, error)
 	OpenConsole(devname string, stream *libvirt.Stream, flags libvirt.DomainConsoleFlags) error
-	Migrate(*libvirt.Connect, libvirt.DomainMigrateFlags, string, string, uint64) (*libvirt.Domain, error)
+	MigrateToURI3(string, *libvirt.DomainMigrateParameters, libvirt.DomainMigrateFlags) error
+	MemoryStats(nrStats uint32, flags uint32) ([]libvirt.DomainMemoryStat, error)
+	GetJobStats(flags libvirt.DomainGetJobStatsFlags) (*libvirt.DomainJobInfo, error)
+	GetJobInfo() (*libvirt.DomainJobInfo, error)
+	AbortJob() error
 	Free() error
 }
 
@@ -292,6 +353,7 @@ func NewConnection(uri string, user string, pass string, checkInterval time.Dura
 	err = utilwait.PollImmediate(ConnectionInterval, ConnectionTimeout, func() (done bool, err error) {
 		virConn, err = newConnection(uri, user, pass)
 		if err != nil {
+			logger.V(1).Infof("Connecting to libvirt daemon failed: %v", err)
 			return false, nil
 		}
 		return true, nil

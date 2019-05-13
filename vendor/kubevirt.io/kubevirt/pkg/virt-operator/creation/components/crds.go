@@ -62,7 +62,7 @@ func CreateCRDs(clientset kubecli.KubevirtClient, kv *virtv1.KubeVirt, stores ut
 				objectsAdded++
 			}
 		} else {
-			log.Log.Infof("crd %v already exists", crd.GetName())
+			log.Log.V(4).Infof("crd %v already exists", crd.GetName())
 		}
 	}
 
@@ -77,8 +77,7 @@ func newBlankCrd() *extv1beta1.CustomResourceDefinition {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Labels: map[string]string{
-				virtv1.AppLabel:       "",
-				virtv1.ManagedByLabel: virtv1.ManagedByLabelOperatorValue,
+				virtv1.AppLabel: "",
 			},
 		},
 	}
@@ -212,6 +211,9 @@ func NewVirtualMachineInstanceMigrationCrd() *extv1beta1.CustomResourceDefinitio
 	return crd
 }
 
+// Used by manifest generation
+// If you change something here, you probably need to change the CSV manifest too,
+// see /manifests/release/kubevirt.VERSION.csv.yaml.in
 func NewKubeVirtCrd() *extv1beta1.CustomResourceDefinition {
 
 	// we use a different label here, so no newBlankCrd()
@@ -248,7 +250,7 @@ func NewKubeVirtCrd() *extv1beta1.CustomResourceDefinition {
 	return crd
 }
 
-// used by manifest generation
+// Used by manifest generation
 func NewKubeVirtCR(namespace string, pullPolicy corev1.PullPolicy) *virtv1.KubeVirt {
 	return &virtv1.KubeVirt{
 		TypeMeta: metav1.TypeMeta{

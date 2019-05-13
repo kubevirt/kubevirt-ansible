@@ -218,7 +218,7 @@ func (m *Aproto3) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -246,7 +246,7 @@ func (m *Aproto3) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -256,6 +256,9 @@ func (m *Aproto3) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthProto3
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthProto3
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -268,6 +271,9 @@ func (m *Aproto3) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthProto3
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthProto3
 			}
 			if (iNdEx + skippy) > l {
@@ -336,8 +342,11 @@ func skipProto3(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthProto3
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthProto3
 			}
 			return iNdEx, nil
@@ -368,6 +377,9 @@ func skipProto3(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthProto3
+				}
 			}
 			return iNdEx, nil
 		case 4:

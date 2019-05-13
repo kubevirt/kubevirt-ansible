@@ -3809,6 +3809,76 @@
      }
     }
    },
+   "/apis/subresources.kubevirt.io/v1alpha3/namespaces/{namespace}/virtualmachines/{name}/start": {
+    "put": {
+     "summary": "Start a VirtualMachine object.",
+     "operationId": "start",
+     "parameters": [
+      {
+       "pattern": "[a-z0-9][a-z0-9\\-]*",
+       "type": "string",
+       "description": "Object name and auth scope, such as for teams and projects",
+       "name": "namespace",
+       "in": "path",
+       "required": true
+      },
+      {
+       "pattern": "[a-z0-9][a-z0-9\\-]*",
+       "type": "string",
+       "description": "Name of the resource",
+       "name": "name",
+       "in": "path",
+       "required": true
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK"
+      },
+      "404": {
+       "description": "Not Found"
+      },
+      "default": {
+       "description": "OK"
+      }
+     }
+    }
+   },
+   "/apis/subresources.kubevirt.io/v1alpha3/namespaces/{namespace}/virtualmachines/{name}/stop": {
+    "put": {
+     "summary": "Stop a VirtualMachine object.",
+     "operationId": "stop",
+     "parameters": [
+      {
+       "pattern": "[a-z0-9][a-z0-9\\-]*",
+       "type": "string",
+       "description": "Object name and auth scope, such as for teams and projects",
+       "name": "namespace",
+       "in": "path",
+       "required": true
+      },
+      {
+       "pattern": "[a-z0-9][a-z0-9\\-]*",
+       "type": "string",
+       "description": "Name of the resource",
+       "name": "name",
+       "in": "path",
+       "required": true
+      }
+     ],
+     "responses": {
+      "200": {
+       "description": "OK"
+      },
+      "404": {
+       "description": "Not Found"
+      },
+      "default": {
+       "description": "OK"
+      }
+     }
+    }
+   },
    "/apis/subresources.kubevirt.io/v1alpha3/version": {
     "get": {
      "produces": [
@@ -4005,6 +4075,22 @@
      }
     }
    },
+   "v1.BIOS": {
+    "description": "If set (default), BIOS will be used."
+   },
+   "v1.Bootloader": {
+    "description": "Represents the firmware blob used to assist in the domain creation process.\nUsed for setting the QEMU BIOS file path for the libvirt domain.",
+    "properties": {
+     "bios": {
+      "description": "If set (default), BIOS will be used.\n+optional",
+      "$ref": "#/definitions/v1.BIOS"
+     },
+     "efi": {
+      "description": "If set, EFI will be used instead of BIOS.\n+optional",
+      "$ref": "#/definitions/v1.EFI"
+     }
+    }
+   },
    "v1.CDRomTarget": {
     "properties": {
      "bus": {
@@ -4032,8 +4118,15 @@
       "description": "DedicatedCPUPlacement requests the scheduler to place the VirtualMachineInstance on a node\nwith enough dedicated pCPUs and pin the vCPUs to it.\n+optional",
       "type": "boolean"
      },
+     "features": {
+      "description": "Features specifies the CPU features list inside the VMI.\n+optional",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.CPUFeature"
+      }
+     },
      "model": {
-      "description": "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\nIt is possible to specify special cases like \"host-passthrough\" to get the same CPU as the node\nand \"host-model\" to get CPU closest to the node one.\nFor more information see https://libvirt.org/formatdomain.html#elementsCPU.\nDefaults to host-model.\n+optional",
+      "description": "Model specifies the CPU model inside the VMI.\nList of available models https://github.com/libvirt/libvirt/blob/master/src/cpu/cpu_map.xml.\nIt is possible to specify special cases like \"host-passthrough\" to get the same CPU as the node\nand \"host-model\" to get CPU closest to the node one.\nDefaults to host-model.\n+optional",
       "type": "string"
      },
      "sockets": {
@@ -4043,6 +4136,22 @@
      "threads": {
       "description": "Threads specifies the number of threads inside the vmi.\nMust be a value greater or equal 1.",
       "type": "integer"
+     }
+    }
+   },
+   "v1.CPUFeature": {
+    "description": "CPUFeature allows specifying a CPU feature.",
+    "required": [
+     "name"
+    ],
+    "properties": {
+     "name": {
+      "description": "Name of the CPU feature",
+      "type": "string"
+     },
+     "policy": {
+      "description": "Policy is the CPU feature attribute which can have the following attributes:\nforce    - The virtual CPU will claim the feature is supported regardless of it being supported by host CPU.\nrequire  - Guest creation will fail unless the feature is supported by the host CPU or the hypervisor is able to emulate it.\noptional - The feature will be supported by virtual CPU if and only if it is supported by host CPU.\ndisable  - The feature will not be supported by virtual CPU.\nforbid   - Guest creation will fail if the feature is supported by host CPU.\nDefaults to require\n+optional",
+      "type": "string"
      }
     }
    },
@@ -4080,6 +4189,18 @@
    "v1.CloudInitNoCloudSource": {
     "description": "Represents a cloud-init nocloud user data source.\nMore info: http://cloudinit.readthedocs.io/en/latest/topics/datasources/nocloud.html",
     "properties": {
+     "networkData": {
+      "description": "NetworkData contains NoCloud inline cloud-init networkdata.\n+ optional",
+      "type": "string"
+     },
+     "networkDataBase64": {
+      "description": "NetworkDataBase64 contains NoCloud cloud-init networkdata as a base64 encoded string.\n+ optional",
+      "type": "string"
+     },
+     "networkDataSecretRef": {
+      "description": "NetworkDataSecretRef references a k8s secret that contains NoCloud networkdata.\n+ optional",
+      "$ref": "#/definitions/v1.LocalObjectReference"
+     },
      "secretRef": {
       "description": "UserDataSecretRef references a k8s secret that contains NoCloud userdata.\n+ optional",
       "$ref": "#/definitions/v1.LocalObjectReference"
@@ -4090,18 +4211,6 @@
      },
      "userDataBase64": {
       "description": "UserDataBase64 contains NoCloud cloud-init userdata as a base64 encoded string.\n+ optional",
-      "type": "string"
-     }
-    }
-   },
-   "v1.CniNetwork": {
-    "description": "Represents the cni network.",
-    "required": [
-     "networkName"
-    ],
-    "properties": {
-     "networkName": {
-      "description": "References to a NetworkAttachmentDefinition CRD object. Format:\n\u003cnetworkName\u003e, \u003cnamespace\u003e/\u003cnetworkName\u003e. If namespace is not\nspecified, VMI namespace is assumed.\nIn case of genie, it references the CNI plugin name.",
       "type": "string"
      }
     }
@@ -4153,8 +4262,33 @@
        "type": "string"
       }
      },
+     "privateOptions": {
+      "description": "If specified will pass extra DHCP options for private use, range: 224-254\n+optional",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.DHCPPrivateOptions"
+      }
+     },
      "tftpServerName": {
       "description": "If specified will pass option 66 to interface's DHCP server\n+optional",
+      "type": "string"
+     }
+    }
+   },
+   "v1.DHCPPrivateOptions": {
+    "description": "DHCPExtraOptions defines Extra DHCP options for a VM.",
+    "required": [
+     "option",
+     "value"
+    ],
+    "properties": {
+     "option": {
+      "description": "Option is an Integer value from 224-254\nRequired.",
+      "type": "integer",
+      "format": "int32"
+     },
+     "value": {
+      "description": "Value is a String value for the Option provided\nRequired.",
       "type": "string"
      }
     }
@@ -4176,6 +4310,13 @@
      "apiVersion": {
       "description": "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
       "type": "string"
+     },
+     "dryRun": {
+      "description": "When present, indicates that modifications should not be persisted. An invalid or unrecognized dryRun directive will result in an error response and no further processing of the request. Valid values are: - All: all dry run stages will be processed",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
      },
      "gracePeriodSeconds": {
       "description": "The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately.",
@@ -4220,6 +4361,13 @@
       "type": "array",
       "items": {
        "$ref": "#/definitions/v1.Disk"
+      }
+     },
+     "inputs": {
+      "description": "Inputs describe input devices",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.Input"
       }
      },
      "interfaces": {
@@ -4321,7 +4469,7 @@
       "$ref": "#/definitions/v1.Devices"
      },
      "features": {
-      "description": "Features like acpi, apic, hyperv.\n+optional",
+      "description": "Features like acpi, apic, hyperv, smm.\n+optional",
       "$ref": "#/definitions/v1.Features"
      },
      "firmware": {
@@ -4346,6 +4494,9 @@
      }
     }
    },
+   "v1.EFI": {
+    "description": "If set, EFI will be used instead of BIOS."
+   },
    "v1.EmptyDiskSource": {
     "description": "EmptyDisk represents a temporary disk which shares the vmis lifecycle.",
     "required": [
@@ -4366,6 +4517,7 @@
      }
     }
    },
+   "v1.EvictionStrategy": {},
    "v1.FeatureAPIC": {
     "properties": {
      "enabled": {
@@ -4381,12 +4533,28 @@
    "v1.FeatureHyperv": {
     "description": "Hyperv specific features.",
     "properties": {
+     "evmcs": {
+      "description": "EVMCS Speeds up L2 vmexits, but disables other virtualization features. Requires vapic.\nDefaults to the machine type setting.\n+optional",
+      "$ref": "#/definitions/v1.FeatureState"
+     },
+     "frequencies": {
+      "description": "Frequencies improve Hyper-V on KVM (TSC clock source).\nDefaults to the machine type setting.\n+optional",
+      "$ref": "#/definitions/v1.FeatureState"
+     },
+     "ipi": {
+      "description": "IPI improves performances in overcommited environments. Requires vpindex.\nDefaults to the machine type setting.\n+optional",
+      "$ref": "#/definitions/v1.FeatureState"
+     },
+     "reenlightenment": {
+      "description": "Reenlightenment improve Hyper-V on KVM (TSC clock source).\nDefaults to the machine type setting.\n+optional",
+      "$ref": "#/definitions/v1.FeatureState"
+     },
      "relaxed": {
       "description": "Relaxed relaxes constraints on timer.\nDefaults to the machine type setting.\n+optional",
       "$ref": "#/definitions/v1.FeatureState"
      },
      "reset": {
-      "description": "Reset enables Hyperv reboot/reset for the vmi.\nDefaults to the machine type setting.\n+optional",
+      "description": "Reset enables Hyperv reboot/reset for the vmi. Requires synic.\nDefaults to the machine type setting.\n+optional",
       "$ref": "#/definitions/v1.FeatureState"
      },
      "runtime": {
@@ -4403,6 +4571,10 @@
      },
      "synictimer": {
       "description": "SyNICTimer enable Synthetic Interrupt Controller timer.\nDefaults to the machine type setting.\n+optional",
+      "$ref": "#/definitions/v1.FeatureState"
+     },
+     "tlbflush": {
+      "description": "TLBFlush improves performances in overcommited environments. Requires vpindex.\nDefaults to the machine type setting.\n+optional",
       "$ref": "#/definitions/v1.FeatureState"
      },
      "vapic": {
@@ -4465,11 +4637,23 @@
      "hyperv": {
       "description": "Defaults to the machine type setting.\n+optional",
       "$ref": "#/definitions/v1.FeatureHyperv"
+     },
+     "smm": {
+      "description": "SMM enables/disables System Management Mode.\nTSEG not yet implemented.\n+optional",
+      "$ref": "#/definitions/v1.FeatureState"
      }
     }
    },
    "v1.Firmware": {
     "properties": {
+     "bootloader": {
+      "description": "Settings to control the bootloader that is used.\n+optional",
+      "$ref": "#/definitions/v1.Bootloader"
+     },
+     "serial": {
+      "description": "The system-serial-number in SMBIOS",
+      "type": "string"
+     },
      "uuid": {
       "description": "UUID reported by the vmi bios.\nDefaults to a random generated uid.",
       "type": "string"
@@ -4484,6 +4668,18 @@
      },
      "tray": {
       "description": "Tray indicates if the tray of the device is open or closed.\nAllowed values are \"open\" and \"closed\".\nDefaults to closed.\n+optional",
+      "type": "string"
+     }
+    }
+   },
+   "v1.GenieNetwork": {
+    "description": "Represents the genie cni network.",
+    "required": [
+     "networkName"
+    ],
+    "properties": {
+     "networkName": {
+      "description": "References the CNI plugin name.",
       "type": "string"
      }
     }
@@ -4651,6 +4847,26 @@
      }
     }
    },
+   "v1.Input": {
+    "required": [
+     "type",
+     "name"
+    ],
+    "properties": {
+     "bus": {
+      "description": "Bus indicates the bus of input device to emulate.\nSupported values: virtio, usb.",
+      "type": "string"
+     },
+     "name": {
+      "description": "Name is the device name",
+      "type": "string"
+     },
+     "type": {
+      "description": "Type indicated the type of input device.\nSupported values: tablet.",
+      "type": "string"
+     }
+    }
+   },
    "v1.Interface": {
     "required": [
      "name"
@@ -4758,7 +4974,7 @@
     "description": "ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}.",
     "properties": {
      "continue": {
-      "description": "continue may be set if the user set a limit on the number of items returned, and indicates that the server has more data available. The value is opaque and may be used to issue another request to the endpoint that served this list to retrieve the next set of available objects. Continuing a list may not be possible if the server configuration has changed or more than a few minutes have passed. The resourceVersion field returned when using this continue value will be identical to the value in the first response.",
+      "description": "continue may be set if the user set a limit on the number of items returned, and indicates that the server has more data available. The value is opaque and may be used to issue another request to the endpoint that served this list to retrieve the next set of available objects. Continuing a consistent list may not be possible if the server configuration has changed or more than a few minutes have passed. The resourceVersion field returned when using this continue value will be identical to the value in the first response, unless you have received this token from an error message.",
       "type": "string"
      },
      "resourceVersion": {
@@ -4816,6 +5032,22 @@
      }
     }
    },
+   "v1.MultusNetwork": {
+    "description": "Represents the multus cni network.",
+    "required": [
+     "networkName"
+    ],
+    "properties": {
+     "default": {
+      "description": "Select the default network and add it to the\nmultus-cni.io/default-network annotation.",
+      "type": "boolean"
+     },
+     "networkName": {
+      "description": "References to a NetworkAttachmentDefinition CRD object. Format:\n\u003cnetworkName\u003e, \u003cnamespace\u003e/\u003cnetworkName\u003e. If namespace is not\nspecified, VMI namespace is assumed.",
+      "type": "string"
+     }
+    }
+   },
    "v1.Network": {
     "description": "Network represents a network type and a resource that should be connected to the vm.",
     "required": [
@@ -4823,10 +5055,10 @@
     ],
     "properties": {
      "genie": {
-      "$ref": "#/definitions/v1.CniNetwork"
+      "$ref": "#/definitions/v1.GenieNetwork"
      },
      "multus": {
-      "$ref": "#/definitions/v1.CniNetwork"
+      "$ref": "#/definitions/v1.MultusNetwork"
      },
      "name": {
       "description": "Network name.\nMust be a DNS_LABEL and unique within the vm.\nMore info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
@@ -5052,6 +5284,10 @@
        "$ref": "#/definitions/v1.PersistentVolumeAccessMode"
       }
      },
+     "dataSource": {
+      "description": "This field requires the VolumeSnapshotDataSource alpha feature gate to be enabled and currently VolumeSnapshot is the only supported data source. If the provisioner can support VolumeSnapshot data source, it will create a new volume and data will be restored to the volume at the same time. If the provisioner does not support VolumeSnapshot data source, volume will not be created and the failure will be reported as an event. In the future, we plan to support more data source types and the behavior of the provisioner may change.",
+      "$ref": "#/definitions/v1.TypedLocalObjectReference"
+     },
      "resources": {
       "description": "Resources represents the minimum resources the volume should have. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources",
       "$ref": "#/definitions/v1.ResourceRequirements"
@@ -5149,6 +5385,44 @@
       "items": {
        "$ref": "#/definitions/v1.PodAffinityTerm"
       }
+     }
+    }
+   },
+   "v1.PodDNSConfig": {
+    "description": "PodDNSConfig defines the DNS parameters of a pod in addition to those generated from DNSPolicy.",
+    "properties": {
+     "nameservers": {
+      "description": "A list of DNS name server IP addresses. This will be appended to the base nameservers generated from DNSPolicy. Duplicated nameservers will be removed.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "options": {
+      "description": "A list of DNS resolver options. This will be merged with the base options generated from DNSPolicy. Duplicated entries will be removed. Resolution options given in Options will override those that appear in the base DNSPolicy.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.PodDNSConfigOption"
+      }
+     },
+     "searches": {
+      "description": "A list of DNS search domains for host-name lookup. This will be appended to the base search paths generated from DNSPolicy. Duplicated search paths will be removed.",
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     }
+    }
+   },
+   "v1.PodDNSConfigOption": {
+    "description": "PodDNSConfigOption defines DNS resolver options of a pod.",
+    "properties": {
+     "name": {
+      "description": "Required.",
+      "type": "string"
+     },
+     "value": {
+      "type": "string"
      }
     }
    },
@@ -5494,6 +5768,28 @@
      }
     }
    },
+   "v1.TypedLocalObjectReference": {
+    "description": "TypedLocalObjectReference contains enough information to let you locate the typed referenced object inside the same namespace.",
+    "required": [
+     "apiGroup",
+     "kind",
+     "name"
+    ],
+    "properties": {
+     "apiGroup": {
+      "description": "APIGroup is the group for the resource being referenced. If APIGroup is not specified, the specified Kind must be in the core API group. For any other third-party types, APIGroup is required.",
+      "type": "string"
+     },
+     "kind": {
+      "description": "Kind is the type of resource being referenced",
+      "type": "string"
+     },
+     "name": {
+      "description": "Name is the name of resource being referenced",
+      "type": "string"
+     }
+    }
+   },
    "v1.VirtualMachine": {
     "description": "VirtualMachine handles the VirtualMachines that are not running\nor are in a stopped state\nThe VirtualMachine contains the template to create the\nVirtualMachineInstance. It also mirrors the running state of the created\nVirtualMachineInstance in its status.",
     "properties": {
@@ -5654,6 +5950,38 @@
      }
     }
    },
+   "v1.VirtualMachineInstanceMigrationCondition": {
+    "required": [
+     "type",
+     "status"
+    ],
+    "properties": {
+     "lastProbeTime": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "lastTransitionTime": {
+      "type": [
+       "string",
+       "null"
+      ]
+     },
+     "message": {
+      "type": "string"
+     },
+     "reason": {
+      "type": "string"
+     },
+     "status": {
+      "type": "string"
+     },
+     "type": {
+      "type": "string"
+     }
+    }
+   },
    "v1.VirtualMachineInstanceMigrationList": {
     "description": "VirtualMachineInstanceMigrationList is a list of VirtualMachineMigrations",
     "required": [
@@ -5689,6 +6017,14 @@
    },
    "v1.VirtualMachineInstanceMigrationState": {
     "properties": {
+     "abortRequested": {
+      "description": "Indicates that the migration has been requested to abort",
+      "type": "boolean"
+     },
+     "abortStatus": {
+      "description": "Indicates the final status of the live migration abortion",
+      "type": "string"
+     },
      "completed": {
       "description": "Indicates the migration completed",
       "type": "boolean"
@@ -5713,6 +6049,10 @@
       "description": "The time the migration action began",
       "type": "string"
      },
+     "targetDirectMigrationNodePorts": {
+      "description": "The list of ports opened for live migration on the destination node",
+      "type": "object"
+     },
      "targetNode": {
       "description": "The target node that the VMI is moving to",
       "type": "string"
@@ -5724,12 +6064,22 @@
      "targetNodeDomainDetected": {
       "description": "The Target Node has seen the Domain Start Event",
       "type": "boolean"
+     },
+     "targetPod": {
+      "description": "The target pod that the VMI is moving to",
+      "type": "string"
      }
     }
    },
    "v1.VirtualMachineInstanceMigrationStatus": {
     "description": "VirtualMachineInstanceMigration reprents information pertaining to a VMI's migration.",
     "properties": {
+     "conditions": {
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.VirtualMachineInstanceMigrationCondition"
+      }
+     },
      "phase": {
       "type": "string"
      }
@@ -5961,9 +6311,21 @@
       "description": "If affinity is specifies, obey all the affinity rules",
       "$ref": "#/definitions/v1.Affinity"
      },
+     "dnsConfig": {
+      "description": "Specifies the DNS parameters of a pod.\nParameters specified here will be merged to the generated DNS\nconfiguration based on DNSPolicy.\n+optional",
+      "$ref": "#/definitions/v1.PodDNSConfig"
+     },
+     "dnsPolicy": {
+      "description": "Set DNS policy for the pod.\nDefaults to \"ClusterFirst\".\nValid values are 'ClusterFirstWithHostNet', 'ClusterFirst', 'Default' or 'None'.\nDNS parameters given in DNSConfig will be merged with the policy selected with DNSPolicy.\nTo have DNS options set along with hostNetwork, you have to specify DNS policy\nexplicitly to 'ClusterFirstWithHostNet'.\n+optional",
+      "type": "string"
+     },
      "domain": {
       "description": "Specification of the desired behavior of the VirtualMachineInstance on the host.",
       "$ref": "#/definitions/v1.DomainSpec"
+     },
+     "evictionStrategy": {
+      "description": "EvictionStrategy can be set to \"LiveMigrate\" if the VirtualMachineInstance should be\nmigrated instead of shut-off in case of a node drain.",
+      "$ref": "#/definitions/v1.EvictionStrategy"
      },
      "hostname": {
       "description": "Specifies the hostname of the vmi\nIf not specified, the hostname will be set to the name of the vmi, if dhcp or cloud-init is configured properly.\n+optional",
@@ -6090,10 +6452,10 @@
      }
     }
    },
+   "v1.VirtualMachineRunStrategy": {},
    "v1.VirtualMachineSpec": {
     "description": "VirtualMachineSpec describes how the proper VirtualMachine\nshould look like",
     "required": [
-     "running",
      "template"
     ],
     "properties": {
@@ -6104,13 +6466,32 @@
        "$ref": "#/definitions/v1alpha1.DataVolume"
       }
      },
+     "runStrategy": {
+      "description": "Running state indicates the requested running state of the VirtualMachineInstance\nmutually exclusive with Running",
+      "$ref": "#/definitions/v1.VirtualMachineRunStrategy"
+     },
      "running": {
-      "description": "Running controls whether the associatied VirtualMachineInstance is created or not",
+      "description": "Running controls whether the associatied VirtualMachineInstance is created or not\nMutually exclusive with RunStrategy",
       "type": "boolean"
      },
      "template": {
       "description": "Template is the direct specification of VirtualMachineInstance",
       "$ref": "#/definitions/v1.VirtualMachineInstanceTemplateSpec"
+     }
+    }
+   },
+   "v1.VirtualMachineStateChangeRequest": {
+    "required": [
+     "action"
+    ],
+    "properties": {
+     "action": {
+      "description": "Indicates the type of action that is requested. e.g. Start or Stop",
+      "type": "string"
+     },
+     "uid": {
+      "description": "Indicates the UUID of an existing Virtual Machine Instance that this change request applies to -- if applicable",
+      "$ref": "#/definitions/types.UID"
      }
     }
    },
@@ -6131,6 +6512,13 @@
      "ready": {
       "description": "Ready indicates if the virtual machine is running and ready",
       "type": "boolean"
+     },
+     "stateChangeRequests": {
+      "description": "StateChangeRequests indicates a list of actions that should be taken on a VMI\ne.g. stop a specific VMI then start a new one.",
+      "type": "array",
+      "items": {
+       "$ref": "#/definitions/v1.VirtualMachineStateChangeRequest"
+      }
      }
     }
    },
@@ -6288,6 +6676,10 @@
    "v1alpha1.DataVolumeSourceHTTP": {
     "description": "DataVolumeSourceHTTP provides the parameters to create a Data Volume from an HTTP source",
     "properties": {
+     "certConfigMap": {
+      "description": "CertConfigMap provides a reference to the Registry certs",
+      "type": "string"
+     },
      "secretRef": {
       "description": "SecretRef provides the secret reference needed to access the HTTP source",
       "type": "string"
@@ -6312,6 +6704,10 @@
    "v1alpha1.DataVolumeSourceRegistry": {
     "description": "DataVolumeSourceRegistry provides the parameters to create a Data Volume from an registry source",
     "properties": {
+     "certConfigMap": {
+      "description": "CertConfigMap provides a reference to the Registry certs",
+      "type": "string"
+     },
      "secretRef": {
       "description": "SecretRef provides the secret reference needed to access the Registry source",
       "type": "string"
@@ -6364,6 +6760,9 @@
     "properties": {
      "phase": {
       "description": "Phase is the current phase of the data volume",
+      "type": "string"
+     },
+     "progress": {
       "type": "string"
      }
     }
