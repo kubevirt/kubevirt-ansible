@@ -1,10 +1,5 @@
 package tests_test
 
-//commented by Xenia Lisovskaia
-//quick workaround due syntax error (tests can't compilate, CI broken)
-
-/*
-
 import (
 	"flag"
 	"fmt"
@@ -48,6 +43,14 @@ var _ = Describe("[rfe_id:150][crit:high][vendor:cnv-qe@redhat.com][level:compon
 	Context("Networkpolicy allow http port", func() {
 		It("[test_id:CNV-369] Set connectivity to only allow from http port", func() {
 
+			curlReq := func(ip string, port string, vmi *v1.VirtualMachineInstance, resp string) {
+				ktests.WaitUntilVMIReady(vmi, ktests.LoggedInCirrosExpecter)
+				err := ktests.CheckForTextExpecter(vmi, []expect.Batcher{
+					&expect.BSnd{S: fmt.Sprintf("curl --silent --connect-timeout 5 %s%s  | grep hellokubevirt | wc -l \n", ip, port)},
+					&expect.BExp{R: resp},
+				}, 60)
+				Expect(err).ToNot(HaveOccurred())
+			}
 			By("Create VMIs")
 			userData := "#cloud-config\npassword: fedora\nchpasswd: { expire: False }\n"
 			vmia = ktests.NewRandomVMIWithEphemeralDiskAndUserdata(ktests.ContainerDiskFor(ktests.ContainerDiskFedora), userData)
@@ -104,16 +107,3 @@ var _ = Describe("[rfe_id:150][crit:high][vendor:cnv-qe@redhat.com][level:compon
 		})
 	})
 })
-
-
-
-func curlReq(ip string, port string, vmi *v1.VirtualMachineInstance, resp string) {
-	ktests.WaitUntilVMIReady(vmi, ktests.LoggedInCirrosExpecter)
-	err := ktests.CheckForTextExpecter(vmi, []expect.Batcher{
-		&expect.BSnd{S: fmt.Sprintf("curl --silent --connect-timeout 5 %s%s  | grep hellokubevirt | wc -l \n", ip, port)},
-		&expect.BExp{R: resp},
-	}, 60)
-	Expect(err).ToNot(HaveOccurred())
-}
-
-*/
