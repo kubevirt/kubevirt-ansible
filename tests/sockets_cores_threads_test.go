@@ -37,6 +37,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	tframework "kubevirt.io/kubevirt-ansible/tests/framework"
+
+	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	ktests "kubevirt.io/kubevirt/tests"
@@ -69,18 +71,6 @@ func parseYAMLConfig(podYAML string) (bool, int, int) {
 	}
 
 	return isCPUPresent, int(resourcesRequests), int(resourcesLimits)
-}
-
-// Checking if the cluster can run at least one VM
-func isEnoughResources(virtClient kubecli.KubevirtClient, cpuNeeded int, memNeeded int64) (bool, int, int) {
-	availableVMs, cpu_limit, mem_limit := tframework.GetAvailableResources(virtClient, int64(cpuNeeded), memNeeded)
-	if availableVMs == 0 {
-		return false, cpu_limit, mem_limit
-
-	} else {
-		return true, cpu_limit, mem_limit
-
-	}
 }
 
 func getYAMLFilename(sockets, cores, threads int, address_common string) string {
@@ -137,13 +127,12 @@ func clean_pods(virtClient kubecli.KubevirtClient, requiredPods []*corev1.Pod) {
 
 	Expect(err).ToNot(HaveOccurred())
 	for _, item := range podList.Items {
-
 		deletePod := true
 		for _, internalItem := range requiredPods {
-			fmt.Println("internalItem=", internalItem.Name)
+			//fmt.Println("internalItem=", internalItem.Name)
 			if item.Name == internalItem.Name {
 				deletePod = false
-				fmt.Println("do not delete pod=", internalItem.Name)
+				//fmt.Println("do not delete pod=", internalItem.Name)
 			}
 
 		}
@@ -166,7 +155,7 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 
 	Context("test case 1.1 Check the validity of the XML file if user didn’t set the CPU topology at all", func() {
 		It("[test_id:1485] testcase 1.1 Check the validity of the XML file if user didn’t set the CPU topology at all", func() {
-			//It("Pre-checks"",func() {
+
 			vmi11.Manifest = address_common + "vmi-case1.1.yml"
 			vmi11.Namespace = ktests.NamespaceTestDefault
 
@@ -338,22 +327,10 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 			vm_index := 0
 
 			By("Declare goroutine function")
-			runVM := func(socketsN int, coresN int, threadsN int, wg *sync.WaitGroup, virtRawVMFilePath string, vm_name string) {
+			runVM := func(socketsN int, coresN int, threadsN int, vmi *v1.VirtualMachineInstance, wg *sync.WaitGroup, virtRawVMFilePath string, vm_name string) {
 				By("1.3 Starting gouroutine to create, start and test VM")
 				wg.Add(1)
 				defer wg.Done()
-				By("1.3 Create VM from template and launch it")
-				tframework.CreateResourceWithFilePathTestNamespace(virtRawVMFilePath)
-				_, _, err := ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "virtctl", "start", vm_name)
-				Expect(err).ToNot(HaveOccurred())
-				_, _, err = ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "project", ktests.NamespaceTestDefault)
-				Expect(err).ToNot(HaveOccurred())
-
-				By("1.3 Getting VMI object")
-				getVMOptions := metav1.GetOptions{}
-				vmi, err := virtClient.VirtualMachineInstance(ktests.NamespaceTestDefault).Get(vm_name, &getVMOptions)
-				Expect(err).ToNot(HaveOccurred())
-				ktests.WaitForSuccessfulVMIStart(vmi)
 
 				By("1.3 Checking that pod was created and has the right name")
 				vmiPod_vmNumName := ktests.GetRunningPodByVirtualMachineInstance(vmi, ktests.NamespaceTestDefault)
@@ -400,12 +377,8 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 				vCPUAmount := XMLSockets * XMLCores * XMLThreads
 				Expect(int(domStat.VCPU.CPUs) == vCPUAmount).To(BeTrue(), "XML should have right number of vCPUs")
 
-				// TC 2.1 and 2.2 should do the same as 1.3 but with several additional checks at the end.
-				// Creating and destroying all these VMs second time may be unnecessary time consuming
-				// TODO: 2.1 & 2.2 - move it to independent test case?
-
 				By("2.1 Expecting the VirtualMachineInstance console")
-				expecter, err := ktests.LoggedInCirrosExpecter(vmi)
+				expecter, err := tframework.LoggedInFedoraExpecter(vm_name, ktests.NamespaceTestDefault, 240, true)
 				Expect(err).ToNot(HaveOccurred(), "Console should be started")
 				defer expecter.Close()
 
@@ -456,22 +429,23 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 						}
 						const memNeeded int64 = 256 * 1024 * 1024 // 256mb is default in the template
 
-						isAvailable := false
 						const maxWaitIterations = 15 // half of minute
-						var cpuLimit, memLimit int
-						var IsResourcesInCluster bool
+						isAvailable := true
+
 						for i := 0; i < maxWaitIterations; i++ {
-							IsResourcesInCluster, cpuLimit, memLimit = isEnoughResources(virtClient, cpuNeeded, memNeeded)
+							IsResourcesInCluster, amountVMs := tframework.IsEnoughResources(virtClient, cpuNeeded, memNeeded)
+							fmt.Println("================================")
+							fmt.Println("debug in a case if goroutine fails. Amount of possible VMs=", amountVMs)
+							fmt.Println("================================")
 							if IsResourcesInCluster {
 								isAvailable = true
 								break
 							}
 							time.Sleep(2 * time.Second)
 						}
-						//workaroud for current resources in CI
-						if cpuLimit >= 1 && memLimit >= 1 {
-							Expect(isAvailable).To(BeTrue(), "Cluster should have enough resources")
-						} else {
+
+						if !isAvailable {
+							fmt.Println("cluster doesn't have resources to launch this VM! Try to launch next option")
 							break
 						}
 
@@ -484,10 +458,22 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 						virtRawVMFilePath := address_common + "/sockets_cores_threads_raw_manifest_" + vm_name + ".yaml"
 						tframework.ProcessTemplateWithParameters(filename, virtRawVMFilePath, arguments...)
 
-						//prevent server overloading - CI workaround (i/o error)
-						time.Sleep(5 * time.Second)
+						By("1.3 Create VM from template and launch it")
+						tframework.CreateResourceWithFilePathTestNamespace(virtRawVMFilePath)
+						_, _, err := ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "virtctl", "start", vm_name)
+						Expect(err).ToNot(HaveOccurred())
+						_, _, err = ktests.RunCommandWithNS(ktests.NamespaceTestDefault, "oc", "project", ktests.NamespaceTestDefault)
+						Expect(err).ToNot(HaveOccurred())
+
+						By("1.3 Getting VMI object")
+						getVMOptions := metav1.GetOptions{}
+						vmi, err := virtClient.VirtualMachineInstance(ktests.NamespaceTestDefault).Get(vm_name, &getVMOptions)
+						Expect(err).ToNot(HaveOccurred())
+						ktests.WaitForSuccessfulVMIStart(vmi)
+
 						By("launch goroutine")
-						go runVM(sockets, cores, threads, &wg, virtRawVMFilePath, vm_name)
+						fmt.Println("launch goroutine for vm ", vm_name)
+						go runVM(sockets, cores, threads, vmi, &wg, virtRawVMFilePath, vm_name)
 
 					}
 				}

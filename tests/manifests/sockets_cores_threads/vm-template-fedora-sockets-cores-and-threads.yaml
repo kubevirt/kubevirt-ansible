@@ -16,7 +16,6 @@ objects:
   metadata:
     creationTimestamp: null
     labels:
-      kubevirt-vm: vm-${NAME}
       kubevirt.io/os: fedora27
     name: ${NAME}
   spec:
@@ -25,7 +24,6 @@ objects:
       metadata:
         creationTimestamp: null
         labels:
-          kubevirt-vm: vm-${NAME}
           kubevirt.io/os: fedora27
       spec:
         domain:

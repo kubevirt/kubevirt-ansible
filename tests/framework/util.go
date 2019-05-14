@@ -150,9 +150,9 @@ func RemoveDataVolume(dvName string, namespace string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, memNeeded int64) (int, int, int) {
+func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, memNeeded int64) (int, int) {
 	nodeList := ktests.GetAllSchedulableNodes(virtClient)
-	availableVMs, cpu_limit_total, mem_limit_total := 0, 0, 0
+	cpu_limit_total, mem_limit_total := 0, 0
 
 	for _, node := range nodeList.Items {
 		cpu := node.Status.Allocatable["cpu"]
@@ -164,9 +164,23 @@ func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, m
 			mem_limit := int(available_mem / memNeeded)
 			cpu_limit_total += cpu_limit
 			mem_limit_total += mem_limit
-			availableVMs += int(math.Min(float64(cpu_limit), float64(mem_limit)))
+			//availableVMs += int(math.Min(float64(cpu_limit), float64(mem_limit)))
 		}
 	}
 
-	return availableVMs, cpu_limit_total, mem_limit_total
+	return cpu_limit_total, mem_limit_total
+}
+
+// Checking if the cluster can run at least one VM
+func IsEnoughResources(virtClient kubecli.KubevirtClient, cpuNeeded int, memNeeded int64) (bool, int) {
+	cpu_limit, mem_limit := GetAvailableResources(virtClient, int64(cpuNeeded), int64(memNeeded))
+	availableVMs := int(math.Min(float64(cpu_limit), float64(mem_limit)))
+	if availableVMs == 0 {
+		return false, availableVMs
+
+	} else {
+		return true, availableVMs
+
+	}
+
 }
