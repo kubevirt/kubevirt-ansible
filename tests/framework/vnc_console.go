@@ -54,7 +54,7 @@ func OpenConsole(virtCli kubecli.KubevirtClient, vmiName string, vmiNamespace st
 	}, timeout, opts...)
 }
 
-func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) (expect.Expecter, error) {
+func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64, vmNameInPromt bool) (expect.Expecter, error) {
 	virtClient, err := kubecli.GetKubevirtClient()
 	ktests.PanicOnError(err)
 	vmi, err := virtClient.VirtualMachineInstance(vmiNamespace).Get(vmiName, &metav1.GetOptions{})
@@ -63,10 +63,19 @@ func LoggedInFedoraExpecter(vmiName string, vmiNamespace string, timeout int64) 
 	if err != nil {
 		return nil, err
 	}
+
+	loginPromt := ""
+
+	if vmNameInPromt {
+		loginPromt = vmiName + " " + "login:"
+	} else {
+		loginPromt = "login:"
+	}
+
 	b := append([]expect.Batcher{
 		&expect.BSnd{S: "\n"},
 		&expect.BSnd{S: "\n"},
-		&expect.BExp{R: "login:"},
+		&expect.BExp{R: loginPromt},
 		&expect.BSnd{S: "fedora\n"},
 		&expect.BExp{R: "Password:"},
 		&expect.BSnd{S: "fedora\n"},

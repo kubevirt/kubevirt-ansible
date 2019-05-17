@@ -3,6 +3,7 @@ package framework
 import (
 	"errors"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -25,6 +26,11 @@ const (
 	LongTimeout  = time.Duration(4) * time.Minute
 )
 
+var (
+	ocName      = os.Getenv("OC_IN_FRAMEWORK")
+	virtctlName = os.Getenv("VIRTCTL_IN_FRAMEWORK")
+)
+
 // VirtualMachine can be a vm, vmi, vmirs, vmiPreset.
 type VirtualMachine struct {
 	Name              string
@@ -39,22 +45,22 @@ type VirtualMachine struct {
 
 func (vm VirtualMachine) Create() (string, string, error) {
 	args := []string{"create", "-f", vm.Manifest}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtOcPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, ocName, args...)
 }
 
 func (vm VirtualMachine) Start() (string, string, error) {
 	args := []string{"start", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtVirtctlPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, virtctlName, args...)
 }
 
 func (vm VirtualMachine) Stop() (string, string, error) {
 	args := []string{"stop", vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtVirtctlPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, virtctlName, args...)
 }
 
 func (vm VirtualMachine) Delete() (string, string, error) {
 	args := []string{"delete", vm.Type, vm.Name}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtVirtctlPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, ocName, args...)
 }
 
 func (vm VirtualMachine) IsRunning() (bool, error) {
@@ -73,7 +79,7 @@ func (vm VirtualMachine) IsRunning() (bool, error) {
 
 func (vm VirtualMachine) GetVMInfo(spec string) (string, string, error) {
 	args := []string{"get", vm.Type, vm.Name, "--template", spec}
-	return ktests.RunCommandWithNS(vm.Namespace, ktests.KubeVirtOcPath, args...)
+	return ktests.RunCommandWithNS(vm.Namespace, ocName, args...)
 }
 
 func (vm VirtualMachine) GetVMUID() (string, error) {
@@ -100,7 +106,7 @@ func (vm VirtualMachine) ProcessTemplate() (string, error) {
 
 	args = append(args, vm.TemplateParams...)
 
-	output, cmderr, err := ktests.RunCommandWithNS(NamespaceTestTemplate, ktests.KubeVirtOcPath, args...)
+	output, cmderr, err := ktests.RunCommandWithNS(NamespaceTestTemplate, ocName, args...)
 	if err != nil {
 		return "", err
 	}

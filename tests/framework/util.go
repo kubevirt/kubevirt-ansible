@@ -15,6 +15,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	ktests "kubevirt.io/kubevirt/tests"
+	"math"
 )
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
@@ -147,4 +148,39 @@ func RemoveDataVolume(dvName string, namespace string) {
 	Expect(err).ToNot(HaveOccurred())
 	err = virtCli.CdiClient().CdiV1alpha1().DataVolumes(namespace).Delete(dvName, nil)
 	Expect(err).ToNot(HaveOccurred())
+}
+
+func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, memNeeded int64) (int, int) {
+	nodeList := ktests.GetAllSchedulableNodes(virtClient)
+	cpu_limit_total, mem_limit_total := 0, 0
+
+	for _, node := range nodeList.Items {
+		cpu := node.Status.Allocatable["cpu"]
+		mem := node.Status.Allocatable["memory"]
+		available_cpu, CpuOK := (&cpu).AsInt64()
+		available_mem, MemOK := (&mem).AsInt64()
+		if CpuOK && MemOK {
+			cpu_limit := int(available_cpu / cpuNeeded)
+			mem_limit := int(available_mem / memNeeded)
+			cpu_limit_total += cpu_limit
+			mem_limit_total += mem_limit
+			//availableVMs += int(math.Min(float64(cpu_limit), float64(mem_limit)))
+		}
+	}
+
+	return cpu_limit_total, mem_limit_total
+}
+
+// Checking if the cluster can run at least one VM
+func IsEnoughResources(virtClient kubecli.KubevirtClient, cpuNeeded int, memNeeded int64) (bool, int) {
+	cpu_limit, mem_limit := GetAvailableResources(virtClient, int64(cpuNeeded), int64(memNeeded))
+	availableVMs := int(math.Min(float64(cpu_limit), float64(mem_limit)))
+	if availableVMs == 0 {
+		return false, availableVMs
+
+	} else {
+		return true, availableVMs
+
+	}
+
 }
