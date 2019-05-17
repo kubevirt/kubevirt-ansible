@@ -66,7 +66,7 @@ var _ = Describe("[rfe_id:905][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 				Expect(podOutput).To(Equal(tests.NamespaceTestDefault))
 
 				By("Checking mounted serviceaccount image")
-				expecter, err := tests.LoggedInFedoraExpecter(vmi.Name, tests.NamespaceTestDefault, 360)
+				expecter, err := tests.LoggedInFedoraExpecter(vmi.Name, tests.NamespaceTestDefault, 360, false)
 				Expect(err).ToNot(HaveOccurred())
 				defer expecter.Close()
 

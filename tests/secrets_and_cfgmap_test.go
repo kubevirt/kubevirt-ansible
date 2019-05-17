@@ -91,7 +91,7 @@ var _ = Describe("[rfe_id:384][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 				Expect(podOutput_cfgMap).To(Equal(expectedOutput_cfgMap))
 
 				By("Checking mounted ConfigMap image")
-				expecter, err := tests.LoggedInFedoraExpecter(vmi.Name, tests.NamespaceTestDefault, 360)
+				expecter, err := tests.LoggedInFedoraExpecter(vmi.Name, tests.NamespaceTestDefault, 360, false)
 				Expect(err).ToNot(HaveOccurred())
 				defer expecter.Close()
 
@@ -199,7 +199,7 @@ var _ = Describe("[rfe_id:384][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 				Expect(podOutput2).To(Equal(expectedPublicKey))
 
 				By("Checking mounted secrets sshkeys image")
-				expecter, err := tests.LoggedInFedoraExpecter(vmi.Name, tests.NamespaceTestDefault, 360)
+				expecter, err := tests.LoggedInFedoraExpecter(vmi.Name, tests.NamespaceTestDefault, 360, false)
 				Expect(err).ToNot(HaveOccurred())
 				defer expecter.Close()
 

@@ -33,7 +33,7 @@ var _ = Describe("[rfe_id:839][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 			tests.WaitUntilResourceReadyByNameTestNamespace("vmi", vmiName, "-o=jsonpath='{.status.phase}'", "Running")
 
 			By("Expecting console")
-			expecter, err := tests.LoggedInFedoraExpecter(vmiName, tests.NamespaceTestDefault, 720)
+			expecter, err := tests.LoggedInFedoraExpecter(vmiName, tests.NamespaceTestDefault, 720, false)
 			Expect(err).ToNot(HaveOccurred())
 			defer expecter.Close()
 
