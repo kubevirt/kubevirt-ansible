@@ -24,7 +24,7 @@ deploy_sriov_plugin: true
 deploy_skydive: false
 
 ### Web UI ##
-kubevirt_web_ui_operator_image_tag: "latest"
+kubevirt_web_ui_operator_image_tag: "1.4"
 kubevirt_web_ui_branding: "okdvirt"
 kubevirt_web_ui_version: "v1.4.0-9"
 #kubevirt_web_ui_version: ""
