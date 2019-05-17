@@ -378,7 +378,7 @@ var _ = Describe("[rfe_id:1443][crit:medium]vendor:cnv-qe@redhat.com][level:comp
 				Expect(int(domStat.VCPU.CPUs) == vCPUAmount).To(BeTrue(), "XML should have right number of vCPUs")
 
 				By("2.1 Expecting the VirtualMachineInstance console")
-				expecter, err := tframework.LoggedInFedoraExpecter(vm_name, ktests.NamespaceTestDefault, 240, true)
+				expecter, err := tframework.LoggedInFedoraExpecter(vm_name, ktests.NamespaceTestDefault, 380, true)
 				Expect(err).ToNot(HaveOccurred(), "Console should be started")
 				defer expecter.Close()
 
