@@ -58,6 +58,7 @@
   retries: 30
   delay: 10
   when: kubevirt_web_ui_version_effective != ""
+  ignore_errors: yes
 
 # The Web UI is deprovisioned either when
 #   - KWebUI CR is missing
@@ -70,4 +71,5 @@
   retries: 30
   delay: 10
   when: kubevirt_web_ui_version_effective == ""
+  ignore_errors: yes
 

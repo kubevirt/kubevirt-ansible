@@ -19,6 +19,7 @@ host-settings: &nodes-settings
     groups: [nodes]
 {% endif %}
     memory: 4096
+    vcpu: 8
     disks:
       - template_name: {{ lago_vm_image }}
         type: template
@@ -49,6 +50,7 @@ domains:
     groups: [masters, nodes, etcd, nfs]
 {% endif %}
     memory: 4096
+    vcpu: 8
     nics:
       - ip: 192.168.200.2
         net: lago-management-network

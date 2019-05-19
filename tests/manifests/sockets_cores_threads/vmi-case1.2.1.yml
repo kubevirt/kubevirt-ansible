@@ -1,0 +1,24 @@
+---
+apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachineInstance
+metadata:
+  labels:
+    special: vmi-case1.2.1
+  name: vmi-case1.2.1
+spec:
+  domain:
+    devices:
+      disks:
+      - disk:
+          bus: virtio
+        name: emptyD
+    machine:
+      type: ""
+    resources:
+      requests:
+        memory: 64M
+        cpu: 2
+  volumes:
+  - name: emptyD
+    emptyDisk:
+      capacity: 64M
