@@ -1,0 +1,41 @@
+---
+apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachineInstance
+metadata:
+  name: hyperv-test
+spec:
+  domain:
+    clock:
+      utc: {}
+      # here are the timer
+      timer:
+        hpet:
+          present: false
+        pit:
+          tickPolicy: delay
+        rtc:
+          tickPolicy: catchup
+        hyperv: {}
+    # typical features
+    features:
+      acpi: {}
+      apic: {}
+      hyperv:
+        relaxed: {}
+        vapic: {}
+        spinlocks:
+          spinlocks: 8191
+    devices:
+      disks:
+      - disk:
+          bus: virtio
+        name: emptyD
+    machine:
+      type: ""
+    resources:
+      requests:
+        memory: 64M
+  volumes:
+  - name: emptyD
+    emptyDisk:
+      capacity: 64M

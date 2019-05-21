@@ -1,0 +1,56 @@
+---
+apiVersion: kubevirt.io/v1alpha3
+kind: VirtualMachine
+metadata:
+  name: hyperv-test2
+  labels:
+    vm.cnv.io/template: win2k12r2-generic-large
+    app: hyperv-test2
+spec:
+  running: false
+  template:
+    spec:
+      domain:
+        clock:
+          utc: {}
+          timer:
+            hpet:
+              present: false
+            pit:
+              tickPolicy: delay
+            rtc:
+              tickPolicy: catchup
+            hyperv: {}
+        cpu:
+          sockets: 2
+          cores: 1
+          threads: 1
+        resources:
+          requests:
+            memory: 6G
+        features:
+          acpi: {}
+          apic: {}
+          hyperv:
+            relaxed: {}
+            vapic: {}
+            spinlocks:
+              spinlocks: 8191
+        devices:
+          disks:
+          - disk:
+              bus: sata
+            name: windows-disk
+          interfaces:
+          - bridge: {}
+            model: e1000e
+            name: default
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - name: windows-disk
+        persistentVolumeClaim:
+          claimName: disk-windows
+      networks:
+      - name: default
+        pod: {}
+

@@ -6,16 +6,19 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"golang.org/x/crypto/ssh"
+	"io/ioutil"
 	k8sv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	randk8s "k8s.io/apimachinery/pkg/util/rand"
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	ktests "kubevirt.io/kubevirt/tests"
 	"math"
+	"net/http"
+	"os/exec"
+	"strings"
 )
 
 func ProcessTemplateWithParameters(srcFilePath, dstFilePath string, params ...string) string {
@@ -35,6 +38,7 @@ func DeleteResourceWithLabelTestNamespace(resourceType, resourceLabel string) {
 	By(fmt.Sprintf("Deleting %s:%s from the json file with the oc-delete command", resourceType, resourceLabel))
 	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, resourceLabel: resourceLabel})
 }
+
 func DeleteResourceByName(resourceType, nameSpace, resourceName string) {
 	By(fmt.Sprintf("Deleting %s:%s  from %s with oc-delete command", resourceType, resourceName, nameSpace))
 	execute(Result{cmd: "oc", verb: "delete", resourceType: resourceType, nameSpace: nameSpace, resourceName: resourceName})
@@ -150,10 +154,10 @@ func RemoveDataVolume(dvName string, namespace string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
+
 func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, memNeeded int64) (int, int) {
 	nodeList := ktests.GetAllSchedulableNodes(virtClient)
 	cpu_limit_total, mem_limit_total := 0, 0
-
 	for _, node := range nodeList.Items {
 		cpu := node.Status.Allocatable["cpu"]
 		mem := node.Status.Allocatable["memory"]
@@ -164,7 +168,6 @@ func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, m
 			mem_limit := int(available_mem / memNeeded)
 			cpu_limit_total += cpu_limit
 			mem_limit_total += mem_limit
-			//availableVMs += int(math.Min(float64(cpu_limit), float64(mem_limit)))
 		}
 	}
 
@@ -172,15 +175,63 @@ func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, m
 }
 
 // Checking if the cluster can run at least one VM
-func IsEnoughResources(virtClient kubecli.KubevirtClient, cpuNeeded int, memNeeded int64) (bool, int) {
-	cpu_limit, mem_limit := GetAvailableResources(virtClient, int64(cpuNeeded), int64(memNeeded))
-	availableVMs := int(math.Min(float64(cpu_limit), float64(mem_limit)))
+func isEnoughResources(virtClient kubecli.KubevirtClient, cpuNeeded int, memNeeded int64) (bool, int, int) {
+	availableVMs, cpu_limit, mem_limit := GetAvailableResources(virtClient, int64(cpuNeeded), memNeeded)
 	if availableVMs == 0 {
-		return false, availableVMs
+		return false, cpu_limit, mem_limit
 
 	} else {
-		return true, availableVMs
+		return true, cpu_limit, mem_limit
 
 	}
+}
+
+func GetLatestGitHubReleaseURL(user_name string, repo_name string) string {
+	github_api_address := "https://api.github.com/repos/" + user_name + "/" + repo_name + "/releases/latest"
+	url_byte, err := exec.Command("/bin/bash", "-c", "curl -s "+github_api_address+" | grep browser_download_url | cut -d '\"' -f 4").Output()
+	ktests.PanicOnError(err)
+	return strings.TrimSuffix(string(url_byte), "\n")
+}
+func DownloadFile(file_url string) []byte {
+	response, err := http.Get(file_url)
+	ktests.PanicOnError(err)
+	defer response.Body.Close()
+	data, err := ioutil.ReadAll(response.Body)
+	ktests.PanicOnError(err)
+	return data
+}
+
+func CreatingWinRmiPod(winrmCliName string, virtClient kubecli.KubevirtClient) *k8sv1.Pod {
+	var winrmcliPod *k8sv1.Pod
+	winrmcliPod = &k8sv1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: winrmCliName + randk8s.String(5)},
+		Spec: k8sv1.PodSpec{
+			Containers: []k8sv1.Container{
+				{
+					Name:    winrmCliName,
+					Image:   fmt.Sprintf("%s/%s:%s", ktests.KubeVirtRepoPrefix, winrmCliName, ktests.KubeVirtVersionTag),
+					Command: []string{"sleep"},
+					Args:    []string{"3600"},
+				},
+			},
+		},
+	}
+	winrmcliPod, err := virtClient.CoreV1().Pods(ktests.NamespaceTestDefault).Create(winrmcliPod)
+	Expect(err).ToNot(HaveOccurred())
+	return winrmcliPod
+}
+
+func RunPsCommandInWindowsVM(winrmCliCmd, ip, username, password, command string, virtClient kubecli.KubevirtClient, winrmcliPod *k8sv1.Pod) (string, bool) {
+	cli := []string{winrmCliCmd, "-hostname", ip, "-username", username, "-password", password}
+	resultCommand := append(cli, command)
+	fmt.Println("command=", resultCommand)
+
+	By(fmt.Sprintf("Running \"%s\" command via winrm-cli", resultCommand))
+
+	output, err := ktests.ExecuteCommandOnPod(virtClient, winrmcliPod, winrmcliPod.Spec.Containers[0].Name, resultCommand)
+	if err != nil {
+		return output, false
+	}
+	return output, true
 
 }
