@@ -154,7 +154,6 @@ func RemoveDataVolume(dvName string, namespace string) {
 	Expect(err).ToNot(HaveOccurred())
 }
 
-
 func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, memNeeded int64) (int, int) {
 	nodeList := ktests.GetAllSchedulableNodes(virtClient)
 	cpu_limit_total, mem_limit_total := 0, 0
@@ -175,15 +174,17 @@ func GetAvailableResources(virtClient kubecli.KubevirtClient, cpuNeeded int64, m
 }
 
 // Checking if the cluster can run at least one VM
-func isEnoughResources(virtClient kubecli.KubevirtClient, cpuNeeded int, memNeeded int64) (bool, int, int) {
-	availableVMs, cpu_limit, mem_limit := GetAvailableResources(virtClient, int64(cpuNeeded), memNeeded)
+func IsEnoughResources(virtClient kubecli.KubevirtClient, cpuNeeded int, memNeeded int64) (bool, int) {
+	cpu_limit, mem_limit := GetAvailableResources(virtClient, int64(cpuNeeded), int64(memNeeded))
+	availableVMs := int(math.Min(float64(cpu_limit), float64(mem_limit)))
 	if availableVMs == 0 {
-		return false, cpu_limit, mem_limit
+		return false, availableVMs
 
 	} else {
-		return true, cpu_limit, mem_limit
+		return true, availableVMs
 
 	}
+
 }
 
 func GetLatestGitHubReleaseURL(user_name string, repo_name string) string {
@@ -201,15 +202,23 @@ func DownloadFile(file_url string) []byte {
 	return data
 }
 
-func CreatingWinRmiPod(winrmCliName string, virtClient kubecli.KubevirtClient) *k8sv1.Pod {
+func CreatingWinRmiPod(winrmCliName string, virtClient kubecli.KubevirtClient, WinrmCustomImageSelector bool, WinrmCustomImage string) *k8sv1.Pod {
 	var winrmcliPod *k8sv1.Pod
+
+	var winrmImage string
+	if WinrmCustomImageSelector {
+		winrmImage = WinrmCustomImage
+	} else {
+		winrmImage = fmt.Sprintf("%s/%s:%s", ktests.KubeVirtRepoPrefix, winrmCliName, ktests.KubeVirtVersionTag)
+	}
+
 	winrmcliPod = &k8sv1.Pod{
 		ObjectMeta: metav1.ObjectMeta{Name: winrmCliName + randk8s.String(5)},
 		Spec: k8sv1.PodSpec{
 			Containers: []k8sv1.Container{
 				{
 					Name:    winrmCliName,
-					Image:   fmt.Sprintf("%s/%s:%s", ktests.KubeVirtRepoPrefix, winrmCliName, ktests.KubeVirtVersionTag),
+					Image:   winrmImage,
 					Command: []string{"sleep"},
 					Args:    []string{"3600"},
 				},
@@ -226,7 +235,22 @@ func RunPsCommandInWindowsVM(winrmCliCmd, ip, username, password, command string
 	resultCommand := append(cli, command)
 	fmt.Println("command=", resultCommand)
 
-	By(fmt.Sprintf("Running \"%s\" command via winrm-cli", resultCommand))
+	By(fmt.Sprintf("Running \"%s\" command in the winrm-cli pod", resultCommand))
+
+	output, err := ktests.ExecuteCommandOnPod(virtClient, winrmcliPod, winrmcliPod.Spec.Containers[0].Name, resultCommand)
+	if err != nil {
+		return output, false
+	}
+	return output, true
+
+}
+
+func CopyFileIntoWindowsVM(winrmCpCmd, ip, username, password, sourceFile, DestFile string, virtClient kubecli.KubevirtClient, winrmcliPod *k8sv1.Pod) (string, bool) {
+	cli := []string{winrmCpCmd, "-addr", ip, "-user", username, "-pass", password}
+	resultCommand := append(cli, sourceFile, DestFile)
+	fmt.Println("command=", resultCommand)
+
+	By(fmt.Sprintf("Running \"%s\" command in the winrm-cli pod", resultCommand))
 
 	output, err := ktests.ExecuteCommandOnPod(virtClient, winrmcliPod, winrmcliPod.Spec.Containers[0].Name, resultCommand)
 	if err != nil {

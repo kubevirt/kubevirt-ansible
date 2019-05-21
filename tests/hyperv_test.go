@@ -38,7 +38,7 @@ import (
 	"kubevirt.io/kubevirt/pkg/kubecli"
 	"kubevirt.io/kubevirt/pkg/virt-launcher/virtwrap/api"
 	ktests "kubevirt.io/kubevirt/tests"
-	"reflect"
+	//	"reflect"
 	"time"
 )
 
@@ -247,7 +247,7 @@ var _ = Describe("windowsTest", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			By("checking hvinfo status")
-			Expect(hvinfoStruct.HyperVstatus).To(BeTrue())
+			Expect(hvinfoStruct.HyperVsupport).ToNot(BeTrue())
 
 		})
 	})
