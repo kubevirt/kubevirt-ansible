@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	expect "github.com/google/goexpect"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -28,6 +29,8 @@ var _ = Describe("[rfe_id:609][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 		memoryOvercommit           = "true"
 		headless                   = "false"
 		vmAPIVersion               = "kubevirt.io/v1alpha3"
+		memoryOvercommitGrepCmd    = "awk '/^Mem/ {print $2}' <(free -m)"
+		memoryOvercommitMemValue   = "128"
 	)
 
 	flag.Parse()
@@ -71,6 +74,19 @@ var _ = Describe("[rfe_id:609][crit:medium][vendor:cnv-qe@redhat.com][level:comp
 		It("[test_id:731]Check VM settings with 'oc describe'", func() {
 			res := tests.RunOcDescribeCommand("vmis", memoryOvercommitVMName)
 			Expect(strings.Contains(res, overcommitGuestOverheadStr)).To(BeTrue())
+		})
+		It("[test_id:732]Check overCommit inside the VMI", func() {
+			By("Expecting console")
+			expecter, err := tests.LoggedInFedoraExpecter(vmiName, tests.NamespaceTestDefault, 720, false)
+			Expect(err).ToNot(HaveOccurred())
+			defer expecter.Close()
+
+			By("Checking free memory inside VMI")
+			_, err = expecter.ExpectBatch([]expect.Batcher{
+				&expect.BSnd{S: memoryOvercommitGrepCmd},
+				&expect.BExp{R: memoryOvercommitMemValue},
+			}, 60*time.Second)
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
