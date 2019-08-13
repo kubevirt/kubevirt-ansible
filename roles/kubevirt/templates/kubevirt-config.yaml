@@ -6,3 +6,4 @@ metadata:
     kubevirt.io: ""
 data:
   feature-gates: "DataVolumes,SRIOV,LiveMigration,CPUManager"
+  debug.useEmulation: '{{ debug_use_emulation }}'
