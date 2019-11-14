@@ -13,7 +13,7 @@
     state: stopped
     enabled: no
     name: firewalld
-  failed_when: "result|failed and not 'Could not find the requested service' in result.msg"
+  ignore_errors: yes
 
 - name: remove firewalld package
   package:
