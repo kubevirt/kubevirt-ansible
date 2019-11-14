@@ -19,13 +19,13 @@
     dest: /root/weavenet.sh
     mode: 0755
 
-- name: execute weavenet.sh script 
+- name: execute weavenet.sh script
   shell: /root/weavenet.sh
   register: weavenet
 
 - name: set ipalloc_range variable
   set_fact:
-    ipalloc_range: weavenet.stdout
+    ipalloc_range: "{{weavenet.stdout}}"
 
 - name: copy kubernetes deployment script
   template:
@@ -39,4 +39,3 @@
 
 - name: set join command as fact
   set_fact: joincommand="{{kubeadm_join_command.stdout}}"
-
