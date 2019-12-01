@@ -67,20 +67,20 @@ _rsync \
     --delete \
     --include 'hack/***' \
     --include 'vendor/***' \
-    --include 'glide*' \
+    --include 'go.mod' \
+    --include 'go.sum' \
     --include 'tests/***' \
     --include 'Makefile' \
     --exclude '*' \
-    --verbose \
     ${KUBEVIRT_ANSIBLE_DIR}/ \
     "rsync://root@127.0.0.1:${RSYNCD_PORT}/build"
-
 
 # Run the command
 test -t 1 && USE_TTY="-it"
 docker run --rm -v "${BUILDER}:/root:rw,z" --security-opt label:disable ${USE_TTY} -w "/root/go/src/kubevirt.io/kubevirt-ansible" ${BUILDER} "$@"
 
 if [ "$SYNC_VENDOR" = "true" ]; then
+    _rsync --delete --include 'go.mod' --include 'go.sum' --exclude '*' --verbose "rsync://root@127.0.0.1:${RSYNCD_PORT}/build" ${KUBEVIRT_ANSIBLE_DIR}/
     _rsync --delete "rsync://root@127.0.0.1:${RSYNCD_PORT}/vendor" "${VENDOR_DIR}"
 fi
 # Copy the build output out of the container, make sure that _out exactly matches the build result

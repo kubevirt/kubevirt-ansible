@@ -1,9 +1,8 @@
 deps-update:
-	SYNC_VENDOR=true hack/dockerized.sh "glide cc && glide update --strip-vendor"
-	hack/dep-prune.sh
+	SYNC_VENDOR=true hack/dockerized.sh "GO111MODULE=on go mod tidy && GO111MODULE=on go mod vendor"
 
 distclean:
-	hack/dockerized.sh "rm -rf vendor/ && rm -f .glide.*.hash && glide cc"
+	hack/dockerized.sh "rm -rf vendor/"
 	rm -rf vendor/
 
 generate:
