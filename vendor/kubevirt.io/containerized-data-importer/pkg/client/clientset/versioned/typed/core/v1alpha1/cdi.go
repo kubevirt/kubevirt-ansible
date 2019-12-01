@@ -19,6 +19,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"time"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -30,7 +32,7 @@ import (
 // CDIsGetter has a method to return a CDIInterface.
 // A group's client should implement this interface.
 type CDIsGetter interface {
-	CDIs(namespace string) CDIInterface
+	CDIs() CDIInterface
 }
 
 // CDIInterface has methods to work with CDI resources.
@@ -50,14 +52,12 @@ type CDIInterface interface {
 // cDIs implements CDIInterface
 type cDIs struct {
 	client rest.Interface
-	ns     string
 }
 
 // newCDIs returns a CDIs
-func newCDIs(c *CdiV1alpha1Client, namespace string) *cDIs {
+func newCDIs(c *CdiV1alpha1Client) *cDIs {
 	return &cDIs{
 		client: c.RESTClient(),
-		ns:     namespace,
 	}
 }
 
@@ -65,7 +65,6 @@ func newCDIs(c *CdiV1alpha1Client, namespace string) *cDIs {
 func (c *cDIs) Get(name string, options v1.GetOptions) (result *v1alpha1.CDI, err error) {
 	result = &v1alpha1.CDI{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("cdis").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -76,11 +75,15 @@ func (c *cDIs) Get(name string, options v1.GetOptions) (result *v1alpha1.CDI, er
 
 // List takes label and field selectors, and returns the list of CDIs that match those selectors.
 func (c *cDIs) List(opts v1.ListOptions) (result *v1alpha1.CDIList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &v1alpha1.CDIList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("cdis").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -88,11 +91,15 @@ func (c *cDIs) List(opts v1.ListOptions) (result *v1alpha1.CDIList, err error) {
 
 // Watch returns a watch.Interface that watches the requested cDIs.
 func (c *cDIs) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("cdis").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -100,7 +107,6 @@ func (c *cDIs) Watch(opts v1.ListOptions) (watch.Interface, error) {
 func (c *cDIs) Create(cDI *v1alpha1.CDI) (result *v1alpha1.CDI, err error) {
 	result = &v1alpha1.CDI{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("cdis").
 		Body(cDI).
 		Do().
@@ -112,7 +118,6 @@ func (c *cDIs) Create(cDI *v1alpha1.CDI) (result *v1alpha1.CDI, err error) {
 func (c *cDIs) Update(cDI *v1alpha1.CDI) (result *v1alpha1.CDI, err error) {
 	result = &v1alpha1.CDI{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("cdis").
 		Name(cDI.Name).
 		Body(cDI).
@@ -127,7 +132,6 @@ func (c *cDIs) Update(cDI *v1alpha1.CDI) (result *v1alpha1.CDI, err error) {
 func (c *cDIs) UpdateStatus(cDI *v1alpha1.CDI) (result *v1alpha1.CDI, err error) {
 	result = &v1alpha1.CDI{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("cdis").
 		Name(cDI.Name).
 		SubResource("status").
@@ -140,7 +144,6 @@ func (c *cDIs) UpdateStatus(cDI *v1alpha1.CDI) (result *v1alpha1.CDI, err error)
 // Delete takes name of the cDI and deletes it. Returns an error if one occurs.
 func (c *cDIs) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("cdis").
 		Name(name).
 		Body(options).
@@ -150,10 +153,14 @@ func (c *cDIs) Delete(name string, options *v1.DeleteOptions) error {
 
 // DeleteCollection deletes a collection of objects.
 func (c *cDIs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("cdis").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()
@@ -163,7 +170,6 @@ func (c *cDIs) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOp
 func (c *cDIs) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.CDI, err error) {
 	result = &v1alpha1.CDI{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("cdis").
 		SubResource(subresources...).
 		Name(name).
