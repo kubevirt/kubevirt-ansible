@@ -14,11 +14,11 @@
       copy:
         src: "{{ files_dir }}/crds/kubevirt_v1alpha1_kwebui_cr.yaml"
         dest: "{{ mktemp.stdout }}/cr.yaml"
-    - name: Set kubevirt-web-ui version
+    - name: "Set kubevirt-web-ui version: '{{ kubevirt_web_ui_version_effective | default(kubevirt_web_ui_version) }}'"
       lineinfile:
         path: "{{ mktemp.stdout }}/cr.yaml"
         regexp: "^  version:.*$"
-        line: "  version: {{ kubevirt_web_ui_version }}"
+        line: "  version: {{ kubevirt_web_ui_version_effective | default(kubevirt_web_ui_version) }}"
     - name: Set kubevirt-web-ui registry_url
       lineinfile:
         path: "{{ mktemp.stdout }}/cr.yaml"
@@ -51,13 +51,13 @@
 
 # For details about the error, see logs of the operator pod
 # Example:  oc logs kubevirt-web-ui-operator-6dd9547864-pdcx5 -n kubevirt-web-ui
-- name: Wait until Web UI is ready
+- name: "Wait until Web UI is ready: '{{ kubevirt_web_ui_version_effective }}'"
   shell: "{{ cluster_command }} -n {{ kubevirt_web_ui_namespace }} get KWebUI kubevirt-web-ui -o yaml | grep -q 'phase: PROVISIONED' && echo -n DONE"
   register: result
   until: result.stdout == "DONE"
   retries: 30
   delay: 10
-  when: kubevirt_web_ui_version != ""
+  when: kubevirt_web_ui_version_effective != ""
 
 # The Web UI is deprovisioned either when
 #   - KWebUI CR is missing
@@ -69,5 +69,5 @@
   until: result.stdout == "MISSING" or result.stdout == "NOT_DEPLOYED"
   retries: 30
   delay: 10
-  when: kubevirt_web_ui_version == ""
+  when: kubevirt_web_ui_version_effective == ""
 

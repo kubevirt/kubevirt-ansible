@@ -21,5 +21,5 @@ spec:
   volumes:
   - name: containerdisk
     containerDisk:
-      image: kubevirt/cirros-container-disk-demo:latest
+      image: kubevirt/cirros-container-disk-demo:v0.13.6
 status: {}

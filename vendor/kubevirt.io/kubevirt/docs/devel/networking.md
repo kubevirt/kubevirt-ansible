@@ -1,3 +1,0 @@
-# VMI Networking
-
-TODO

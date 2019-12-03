@@ -2,7 +2,7 @@ apiVersion: kubevirt.io/v1alpha3
 kind: VirtualMachineInstance
 metadata:
   annotations:
-    hooks.kubevirt.io/hookSidecars: '[{"image": "kubevirt/example-hook-sidecar:v0.13.0"}]'
+    hooks.kubevirt.io/hookSidecars: '[{"image": "kubevirt/example-hook-sidecar:v0.13.7"}]'
     smbios.vm.kubevirt.io/baseBoardManufacturer: "Radical Edward"
   creationTimestamp: null
   labels:
@@ -27,7 +27,7 @@ spec:
   volumes:
   - name: containerdisk
     containerDisk:
-      image: kubevirt/fedora-cloud-container-disk-demo:latest
+      image: kubevirt/fedora-cloud-container-disk-demo:v0.13.6
   - cloudInitNoCloud:
       userData: |-
         #cloud-config

@@ -62,7 +62,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/remotecommand"
 
-	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/datavolumecontroller/v1alpha1"
+	cdiv1 "kubevirt.io/containerized-data-importer/pkg/apis/core/v1alpha1"
 	"kubevirt.io/kubevirt/pkg/api/v1"
 	"kubevirt.io/kubevirt/pkg/controller"
 	"kubevirt.io/kubevirt/pkg/kubecli"
@@ -76,7 +76,7 @@ import (
 
 var KubeVirtVersionTag = "latest"
 var KubeVirtRepoPrefix = "kubevirt"
-var ContainerizedDataImporterNamespace = "kube-system"
+var ContainerizedDataImporterNamespace = "cdi"
 var KubeVirtKubectlPath = ""
 var KubeVirtOcPath = ""
 var KubeVirtVirtctlPath = ""
@@ -88,7 +88,7 @@ var PathToTestingInfrastrucureManifests = ""
 func init() {
 	flag.StringVar(&KubeVirtVersionTag, "container-tag", "latest", "Set the image tag or digest to use")
 	flag.StringVar(&KubeVirtRepoPrefix, "container-prefix", "kubevirt", "Set the repository prefix for all images")
-	flag.StringVar(&ContainerizedDataImporterNamespace, "cdi-namespace", "kube-system", "Set the repository prefix for CDI components")
+	flag.StringVar(&ContainerizedDataImporterNamespace, "cdi-namespace", "cdi", "Set the repository prefix for CDI components")
 	flag.StringVar(&KubeVirtKubectlPath, "kubectl-path", "", "Set path to kubectl binary")
 	flag.StringVar(&KubeVirtOcPath, "oc-path", "", "Set path to oc binary")
 	flag.StringVar(&KubeVirtVirtctlPath, "virtctl-path", "", "Set path to virtctl binary")
@@ -596,6 +596,11 @@ func CreateHostPathPvWithSize(osName string, hostPath string, size string) {
 	hostPathType := k8sv1.HostPathDirectoryOrCreate
 
 	name := fmt.Sprintf("%s-disk-for-tests", osName)
+
+	nodes := GetAllSchedulableNodes(virtCli)
+	Expect(len(nodes.Items) > 0).To(BeTrue())
+	nodeName := nodes.Items[0].Name
+
 	pv := &k8sv1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -624,7 +629,7 @@ func CreateHostPathPvWithSize(osName string, hostPath string, size string) {
 								{
 									Key:      "kubernetes.io/hostname",
 									Operator: k8sv1.NodeSelectorOpIn,
-									Values:   []string{"node01"},
+									Values:   []string{nodeName},
 								},
 							},
 						},
@@ -1501,6 +1506,12 @@ func newBlockVolumePV(name string, labelSelector map[string]string, size string)
 	storageClass := BlockVolumeStorageClass
 	volumeMode := k8sv1.PersistentVolumeBlock
 
+	virtCli, err := kubecli.GetKubevirtClient()
+	PanicOnError(err)
+
+	nodes := GetAllSchedulableNodes(virtCli)
+	Expect(len(nodes.Items) > 0).To(BeTrue())
+	nodeName := nodes.Items[0].Name
 	// Note: the path depends on kubevirtci!
 	// It's configured to have a device backed by a cirros image at exactly that place on node01
 	// And the local storage provider also has access to it
@@ -1529,7 +1540,7 @@ func newBlockVolumePV(name string, labelSelector map[string]string, size string)
 								{
 									Key:      "kubernetes.io/hostname",
 									Operator: k8sv1.NodeSelectorOpIn,
-									Values:   []string{"node01"},
+									Values:   []string{nodeName},
 								},
 							},
 						},
