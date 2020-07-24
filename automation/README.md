@@ -2,7 +2,7 @@
 Any code changes in this repository** are verified using
 [oVirt CI System][ovirt-ci-system-doc].
 
-All configurtion and script files required
+All configuration and script files required
 by [oVirt CI][ovirt-ci-system-doc] are located in the [automation](../automation)
 directory. In addition, there is the [`stdci.yaml`](../stdci.yaml) configuration file.
 
