@@ -29,6 +29,7 @@
 
 - name: Give the kubevirt-operator user privilages
   command: "{{ cluster_command }} adm policy add-scc-to-user privileged -n {{ namespace }} -z kubevirt-operator"
+  when: platform == "openshift"
 
 - name: Wait until virt-operator is running
   shell: "{{ cluster_command }} -n {{ namespace }} get deployment | grep virt-operator | awk \'{ if ($2 == $5) print \"0\"; else print \"1\"}\'"
