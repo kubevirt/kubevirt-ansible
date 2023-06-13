@@ -1,3 +1,7 @@
+
+> **Warning**
+> This repository is obsolete. The recommendation is to use kubernetes.core for virtualization machine management.
+
 # KubeVirt Ansible
 
 __Tools to provision resources, deploy clusters and install KubeVirt.__
